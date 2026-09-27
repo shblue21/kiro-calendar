@@ -1,0 +1,7 @@
+node_modules/
+ui/dist/
+.DS_Store
+
+# Local documentation only. Never commit or push this directory.
+/docs/
+/.build/

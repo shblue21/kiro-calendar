@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <title>Calendar Spark — 달력과 반짝임</title>
+  <rect x="11" y="13" width="42" height="44" rx="10" fill="#EEE5FF" stroke="#8950E5" stroke-width="3.5"/>
+  <path d="M12 27H52" stroke="#8950E5" stroke-width="3.5"/>
+  <path d="M22 8V18M42 8V18" stroke="#8950E5" stroke-width="5" stroke-linecap="round"/>
+  <path d="M32 30C34.2 37.6 35.4 38.8 43 41C35.4 43.2 34.2 44.4 32 52C29.8 44.4 28.6 43.2 21 41C28.6 38.8 29.8 37.6 32 30Z" fill="#8950E5"/>
+</svg>

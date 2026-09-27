@@ -1,0 +1,13 @@
+{
+  "name": "crew-calendar",
+  "version": "0.1.0",
+  "displayName": "Calendar Preview",
+  "description": "A UI-only preview of human events, AI schedules and agent activity on one calendar. Sample data only.",
+  "tags": ["calendar", "productivity", "preview"],
+  "ui": {
+    "entry": "dist/index.mjs",
+    "pages": [{ "route": "/apps/crew-calendar", "label": "Calendar Preview", "icon": "Calendar", "iconUrl": "assets/calendar-spark.svg" }],
+    "sidebar": { "section": "Apps", "order": 15 }
+  },
+  "permissions": { "api": [], "events": [], "storage": false, "network": false, "cron": false }
+}

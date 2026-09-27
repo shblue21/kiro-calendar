@@ -1,0 +1,10 @@
+{
+  "name": "crew-calendar",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm --prefix ui run build",
+    "test": "npm --prefix ui test && node --test scripts/package.test.mjs",
+    "package": "npm run build && node scripts/package.mjs"
+  }
+}
