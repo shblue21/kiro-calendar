@@ -82,8 +82,8 @@ export function AutoSchedulePage({
         return (
           <article className="cc-auto-task" key={task.id}>
             <div className="cc-task-date">
-              {date.getMonth() + 1}/{date.getDate()} ({DAYS[task.day]})
-              <span>{clock(task.minute)}</span>
+              {date.getMonth() + 1}/{date.getDate()} (
+              {DAYS[((task.day % 7) + 7) % 7]})<span>{clock(task.minute)}</span>
             </div>
             <div>
               <h3>{task.title}</h3>

@@ -12,6 +12,8 @@ export type CalendarViewItem = {
   description: string;
   flexible?: boolean;
   automatic?: boolean;
+  taskId?: string;
+  recurrence?: string;
   artifact?: string;
   related?: string;
   allDay?: boolean;
@@ -19,5 +21,6 @@ export type CalendarViewItem = {
 };
 
 export type CalendarReferenceTime = { day: number; minute: number };
-export type CalendarView = "week" | "agenda";
+export type CalendarView = "week" | "month" | "year";
+export type CalendarLayout = "calendar" | "list";
 export type CalendarLayers = Record<Kind, boolean>;

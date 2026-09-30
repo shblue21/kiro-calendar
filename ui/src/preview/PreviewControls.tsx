@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { Btn } from "@kirocrew/app-sdk/ui";
-import { AlertCircle, FlaskConical, RotateCcw } from "../platform/kiro/icons";
+import { AlertCircle, RotateCcw } from "../platform/kiro/icons";
 
-export type PreviewScene = "sample" | "empty" | "partial";
+export type PreviewScene = "sample" | "empty" | "partial" | "loading" | "error";
 export function PreviewControls({
   scene,
   onChange,
@@ -10,37 +9,25 @@ export function PreviewControls({
   scene: PreviewScene;
   onChange: (scene: PreviewScene) => void;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="cc-preview-control">
-      <Btn
-        className="cc-sample-button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-      >
-        <FlaskConical size={13} />
-        샘플 데이터 · 연결 없음
-      </Btn>
-      {open && (
-        <div className="cc-scenarios" aria-label="샘플 화면 상태">
-          <span>화면 상태 미리보기</span>
-          {(
-            [
-              { id: "sample", label: "일정 있는 화면" },
-              { id: "empty", label: "처음 시작" },
-              { id: "partial", label: "일부 연결 오류" },
-            ] as const
-          ).map((option) => (
-            <Btn
-              key={option.id}
-              aria-pressed={scene === option.id}
-              onClick={() => onChange(option.id)}
-            >
-              {option.label}
-            </Btn>
-          ))}
-        </div>
-      )}
+    <div className="cc-scenarios" aria-label="샘플 화면 상태">
+      {(
+        [
+          { id: "sample", label: "일정 있는 화면" },
+          { id: "empty", label: "처음 시작" },
+          { id: "partial", label: "일부 연결 오류" },
+          { id: "loading", label: "불러오는 중" },
+          { id: "error", label: "불러오기 실패" },
+        ] as const
+      ).map((option) => (
+        <Btn
+          key={option.id}
+          aria-pressed={scene === option.id}
+          onClick={() => onChange(option.id)}
+        >
+          {option.label}
+        </Btn>
+      ))}
     </div>
   );
 }

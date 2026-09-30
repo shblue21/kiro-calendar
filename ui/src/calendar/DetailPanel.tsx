@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Badge, Btn } from "@kirocrew/app-sdk/ui";
 import {
   X,
-  Sparkles,
   CalendarDays,
   Clock3,
   Activity,
   ChevronRight,
   FileText,
-  FlaskConical,
-  ArrowUpRight,
 } from "../platform/kiro/icons";
 import type { CalendarViewItem, CalendarReferenceTime } from "./types";
 import { DAYS } from "./dates";
@@ -22,9 +20,10 @@ type Props = {
   items: readonly CalendarViewItem[];
   dates: Date[];
   referenceTime: CalendarReferenceTime;
-  timeZone: string;
   onClose: () => void;
-  onOpenEvent: (id: string) => void;
+  /** Event-only primary action area (conversation, result, prep status). */
+  actions?: ReactNode;
+  onEdit: () => void;
   onSelect: (item: CalendarViewItem, button: HTMLButtonElement) => void;
 };
 
@@ -33,9 +32,9 @@ export function DetailPanel({
   items,
   dates,
   referenceTime,
-  timeZone,
   onClose,
-  onOpenEvent,
+  actions,
+  onEdit,
   onSelect,
 }: Props) {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -74,6 +73,7 @@ export function DetailPanel({
           {STATUS_LABEL[item.status]}
         </Badge>
       )}
+      {item.kind !== "run" && <Btn onClick={onEdit}>샘플 편집</Btn>}
       <p className="cc-description">{item.description}</p>
       <dl>
         <dt>
@@ -82,7 +82,7 @@ export function DetailPanel({
         </dt>
         <dd>
           {dates[item.day].getMonth() + 1}월 {dates[item.day].getDate()}일 (
-          {DAYS[item.day]})
+          {DAYS[(dates[item.day].getDay() + 6) % 7]})
         </dd>
         <dt>
           <Clock3 size={14} />
@@ -91,18 +91,19 @@ export function DetailPanel({
         <dd>{timeLabel(item)}</dd>
         <dt>{item.kind === "event" ? "캘린더" : "담당 에이전트"}</dt>
         <dd>{item.source}</dd>
-        <dt>시간대</dt>
-        <dd>{timeZone}</dd>
         {item.kind === "event" && (
           <>
-            <dt>편집</dt>
-            <dd>읽기 전용</dd>
+            <dt>저장</dt>
+            <dd>샘플 · 외부 저장 없음</dd>
           </>
         )}
         {item.kind === "trigger" && (
           <>
             <dt>반복</dt>
-            <dd>{item.flexible ? "평일 · 유연한 시작" : "일회성 예약"}</dd>
+            <dd>
+              {item.recurrence ??
+                (item.flexible ? "평일 · 유연한 시작" : "일회성 예약")}
+            </dd>
           </>
         )}
         {item.kind === "run" && (
@@ -115,14 +116,7 @@ export function DetailPanel({
           </>
         )}
       </dl>
-      {item.kind === "event" && (
-        <div className="cc-related">
-          <Btn primary onClick={() => onOpenEvent(item.id)}>
-            <Sparkles size={14} />
-            연결된 작업·대화 보기
-          </Btn>
-        </div>
-      )}
+      {item.kind === "event" && actions}
       {relatedItem && (
         <div className="cc-related">
           <h3>
@@ -170,21 +164,13 @@ export function DetailPanel({
           )}
         </div>
       )}
-      <div className="cc-detail-bottom">
-        <span>
-          <FlaskConical size={14} />
-          화면 미리보기
-        </span>
-        <p>실제 캘린더와 세션은 아직 연결하지 않았습니다.</p>
-        <Btn disabled>
-          <ArrowUpRight size={14} />
-          {item.kind === "event"
-            ? "원본 일정 보기"
-            : item.kind === "trigger"
-              ? "Schedule에서 보기"
-              : "세션에서 보기"}
-        </Btn>
-      </div>
+      <p className="cc-detail-bottom">
+        {item.kind === "event"
+          ? "원본 캘린더 열기는 아직 지원하지 않습니다."
+          : item.kind === "trigger"
+            ? "Schedule에서 열기는 아직 지원하지 않습니다."
+            : "세션 열기는 아직 지원하지 않습니다."}
+      </p>
     </aside>
   );
 }

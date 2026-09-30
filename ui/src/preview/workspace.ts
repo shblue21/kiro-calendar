@@ -12,10 +12,12 @@ export type PreviewTask = {
   source: string;
   quote: string;
   reason: string;
+  repeat?: "none" | "daily" | "weekly";
   result?: { name: string; title: string; summary: string; bullets: string[] };
 };
 export type WorkspaceState = { autoOn: boolean; tasks: PreviewTask[] };
 export type WorkspaceAction =
+  | { type: "save"; task: PreviewTask }
   | { type: "auto"; value: boolean }
   | { type: "pause-auto" }
   | { type: "status"; id: string; status: "scheduled" | "paused" | "cancelled" }
@@ -26,6 +28,13 @@ export function workspaceReducer(
   action: WorkspaceAction,
 ): WorkspaceState {
   if (action.type === "auto") return { ...state, autoOn: action.value };
+  if (action.type === "save")
+    return {
+      ...state,
+      tasks: state.tasks.some((t) => t.id === action.task.id)
+        ? state.tasks.map((t) => (t.id === action.task.id ? action.task : t))
+        : [...state.tasks, action.task],
+    };
   return {
     ...state,
     tasks: state.tasks.map((task) => {
@@ -38,7 +47,7 @@ export function workspaceReducer(
       if (action.type === "status") return { ...task, status: action.status };
       if (task.status === "cancelled") return task;
       const absolute = task.day * 1440 + task.minute + action.minutes;
-      if (absolute < 0 || absolute >= 7 * 1440) return task;
+      if (!Number.isFinite(absolute)) return task;
       return {
         ...task,
         day: Math.floor(absolute / 1440),
@@ -50,21 +59,42 @@ export function workspaceReducer(
 
 export function calendarTasks(
   tasks: readonly PreviewTask[],
+  weekOffset = 0,
+  range?: { first: number; end: number },
 ): CalendarViewItem[] {
   return tasks
     .filter((task) => task.status === "scheduled")
-    .map((task) => ({
-      id: task.id,
-      day: task.day,
-      kind: "trigger",
-      title: task.title,
-      start: task.minute,
-      status: "scheduled",
-      automatic: task.automatic,
-      source: task.automatic ? "Crew · 자동 예약" : "Crew · 직접 예약",
-      description: task.description,
-      related: task.eventId,
-    }));
+    .flatMap((task) => {
+      const first = range?.first ?? weekOffset * 7;
+      const days =
+        task.repeat && task.repeat !== "none"
+          ? Array.from({ length: (range?.end ?? first + 7) - first }, (_, i) => first + i).filter(
+              (day) =>
+                day >= task.day &&
+                (task.repeat === "daily" || (day - task.day) % 7 === 0),
+            )
+          : [task.day];
+      return days.map((day) => ({
+        id:
+          task.repeat && task.repeat !== "none" ? `${task.id}@${day}` : task.id,
+        taskId: task.id,
+        recurrence:
+          task.repeat === "daily"
+            ? "매일"
+            : task.repeat === "weekly"
+              ? "매주 같은 요일"
+              : "일회성 예약",
+        day,
+        kind: "trigger" as const,
+        title: task.title,
+        start: task.minute,
+        status: "scheduled" as const,
+        automatic: task.automatic,
+        source: task.automatic ? "Crew · 자동 예약" : "Crew · 직접 예약",
+        description: task.description,
+        related: task.eventId,
+      }));
+    });
 }
 
 export const PREVIEW_TASKS: PreviewTask[] = [

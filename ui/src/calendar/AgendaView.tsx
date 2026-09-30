@@ -1,38 +1,50 @@
+import { Fragment } from "react";
 import { Badge, Btn } from "@kirocrew/app-sdk/ui";
 import { ChevronRight } from "../platform/kiro/icons";
-import type { CalendarViewItem, CalendarReferenceTime } from "./types";
-import { DAYS } from "./dates";
+import type { CalendarViewItem } from "./types";
+import { DAYS, shift, dateKey } from "./dates";
 import { STATUS_LABEL, timeLabel } from "./format";
 import { TypeMark } from "./TypeMark";
 
 type Props = {
   items: readonly CalendarViewItem[];
-  dates: Date[];
-  referenceTime: CalendarReferenceTime;
+  base: Date;
+  sampleDate: Date;
   selectedId?: string;
   onSelect: (item: CalendarViewItem, button: HTMLButtonElement) => void;
 };
 
 export function AgendaView({
   items,
-  dates,
-  referenceTime,
+  base,
+  sampleDate,
   selectedId,
   onSelect,
 }: Props) {
+  const days = [...new Set(items.map((item) => item.day))].sort((a, b) => a - b);
+  const monthOf = (day: number) => {
+    const date = shift(base, day);
+    return `${date.getFullYear()}-${date.getMonth()}`;
+  };
+  // Month headings only when the listed days span more than one month.
+  const multiMonth = new Set(days.map(monthOf)).size > 1;
   return (
     <div className="cc-agenda">
-      {dates.map((date, day) => {
+      {days.map((day, index) => {
+        const date = shift(base, day);
+        const monthHeading = multiMonth && (index === 0 || monthOf(days[index - 1]) !== monthOf(day));
         const list = items
           .filter((x) => x.day === day)
           .sort((a, b) => a.start - b.start);
         if (!list.length) return null;
         return (
-          <section key={day}>
+          <Fragment key={day}>
+          {monthHeading && <h2 className="cc-agenda-month">{date.getFullYear()}년 {date.getMonth() + 1}월</h2>}
+          <section>
             <h3>
               {date.getMonth() + 1}월 {date.getDate()}일{" "}
-              <span>{DAYS[day]}요일</span>
-              {day === referenceTime.day && (
+              <span>{DAYS[(date.getDay() + 6) % 7]}요일</span>
+              {dateKey(date) === dateKey(sampleDate) && (
                 <Badge variant="aim">예시 현재 날짜</Badge>
               )}
             </h3>
@@ -67,6 +79,7 @@ export function AgendaView({
               </Btn>
             ))}
           </section>
+          </Fragment>
         );
       })}
     </div>

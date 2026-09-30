@@ -56,6 +56,16 @@ export const ITEMS: CalendarViewItem[] = [
     description: "관련 자료를 조사하고 있습니다.",
   },
   {
+    id: "paperwork",
+    day: 1,
+    kind: "event",
+    title: "서류 제출 준비",
+    start: 1200,
+    end: 1230,
+    source: "개인 캘린더",
+    description: "대화에서 제안받아 등록한 일정의 예시입니다.",
+  },
+  {
     id: "review",
     day: 3,
     kind: "event",
@@ -96,3 +106,18 @@ export const ITEMS: CalendarViewItem[] = [
     description: "주말 일정입니다.",
   },
 ];
+
+/** Sample-only conversation state per event. Real links need a verified session id. */
+export type EventLink =
+  | { state: "origin"; conversation: string; proposedOn: string }
+  | { state: "prep"; conversation: string }
+  | { state: "missing" }
+  | { state: "checking" }
+  | { state: "failed" };
+export const EVENT_LINKS: Record<string, EventLink> = {
+  paperwork: { state: "origin", conversation: "세금 신고 대화", proposedOn: "9/27" },
+  planning: { state: "prep", conversation: "주간 계획 준비 대화" },
+  review: { state: "prep", conversation: "출시 리뷰 준비 대화" },
+  offsite: { state: "missing" },
+  weekend: { state: "failed" },
+};

@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Btn } from "@kirocrew/app-sdk/ui";
-import { ArrowUpRight, CalendarDays, List } from "../platform/kiro/icons";
+import { ArrowUpRight, CalendarDays } from "../platform/kiro/icons";
 import type {
   CalendarViewItem,
   CalendarLayers,
   CalendarReferenceTime,
   CalendarView,
+  CalendarLayout,
   Kind,
 } from "./types";
+import { STATUS_LABEL } from "./format";
+import { MonthView } from "./MonthView";
+import { YearView } from "./YearView";
+import { calendarRange, movePeriod } from "./period";
 import { DAYS, shift } from "./dates";
-import { clock } from "./format";
 import { CalendarToolbar } from "./CalendarToolbar";
 import { WeekView } from "./WeekView";
 import { AgendaView } from "./AgendaView";
@@ -20,26 +24,46 @@ type Props = {
   items: readonly CalendarViewItem[];
   weekStart: Date;
   referenceTime: CalendarReferenceTime;
-  timeZone: string;
-  previewControls?: ReactNode;
+  view: CalendarView;
+  layout: CalendarLayout;
+  onLayout: (layout: CalendarLayout) => void;
+  onView: (view: CalendarView) => void;
   notice?: ReactNode;
   onResetPreview: () => void;
-  onOpenEvent: (id: string) => void;
+  eventActions: (id: string) => ReactNode;
+  focusDate: Date;
+  onFocusDate: (date: Date) => void;
+  offset: number;
+  onOffset: (offset: number) => void;
+  jump?: { id: string; serial: number };
+  scene: string;
+  onAdd: () => void;
+  onEdit: (item: CalendarViewItem) => void;
 };
 
 export function CalendarPage({
   items: suppliedItems,
   weekStart,
   referenceTime,
-  timeZone,
-  previewControls,
+  view,
+  layout,
+  onLayout,
+  onView,
   notice,
   onResetPreview,
-  onOpenEvent,
+  eventActions,
+  focusDate,
+  onFocusDate,
+  offset,
+  onOffset,
+  jump,
+  scene,
+  onAdd,
+  onEdit,
 }: Props) {
-  const [sourcesOpen, setSourcesOpen] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const [view, setView] = useState<CalendarView>("week");
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const setOffset = onOffset;
   const [narrow, setNarrow] = useState(
     () => window.matchMedia("(max-width: 760px)").matches,
   );
@@ -51,16 +75,30 @@ export function CalendarPage({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const sourceButton = useRef<HTMLButtonElement | null>(null);
   const dates = DAYS.map((_, day) => shift(weekStart, offset * 7 + day));
-  const effectiveView = narrow ? "agenda" : view;
+  const effectiveView = view;
+  const effectiveLayout = narrow && view === "week" ? "list" : layout;
   const inSampleWeek = offset === 0;
-  const items = inSampleWeek
-    ? suppliedItems.filter((item) => layers[item.kind])
-    : [];
-  const selected = inSampleWeek
-    ? suppliedItems.find((item) => item.id === selectedId && layers[item.kind])
-    : undefined;
-  const filteredOut =
-    inSampleWeek && suppliedItems.length > 0 && items.length === 0;
+  const range = calendarRange(focusDate, effectiveView, weekStart, effectiveLayout);
+  const periodItems = suppliedItems.filter((item) => item.day >= range.first && item.day < range.end);
+  const matches = (item: CalendarViewItem) => layers[item.kind] &&
+    (!query.trim() || `${item.title} ${item.description} ${item.source} ${item.status ? STATUS_LABEL[item.status] : ""} ${item.artifact ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const canonicalItems = periodItems.filter(matches);
+  const items = canonicalItems.map((item) => ({ ...item, day: item.day - offset * 7 }));
+  const selectedCanonical = canonicalItems.find((item) => item.id === selectedId);
+  const selectedWeek = selectedCanonical ? Math.floor(selectedCanonical.day / 7) : offset;
+  const detailDates = DAYS.map((_, day) => shift(weekStart, selectedWeek * 7 + day));
+  const selected = selectedCanonical ? { ...selectedCanonical, day: selectedCanonical.day - selectedWeek * 7 } : undefined;
+  const filteredOut = periodItems.length > 0 && items.length === 0;
+  const rangeLabel = effectiveView === "year" ? `${focusDate.getFullYear()}년`
+    : effectiveView === "month" ? `${focusDate.getFullYear()}년 ${focusDate.getMonth() + 1}월`
+    : `${dates[0].getFullYear()}년 ${dates[0].getMonth() + 1}월 ${dates[0].getDate()}일–${dates[6].getFullYear() !== dates[0].getFullYear() ? `${dates[6].getFullYear()}년 ` : ""}${dates[6].getMonth() + 1}월 ${dates[6].getDate()}일`;
+  useEffect(() => {
+    if (jump) {
+      setSelectedId(jump.id);
+      setQuery("");
+      setLayers({ event: true, trigger: true, run: true });
+    }
+  }, [jump]);
   const closeDetail = () => {
     setSelectedId(null);
     if (sourceButton.current?.isConnected) sourceButton.current.focus();
@@ -68,10 +106,13 @@ export function CalendarPage({
   function select(item: CalendarViewItem, button: HTMLButtonElement) {
     // Keep the grid/list opener when following links inside the drawer.
     if (!button.closest(".cc-detail")) sourceButton.current = button;
+    const canonical = suppliedItems.find((i) => i.id === item.id);
+    if (canonical && (canonical.day < range.first || canonical.day >= range.end))
+      onFocusDate(shift(weekStart, canonical.day));
     setSelectedId(item.id);
   }
-  function moveWeek(next: number) {
-    setOffset(next);
+  function moveDate(next: Date) {
+    onFocusDate(next);
     setSelectedId(null);
   }
   function toggle(kind: Kind) {
@@ -87,7 +128,7 @@ export function CalendarPage({
   useEffect(() => {
     if (!selected) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeDetail();
+      if (event.key === "Escape" && !document.querySelector("dialog[open]")) closeDetail();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -96,72 +137,92 @@ export function CalendarPage({
   return (
     <>
       <div className="cc-content">
-        <div className="cc-calendar-controls">
-          <Btn
-            aria-expanded={sourcesOpen}
-            onClick={() => setSourcesOpen((value) => !value)}
-          >
-            연결된 캘린더 · 예시
-          </Btn>
-          <div className="cc-view-switch" aria-label="달력 보기">
+        <CalendarToolbar
+          range={rangeLabel}
+          onPrevious={() => moveDate(movePeriod(focusDate, effectiveView, -1))}
+          onNext={() => moveDate(movePeriod(focusDate, effectiveView, 1))}
+          onReset={() => moveDate(shift(weekStart, referenceTime.day))}
+          view={effectiveView}
+          layout={effectiveLayout}
+          onLayout={onLayout}
+          narrow={narrow}
+          onView={onView}
+          layers={layers}
+          onToggle={toggle}
+          searchOpen={searchOpen}
+          onSearch={() => setSearchOpen((value) => !value)}
+        />
+        {searchOpen && (
+          <div className="cc-search-row">
+            <input
+              autoFocus
+              aria-label="검색어"
+              placeholder={`${effectiveView === "year" ? "이 해" : effectiveView === "month" ? "표시된 달력" : "이 주"}의 제목·설명·출처·상태 검색`}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <span>{items.length}건</span>
             <Btn
-              onClick={() => setView("week")}
-              aria-pressed={effectiveView === "week"}
-              disabled={narrow}
+              onClick={() => {
+                setQuery("");
+                setSearchOpen(false);
+              }}
             >
-              <CalendarDays size={15} />
-              주간
+              닫기
             </Btn>
-            <Btn
-              onClick={() => setView("agenda")}
-              aria-pressed={effectiveView === "agenda"}
-            >
-              <List size={15} />
-              목록
-            </Btn>
-          </div>
-        </div>
-        {sourcesOpen && (
-          <div className="cc-source-panel">
-            <strong>캘린더 연결 상태 예시</strong>
-            <p>Google · 업무 일정 / 개인 일정 / Crew 예약과 실행</p>
-            <p>실제 계정은 연결하지 않았으며, 아래 화면은 가상 데이터입니다.</p>
           </div>
         )}
-        <CalendarToolbar
-          dates={dates}
-          offset={offset}
-          timeZone={timeZone}
-          layers={layers}
-          onMove={moveWeek}
-          onToggle={toggle}
-          extra={previewControls}
-        />
         {notice}
         <div className={`cc-workspace ${selected ? "cc-has-detail" : ""}`}>
           <section className="cc-main" aria-label="달력">
-            {items.length === 0 ? (
+            {scene === "loading" || scene === "error" ? (
+              <div className="cc-state-panel" role="status">
+                <h3>
+                  {scene === "loading"
+                    ? "일정을 불러오고 있습니다"
+                    : "일정을 불러오지 못했습니다"}
+                </h3>
+                <p>
+                  {scene === "loading"
+                    ? "로딩 화면 예시입니다."
+                    : "연결 상태를 확인한 후 다시 시도해 주세요. 실패 화면 예시입니다."}
+                </p>
+                <Btn onClick={onResetPreview}>
+                  {scene === "loading"
+                    ? "불러오기 완료 · 예시"
+                    : "다시 시도 · 예시"}
+                </Btn>
+              </div>
+            ) : effectiveLayout === "calendar" && effectiveView === "month" ? (
+              <MonthView date={focusDate} base={weekStart} sampleDate={shift(weekStart, referenceTime.day)}
+                items={canonicalItems} selectedId={selectedId ?? undefined} onSelect={select}
+                onDay={(day) => { moveDate(day); onView("week"); }} />
+            ) : effectiveLayout === "calendar" && effectiveView === "year" ? (
+              <YearView date={focusDate} base={weekStart} sampleDate={shift(weekStart, referenceTime.day)}
+                items={canonicalItems} onMonth={(month) => { moveDate(month); onView("month"); }} />
+            ) : items.length === 0 ? (
               <div className="cc-empty">
                 <div className="cc-empty-icon">
                   <CalendarDays size={32} />
                 </div>
                 <h3>
                   {filteredOut
-                    ? "표시할 항목을 선택해 주세요"
+                    ? "검색·표시 조건에 맞는 항목이 없습니다"
                     : suppliedItems.length === 0
-                      ? "일정과 AI 작업을 함께 만나보세요"
-                      : "이 주에는 샘플 일정이 없습니다"}
+                      ? "아직 표시할 일정이 없습니다"
+                      : "이 기간에는 샘플 일정이 없습니다"}
                 </h3>
                 <p>
                   {filteredOut
                     ? "사람 일정, AI 예약, 실제 실행을 켜고 끌 수 있습니다."
                     : suppliedItems.length === 0
                       ? "연결된 일정과 예약된 작업이 이곳에 표시됩니다. 지금은 예시 화면으로 먼저 둘러볼 수 있습니다."
-                      : "예시 데이터는 이번 주에만 준비되어 있습니다."}
+                      : "다른 기간을 선택하거나 예시 날짜로 돌아가세요."}
                 </p>
                 <Btn
                   primary
                   onClick={() => {
+                    setQuery("");
                     setLayers({ event: true, trigger: true, run: true });
                     if (!filteredOut) {
                       setOffset(0);
@@ -169,11 +230,15 @@ export function CalendarPage({
                     }
                   }}
                 >
-                  {filteredOut ? "모두 표시" : "예시 일정 보기"}
+                  {filteredOut ? "검색·필터 초기화" : "예시 일정 보기"}
                   <ArrowUpRight size={14} />
                 </Btn>
+                <Btn onClick={onAdd}>
+                  <CalendarDays size={14} />
+                  일정 추가
+                </Btn>
               </div>
-            ) : effectiveView === "week" ? (
+            ) : effectiveLayout === "calendar" ? (
               <WeekView
                 items={items}
                 dates={dates}
@@ -184,29 +249,24 @@ export function CalendarPage({
               />
             ) : (
               <AgendaView
-                items={items}
-                dates={dates}
-                referenceTime={referenceTime}
+                items={canonicalItems}
+                base={weekStart}
+                sampleDate={shift(weekStart, referenceTime.day)}
                 selectedId={selected?.id}
                 onSelect={select}
               />
             )}
-            <div className="cc-footer">
-              <span>가상 일정 · 실제 예약/실행에 영향을 주지 않습니다</span>
-              <span>
-                예시 기준: {DAYS[referenceTime.day]}요일{" "}
-                {clock(referenceTime.minute)} {timeZone}
-              </span>
-            </div>
           </section>
           {selected && (
             <DetailPanel
               item={selected}
               items={suppliedItems}
-              dates={dates}
+              dates={detailDates}
               referenceTime={referenceTime}
-              timeZone={timeZone}
-              onOpenEvent={onOpenEvent}
+              actions={selected.kind === "event" ? eventActions(selected.id) : undefined}
+              onEdit={() =>
+                onEdit(suppliedItems.find((item) => item.id === selected.id)!)
+              }
               onClose={closeDetail}
               onSelect={select}
             />

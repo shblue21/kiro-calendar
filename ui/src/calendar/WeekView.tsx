@@ -30,12 +30,34 @@ export function WeekView({
   const scrollRef = useRef<HTMLDivElement>(null);
   const firstDay = dateKey(dates[0]);
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 8 * 64;
+    const element = scrollRef.current;
+    if (!element) return;
+    let positioned = false;
+    // The host may lay out a newly mounted app after React effects run.
+    // Wait for a genuinely scrollable viewport; then leave user scrolling alone.
+    const position = () => {
+      if (
+        positioned ||
+        element.clientHeight <= 0 ||
+        element.scrollHeight <= element.clientHeight
+      )
+        return;
+      element.scrollTop = 9 * 64;
+      positioned = true;
+      observer.disconnect();
+    };
+    const observer = new ResizeObserver(position);
+    observer.observe(element);
+    const frame = requestAnimationFrame(position);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [firstDay]);
   return (
     <>
       <div className="cc-grid-head">
-        <div className="cc-grid-corner">KST</div>
+        <div className="cc-grid-corner" />
         {dates.map((date, i) => (
           <div
             key={dateKey(date)}
@@ -108,7 +130,10 @@ export function WeekView({
                       <TypeMark item={item} />
                       <span>{item.title}</span>
                     </span>
-                    <span className="cc-item-time">{timeLabel(item)}{item.automatic ? " · 자동" : ""}</span>
+                    <span className="cc-item-time">
+                      {timeLabel(item)}
+                      {item.automatic ? " · 자동" : ""}
+                    </span>
                     {item.kind === "run" && (
                       <span className="cc-item-status">
                         {STATUS_LABEL[item.status!]}

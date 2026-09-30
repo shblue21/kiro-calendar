@@ -25,5 +25,12 @@ export const {
   Pause,
   Play,
   Plug,
+  Settings2,
+  SlidersHorizontal,
+  ChevronDown,
   ArrowLeft,
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
 } = iconMap;
