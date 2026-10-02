@@ -3,13 +3,13 @@ import { Btn } from "@kirocrew/app-sdk/ui";
 import { ArrowLeft, ChevronRight } from "../platform/kiro/icons";
 import type { PreviewConnection } from "./ConnectionDialog";
 import { PreviewControls } from "../preview/PreviewControls";
+import { ProposalSettings } from "./ProposalSettings";
+import { ConversationDrafts } from "./ConversationDrafts";
 import type { PreviewScene } from "../preview/PreviewControls";
 
 type Props = {
   scene: PreviewScene;
   onScene: (scene: PreviewScene) => void;
-  proposalOn: boolean;
-  onProposalToggle: (enabled: boolean) => void;
   proposalStatus: "pending" | "registered" | "dismissed";
   onProposalAction: (action: "register" | "edit" | "dismiss") => void;
   autoOn: boolean;
@@ -23,8 +23,6 @@ type Props = {
 export function SettingsPage({
   scene,
   onScene,
-  proposalOn,
-  onProposalToggle,
   proposalStatus,
   onProposalAction,
   autoOn,
@@ -34,7 +32,6 @@ export function SettingsPage({
   onConnect,
   onDisconnect,
 }: Props) {
-  const [exampleOpen, setExampleOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   return (
     <div className="cc-page-scroll cc-settings-page">
@@ -45,38 +42,8 @@ export function SettingsPage({
       <div className="cc-settings-heading">
         <h2>설정</h2>
       </div>
-      <section className="cc-settings-section" aria-labelledby="cc-settings-proposals">
-        <div className="cc-preference-row">
-          <div>
-            <h3 id="cc-settings-proposals">대화 중 일정 제안</h3>
-            <p>대화에서 챙길 일을 발견하면 일정을 제안해요.<br />등록은 확인 후에만 해요.</p>
-          </div>
-          <label className="cc-auto-switch">
-            <span>{proposalOn ? "ON" : "OFF"}</span>
-            <input type="checkbox" role="switch" aria-label="대화 중 일정 제안"
-              checked={proposalOn} onChange={(e) => onProposalToggle(e.target.checked)} />
-          </label>
-        </div>
-        <p className="cc-settings-section-note">
-          추가 토큰이 사용될 수 있어요. 현재는 AI 호출 없는 샘플입니다.
-        </p>
-        <Btn className="cc-proposal-example-button" aria-expanded={exampleOpen}
-          onClick={() => setExampleOpen((open) => !open)}>
-          {exampleOpen ? "대화 예시 닫기" : "대화 예시 보기"}
-        </Btn>
-        {exampleOpen && (
-          <div className="cc-proposal-example">
-            <blockquote>
-              나 · “지원서 아직 못 썼는데 금요일 마감이야.”
-              <br />
-              Crew · “목요일 저녁에 마무리할 시간을 잡아둘까요?”
-            </blockquote>
-            <p className="cc-settings-section-note">
-              등록·수정·넘기기 중에서 고르며, 등록한 일정에서 이 대화로 돌아올 수 있어요.
-            </p>
-          </div>
-        )}
-      </section>
+      <ProposalSettings />
+      <ConversationDrafts />
       <section className="cc-settings-section" aria-labelledby="cc-settings-connections">
         <div className="cc-preference-row">
           <div>
@@ -127,9 +94,7 @@ export function SettingsPage({
           변경 내용은 새로고침하면 초기화됩니다. 실제 캘린더와 Crew에는 저장하지 않습니다.
         </p>
         <h4>대화 제안 등록</h4>
-        {!proposalOn ? (
-          <p className="cc-settings-section-note">대화 중 일정 제안을 켜면 체험할 수 있어요.</p>
-        ) : proposalStatus === "pending" ? (
+        {proposalStatus === "pending" ? (
           <div className="cc-proposal-card">
             <p>목요일 저녁에 마무리할 시간을 잡아둘까요?</p>
             <strong>지원서 마무리</strong>

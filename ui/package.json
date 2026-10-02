@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && vite build",
-    "test": "node --experimental-strip-types --test src/calendar/*.test.ts src/preview/*.test.ts"
+    "test": "node --experimental-strip-types --test src/calendar/*.test.ts src/preview/*.test.ts src/settings/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

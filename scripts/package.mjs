@@ -46,6 +46,19 @@ async function copyRuntimeTree(source, destination) {
   }
 }
 
+// Backend: top-level Python modules only (no __pycache__, tests or subpackages).
+async function copyBackend(source, destination) {
+  await mkdir(destination, { recursive: true });
+  for (const name of (await readdir(source)).sort()) {
+    const file = path.join(source, name);
+    const stat = await lstat(file);
+    if (stat.isSymbolicLink())
+      throw new Error(`Runtime symlinks are not packaged: ${file}`);
+    if (stat.isFile() && path.extname(name) === ".py")
+      await copyFile(file, path.join(destination, name));
+  }
+}
+
 async function requireAsset(staging, relativePath) {
   if (
     typeof relativePath !== "string" ||
@@ -84,6 +97,8 @@ export async function packageApp(sourceRoot, buildRoot) {
         path.join(staging, "ui", directory),
       );
     }
+    if (manifest.backend || manifest.mcpServers)
+      await copyBackend(path.join(sourceRoot, "backend"), path.join(staging, "backend"));
     await requireAsset(staging, manifest.ui?.entry);
     for (const page of manifest.ui?.pages ?? []) {
       for (const field of ["entryPoint", "iconUrl", "iconInactiveUrl"]) {

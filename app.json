@@ -2,12 +2,51 @@
   "name": "crew-calendar",
   "version": "0.1.0",
   "displayName": "Calendar Preview",
-  "description": "A UI-only preview of human events, AI schedules and agent activity on one calendar. Sample data only.",
-  "tags": ["calendar", "productivity", "preview"],
+  "description": "Calendar UI preview with persistent conversation-linked drafts and opt-in proactive draft suggestions. External calendar writes and reminders are not implemented.",
+  "tags": [
+    "calendar",
+    "productivity",
+    "preview"
+  ],
   "ui": {
     "entry": "dist/index.mjs",
-    "pages": [{ "route": "/apps/crew-calendar", "label": "Calendar Preview", "icon": "Calendar", "iconUrl": "assets/calendar-spark.svg" }],
-    "sidebar": { "section": "Apps", "order": 15 }
+    "pages": [
+      {
+        "route": "/apps/crew-calendar",
+        "label": "Calendar Preview",
+        "icon": "Calendar",
+        "iconUrl": "assets/calendar-spark.svg"
+      }
+    ],
+    "sidebar": {
+      "section": "Apps",
+      "order": 15
+    }
   },
-  "permissions": { "api": [], "events": [], "storage": false, "network": false, "cron": false }
+  "permissions": {
+    "api": [
+      "/api/apps/crew-calendar/drafts",
+      "/api/apps/crew-calendar/drafts/*",
+      "/api/apps/crew-calendar/settings"
+    ],
+    "events": [],
+    "storage": true,
+    "network": false,
+    "cron": false
+  },
+  "backend": {
+    "hooks": {
+      "routes": "backend.routes:register_routes"
+    }
+  },
+  "mcpServers": {
+    "drafts": {
+      "command": "python3",
+      "args": [
+        "-c",
+        "import sys,runpy;from kiro_crew.apps.manager import app_dir;d=app_dir(sys.argv[1]);sys.argv=[str(d/'backend'/'mcp_server.py'),str(d/'data')];runpy.run_path(sys.argv[0],run_name='__main__')",
+        "crew-calendar"
+      ]
+    }
+  }
 }

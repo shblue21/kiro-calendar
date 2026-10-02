@@ -76,3 +76,20 @@ test("a missing manifest asset fails before replacing a valid package", async (t
     /svg/,
   );
 });
+
+test("a manifest with a backend packages its Python modules only", async (t) => {
+  const root = await fixture(t);
+  const manifest = JSON.parse(await readFile(path.join(root, "app.json"), "utf8"));
+  manifest.backend = { hooks: { routes: "backend.routes:register_routes" } };
+  await writeFile(path.join(root, "app.json"), JSON.stringify(manifest));
+  await mkdir(path.join(root, "backend/__pycache__"), { recursive: true });
+  await mkdir(path.join(root, "tests"), { recursive: true });
+  await writeFile(path.join(root, "backend/routes.py"), "def register_routes(ctx): return []");
+  await writeFile(path.join(root, "backend/__pycache__/routes.cpython-312.pyc"), "x");
+  await writeFile(path.join(root, "backend/notes.md"), "PRIVATE");
+  await writeFile(path.join(root, "tests/test_x.py"), "PRIVATE");
+  const output = await packageApp(root, path.join(root, ".build"));
+  const files = (await readdir(output, { recursive: true })).sort();
+  assert.ok(files.includes("backend/routes.py"));
+  assert.ok(!files.some((f) => f.includes("__pycache__") || f.endsWith(".md") || f.startsWith("tests")));
+});

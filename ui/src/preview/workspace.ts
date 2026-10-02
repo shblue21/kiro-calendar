@@ -13,6 +13,8 @@ export type PreviewTask = {
   quote: string;
   reason: string;
   repeat?: "none" | "daily" | "weekly";
+  /** Run evidence, kept apart from the reservation status. Absent = no record found. */
+  run?: "success" | "failed" | "unknown";
   result?: { name: string; title: string; summary: string; bullets: string[] };
 };
 export type WorkspaceState = { autoOn: boolean; tasks: PreviewTask[] };
@@ -55,6 +57,20 @@ export function workspaceReducer(
       };
     }),
   };
+}
+
+/**
+ * Prep-task line for the event detail. A past reservation or a finished task
+ * without run evidence is "not confirmed", never assumed to have succeeded.
+ */
+export function prepStatus(task: PreviewTask, now: { day: number; minute: number }) {
+  if (task.run === "success") return "실행 성공";
+  if (task.run === "failed") return "실행 실패";
+  if (task.run === "unknown") return "실행 확인 안 됨";
+  if (task.status === "paused") return "일시정지";
+  if (task.status === "cancelled") return "취소됨";
+  const past = task.day * 1440 + task.minute <= now.day * 1440 + now.minute;
+  return task.status === "completed" || past ? "실행 확인 안 됨" : "예약됨";
 }
 
 export function calendarTasks(
@@ -107,6 +123,7 @@ export const PREVIEW_TASKS: PreviewTask[] = [
     status: "completed",
     automatic: false,
     eventId: "review",
+    run: "success",
     source: "출시 리뷰 준비 대화",
     quote: "목요일 출시 리뷰에 필요한 변경 사항을 정리해줘.",
     reason: "사용자가 직접 요청",
@@ -154,6 +171,7 @@ export const PREVIEW_TASKS: PreviewTask[] = [
     minute: 608,
     status: "completed",
     automatic: true,
+    run: "success",
     source: "시장 조사 대화",
     quote: "내일 새 자료가 올라오는지 확인해줘.",
     reason: "새 자료 확인",
@@ -163,5 +181,52 @@ export const PREVIEW_TASKS: PreviewTask[] = [
       summary: "새로 공개된 자료가 없습니다.",
       bullets: ["샘플 결과이며 실제 웹사이트를 확인하지 않았습니다."],
     },
+  },
+  {
+    id: "agenda",
+    title: "워크숍 안건 초안",
+    description: "워크숍에서 다룰 안건을 정리합니다.",
+    day: 2,
+    minute: 480,
+    status: "completed",
+    automatic: false,
+    eventId: "offsite",
+    run: "success",
+    source: "워크숍 준비 대화",
+    quote: "금요일 워크숍 안건 초안을 만들어줘.",
+    reason: "사용자가 직접 요청",
+    result: {
+      name: "workshop-agenda.md",
+      title: "워크숍 안건 초안",
+      summary: "워크숍에서 다룰 안건 세 가지를 정리했습니다.",
+      bullets: ["샘플 결과이며 실제 문서를 생성하지 않았습니다."],
+    },
+  },
+  {
+    id: "last-week",
+    title: "지난주 진행 정리",
+    description: "지난주 완료·지연 항목을 모읍니다.",
+    day: 0,
+    minute: 540,
+    status: "completed",
+    automatic: false,
+    eventId: "planning",
+    run: "failed",
+    source: "주간 계획 준비 대화",
+    quote: "월요일 계획 전에 지난주 진행을 정리해줘.",
+    reason: "사용자가 직접 요청",
+  },
+  {
+    id: "documents",
+    title: "제출 서류 목록 확인",
+    description: "필요한 서류가 모두 있는지 확인합니다.",
+    day: 1,
+    minute: 1140,
+    status: "scheduled",
+    automatic: false,
+    eventId: "paperwork",
+    source: "세금 신고 대화",
+    quote: "화요일 저녁 전에 서류 목록을 확인해줘.",
+    reason: "사용자가 직접 요청",
   },
 ];

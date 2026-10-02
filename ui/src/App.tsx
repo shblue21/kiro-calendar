@@ -54,7 +54,7 @@ export default function CalendarPreview() {
   const [weekStart] = useState(() => new Date(2026, 8, 28, 12));
   const [scene, setScene] = useState<PreviewScene>("sample");
   const [page, setPage] = useState<"calendar" | "auto" | "settings">(
-    "calendar",
+    new URLSearchParams(window.location.search).get("view") === "drafts" ? "settings" : "calendar",
   );
   const [view, setView] = useState<CalendarView>("week");
   const [layout, setLayout] = useState<CalendarLayout>("calendar");
@@ -87,7 +87,6 @@ export default function CalendarPreview() {
       return next;
     });
   }
-  const [proposalOn, setProposalOn] = useState(false);
   const [proposalStatus, setProposalStatus] = useState<"pending" | "registered" | "dismissed">("pending");
   const [feedback, setFeedback] = useState("");
   const [undo, setUndo] = useState<(() => void) | null>(null);
@@ -121,6 +120,7 @@ export default function CalendarPreview() {
         link={links[id]}
         tasks={state.tasks.filter((t) => t.eventId === id)}
         weekStart={weekStart}
+        now={SAMPLE_NOW}
         onStart={() => {
           setLink(id, { state: "prep", conversation: `${item.title} 준비 대화` });
           notify("샘플: 일정 제목·시각·설명을 담아 Crew 대화를 시작하는 동작입니다. 실제 대화는 만들지 않았습니다.");
@@ -224,7 +224,7 @@ export default function CalendarPreview() {
     notify("샘플에 저장했습니다. 실제 일정이나 작업은 생성하지 않았습니다.");
   }
   function proposalAction(action: "register" | "edit" | "dismiss") {
-    if (!proposalOn || proposalStatus !== "pending") return;
+    if (proposalStatus !== "pending") return;
     if (action === "dismiss") {
       setProposalStatus("dismissed");
       return;
@@ -286,9 +286,9 @@ export default function CalendarPreview() {
           <h1>Calendar</h1>
           <span
             className="cc-sample-label"
-            title="가상 데이터 · 실제 연결 없음. 새로고침 시 초기화됩니다."
+            title="달력은 샘플입니다. 설정과 대화 초안은 실제로 저장됩니다."
           >
-            샘플
+            달력 샘플
           </span>
         </div>
         <div className="cc-header-actions">
@@ -414,8 +414,6 @@ export default function CalendarPreview() {
         <SettingsPage
           scene={scene}
           onScene={setScene}
-          proposalOn={proposalOn}
-          onProposalToggle={setProposalOn}
           proposalStatus={proposalStatus}
           onProposalAction={proposalAction}
           autoOn={state.autoOn}

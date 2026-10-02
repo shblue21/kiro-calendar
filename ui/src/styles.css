@@ -1633,3 +1633,10 @@
 .cc-settings-fold .cc-proposal-card { max-width: 560px; }
 .cc-agenda-month { font-size: 13px; font-weight: 600; margin: 18px 0 4px; color: var(--cc-muted); }
 .cc-agenda-month:first-child { margin-top: 0; }
+.cc-draft-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 0; border-top: 1px solid var(--cc-border); }
+.cc-draft-row > div:first-child { display: grid; gap: 4px; min-width: 0; font-size: 12px; }
+.cc-draft-row strong { font-size: 14px; font-weight: 500; }
+.cc-draft-row small { color: var(--cc-muted); font-size: 11px; overflow-wrap: anywhere; }
+.cc-draft-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.cc-hook-command { font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; background: var(--cc-soft); border-radius: 8px; }
