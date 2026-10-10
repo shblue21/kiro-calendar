@@ -1,9 +1,13 @@
-export type Draft = {
+export type Destination = {connectionId:string;calendarId:string};
+export type CalendarPreferences = {defaultDestination:Destination;showCrew:boolean};
+export type CalendarItem = {
   id: string; revision: number; title: string; start: string; end?: string | null;
-  timezone: string; reason: string; notes?: string; status: 'proposed' | 'dismissed';
-  source: 'manual' | 'proactive'; origin: { sessionKey: string; identitySource: string };
+  timezone: string; reason: string; notes?: string; status: 'proposed' | 'confirmed' | 'dismissed';
+  destination?:Destination; deletedAt?:string|null;
+  source: 'manual' | 'proactive' | 'direct'; origin: { sessionKey: string; identitySource: string };
   returnTarget?: { kind: string; slotKey?: string }; calendarOperation?: Operation | null;
 };
+export type Draft = CalendarItem;
 export type Calendar = { id: string; title: string; sourceId: string; sourceTitle: string; writable: boolean };
 export type Confirmation = {mode:'provider'|'app'; actionLabel:string; pendingMessage:string};
 export type Connection = {

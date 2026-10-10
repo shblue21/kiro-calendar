@@ -105,9 +105,67 @@ async def reconcile(request, ctx):
     return await _run(request, ctx, work)
 
 
+async def items_get(request, ctx):
+    return await _run(request, ctx, lambda service: _items(service))
+
+
+async def _items(service):
+    return {'items': await asyncio.to_thread(service.list_items)}
+
+
+async def item_create(request, ctx):
+    async def work(service):
+        return {'item': await asyncio.to_thread(service.items.create, await request.json())}
+    return await _run(request, ctx, work)
+
+
+async def item_edit(request, ctx):
+    async def work(service):
+        return {'item': await asyncio.to_thread(service.items.edit, request.match_info['item_id'], await request.json())}
+    return await _run(request, ctx, work)
+
+
+async def item_accept(request, ctx):
+    async def work(service):
+        return {'item': await asyncio.to_thread(service.items.accept, request.match_info['item_id'], await request.json())}
+    return await _run(request, ctx, work)
+
+
+async def item_delete(request, ctx):
+    async def work(service):
+        return {'item': await asyncio.to_thread(service.items.set_deleted, request.match_info['item_id'], await request.json(), True)}
+    return await _run(request, ctx, work)
+
+
+async def item_restore(request, ctx):
+    async def work(service):
+        return {'item': await asyncio.to_thread(service.items.set_deleted, request.match_info['item_id'], await request.json(), False)}
+    return await _run(request, ctx, work)
+
+
+async def preferences_get(request, ctx):
+    async def work(service):
+        return {'preferences': await asyncio.to_thread(service.storage.preferences)}
+    return await _run(request, ctx, work)
+
+
+async def preferences_put(request, ctx):
+    async def work(service):
+        return {'preferences': await asyncio.to_thread(service.preferences, await request.json())}
+    return await _run(request, ctx, work)
+
+
 def routes():
     from kiro_crew.apps.route_registry import AppRoute
-    return [AppRoute('GET', '/calendar/connection', connection_get),
+    return [AppRoute('GET', '/calendar/items', items_get),
+            AppRoute('POST', '/calendar/items', item_create),
+            AppRoute('PUT', '/calendar/items/{item_id}', item_edit),
+            AppRoute('POST', '/calendar/items/{item_id}/accept', item_accept),
+            AppRoute('POST', '/calendar/items/{item_id}/delete', item_delete),
+            AppRoute('POST', '/calendar/items/{item_id}/restore', item_restore),
+            AppRoute('GET', '/calendar/preferences', preferences_get),
+            AppRoute('PUT', '/calendar/preferences', preferences_put),
+            AppRoute('GET', '/calendar/connection', connection_get),
             AppRoute('POST', '/calendar/authorize', authorize),
             AppRoute('PUT', '/calendar/connection', connection_put),
             AppRoute('GET', '/calendar/events', events_get),

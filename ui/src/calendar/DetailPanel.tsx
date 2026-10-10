@@ -94,7 +94,7 @@ export function DetailPanel({
         {item.kind === "event" && (
           <>
             <dt>저장</dt>
-            <dd>{item.storage === "external" ? "연결된 캘린더에서 조회" : item.storage === "draft" ? "로컬 초안 · 외부 저장 전" : "외부 저장 정보 없음"}</dd>
+            <dd>{item.storage === "local" ? "Crew Calendar에 저장됨" : item.storage === "pending" ? item.source : item.storage === "external" ? "연결된 캘린더에서 조회" : item.storage === "draft" ? "로컬 초안 · 외부 저장 전" : "외부 저장 정보 없음"}</dd>
           </>
         )}
         {item.kind === "trigger" && (
@@ -166,7 +166,7 @@ export function DetailPanel({
       )}
       <p className="cc-detail-bottom">
         {item.kind === "event"
-          ? item.storage === "external" ? "기존 일정의 수정·삭제는 원본 캘린더에서 해주세요." : item.storage === "draft" ? "검토 후 저장할 캘린더를 선택하세요." : "원본 캘린더 열기는 아직 지원하지 않습니다."
+          ? item.storage === "local" ? "Crew Calendar에서 수정하고 삭제할 수 있습니다." : item.storage === "pending" ? "외부 저장 상태를 확인하세요. Crew Calendar에는 저장되지 않았습니다." : item.storage === "external" ? "기존 일정의 수정·삭제는 원본 캘린더에서 해주세요." : item.storage === "draft" ? "검토 후 저장할 캘린더를 선택하세요." : "원본 캘린더 열기는 아직 지원하지 않습니다."
           : item.kind === "trigger"
             ? "Schedule에서 열기는 아직 지원하지 않습니다."
             : "세션 열기는 아직 지원하지 않습니다."}

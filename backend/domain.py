@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import hashlib
 import re
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 class DraftError(ValueError):
     pass
 
@@ -109,7 +109,7 @@ class DraftCandidate:
         return {"schemaVersion": SCHEMA_VERSION, "revision": 1, "id": draft_id, "title": self.title,
                 "start": self.start.isoformat(), "end": self.end.isoformat() if self.end else None,
                 "timezone": self.timezone, "reason": self.reason, "status": "proposed",
-                "source": "proactive" if proactive else "manual", "decisionKey": decision,
+                "source": "proactive" if proactive else "manual", "destination": {"connectionId": "crew", "calendarId": "default"}, "decisionKey": decision,
                 "deadlineDate": self.deadline_date,
                 "origin": {"sessionKey": session, "sessionType": origin.get("sessionType", "unknown"),
                            "identitySource": origin.get("identitySource", "unknown")},

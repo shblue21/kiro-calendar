@@ -23,7 +23,7 @@ export function eventItems(event: CalendarEvent, base: Date, range: {first: numb
       end:event.allDay ? undefined : (segmentEnd-bounds.startMs)/60_000,
       timeLabels:event.allDay ? undefined : intervalLabels(segmentStart,segmentEnd,bounds),
       allDay:event.allDay, source:`${event.connectionTitle ? event.connectionTitle + " · " : ""}${event.sourceTitle} · ${event.calendarTitle}`, description:event.notes,
-      storage:'external', providerEvent:event, editable:false});
+      storage:'external', draftId:event.draftId, providerEvent:event, editable:false});
   }
   return rows;
 }
@@ -40,3 +40,28 @@ export function draftItems(drafts: Draft[], base: Date, range: {first: number; e
 }
 export function localInput(value: string, zone: string) { return zonedInput(value,zone); }
 export function inputISO(value: string, zone: string): string { return zonedISO(value,zone); }
+
+/** Record identity survives proposal acceptance; external confirmed events come from the provider. */
+export function calendarItems(records: Draft[], base: Date, range: {first:number;end:number}, zone:string, showCrew:boolean): CalendarViewItem[] {
+  return records.filter(d=>!d.deletedAt && d.status!=='dismissed').flatMap(d=>{
+    if(d.status==='proposed')return draftItems([d],base,range,zone);
+    const local=d.destination?.connectionId==='crew';
+    if(local && !showCrew)return [];
+    if(!local && d.calendarOperation?.state==='confirmed')return [];
+    return eventItems({eventId:d.id,calendarId:'default',title:d.title,start:d.start,
+      end:d.end || new Date(+new Date(d.start)+3600000).toISOString(), allDay:false,startDate:'',endDate:'',
+      timezone:d.timezone,calendarTitle:'Crew Calendar',sourceTitle:'Crew',notes:d.notes||'',recurring:false},base,range,zone)
+      .map(item=>({...item,id:`draft:${d.id}@${item.day}`,occurrenceKey:JSON.stringify(['draft',d.id]),
+        storage:local?'local' as const:'pending' as const, draftId:d.id,providerEvent:undefined,editable:local,
+        source:local?'Crew Calendar':deliveryLabel(d)}));
+  });
+}
+export function deliveryLabel(item:Draft):string {
+  switch(item.calendarOperation?.state){
+    case 'awaiting_confirmation': return '외부 저장 확인 대기';
+    case 'unknown': return '외부 저장 결과 확인 필요';
+    case 'failed': return '외부 저장 실패';
+    case 'cancelled': return '외부 저장 취소됨';
+    default:return '외부 저장 대기';
+  }
+}

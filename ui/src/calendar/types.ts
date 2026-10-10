@@ -22,7 +22,7 @@ export type CalendarViewItem = {
   artifact?: string;
   related?: string;
   allDay?: boolean;
-  storage?: "draft" | "external";
+  storage?: "draft" | "external" | "local" | "pending";
   draftId?: string;
   providerEvent?: import("../live/types").CalendarEvent;
   editable?: boolean;

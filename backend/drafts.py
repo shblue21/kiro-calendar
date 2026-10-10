@@ -30,8 +30,8 @@ class DraftStore:
     def list(self, *, strict=False): return self.services.drafts.list(strict=strict)
     def set_status(self, draft_id, status): return self.services.drafts.set_status(draft_id, status)
     # Kept for existing on-disk compatibility tests only.
-    def _path(self, draft_id): return self.services.repository.draft_path(draft_id)
-    def _write(self, draft): return self.services.repository.save_draft(draft)
+    def _path(self, draft_id): return self.services.repository.item_path(draft_id)
+    def _write(self, draft): return self.services.repository.save_item(draft)
 
 def view(draft):
     origin = draft.get("origin") or {}

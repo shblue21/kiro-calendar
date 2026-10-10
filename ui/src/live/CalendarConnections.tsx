@@ -5,10 +5,10 @@ import type { Connection } from './types';
 import { message } from './api';
 
 export function CalendarConnections({connections,error,onRefresh}: {connections:Connection[];error:string;onRefresh:()=>Promise<void>}) {
-  return <><div className="cc-preference-row"><h3>캘린더 연결</h3><Btn onClick={()=>void onRefresh()}>연결 다시 확인</Btn></div>
+  return <><div className="cc-preference-row"><h3>외부 캘린더 연결</h3><Btn onClick={()=>void onRefresh()}>연결 다시 확인</Btn></div>
     {error && <p role="alert" className="cc-form-error">{error}</p>}
     {connections.map(connection=><ConnectionCard key={connection.id} connection={connection} onRefresh={onRefresh}/>)}
-    {!connections.length && !error && <p>등록된 캘린더 연결이 없습니다. 초안은 보관할 수 있습니다.</p>}
+    {!connections.length && !error && <p>외부 연결이 없습니다. Crew Calendar는 계속 사용할 수 있습니다.</p>}
   </>;
 }
 function ConnectionCard({connection:c,onRefresh}: {connection:Connection;onRefresh:()=>Promise<void>}) {
@@ -26,7 +26,7 @@ function ConnectionCard({connection:c,onRefresh}: {connection:Connection;onRefre
       <div className="cc-calendar-choices">{c.calendars.map(cal=><label className="cc-checkbox" key={cal.id}>
         <input type="checkbox" disabled={busy} checked={c.selectedCalendarIds.includes(cal.id)} onChange={e=>select(e.target.checked?[...c.selectedCalendarIds,cal.id]:c.selectedCalendarIds.filter(id=>id!==cal.id),c.defaultCalendarId)}/>
         <span>{cal.sourceTitle} · {cal.title}{!cal.writable && <small> · 읽기 전용</small>}</span></label>)}</div>
-      {c.capabilities.create && <label className="cc-field">기본 저장 캘린더<select className="cc-control" disabled={busy} value={c.defaultCalendarId} onChange={e=>select(c.selectedCalendarIds,e.target.value)}><option value="">저장할 때 선택</option>{c.calendars.filter(cal=>cal.writable).map(cal=><option key={cal.id} value={cal.id}>{cal.sourceTitle} · {cal.title}</option>)}</select></label>}
+
     </>}
   </section>;
 }

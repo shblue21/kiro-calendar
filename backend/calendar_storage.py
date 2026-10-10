@@ -61,3 +61,15 @@ class CalendarStorage:
 
     def save_operation(self, value: dict) -> None:
         _atomic_json(self.operation_path(value['id']), value)
+
+    def preferences(self) -> dict:
+        value = self._read(self.root / 'preferences.json', {
+            'defaultDestination': {'connectionId':'crew','calendarId':'default'}, 'showCrew': True})
+        target = value.get('defaultDestination')
+        if (not isinstance(target, dict) or not isinstance(target.get('connectionId'), str)
+                or not isinstance(target.get('calendarId'), str) or type(value.get('showCrew')) is not bool):
+            raise StorageUnavailable('Calendar preferences invalid')
+        return value
+
+    def save_preferences(self, value: dict) -> None:
+        _atomic_json(self.root / 'preferences.json', value)

@@ -2,7 +2,7 @@
   "name": "crew-calendar",
   "version": "0.2.0",
   "displayName": "Calendar",
-  "description": "Review conversation-linked drafts using the host operating system timezone. On macOS, optionally connect Apple Calendar and save reviewed events after native confirmation. External calendar connections on other platforms are not yet implemented.",
+  "description": "Create and manage events in the built-in Crew Calendar. Review AI proposals before confirming them. Optionally save to Apple Calendar on macOS after native confirmation. Uses the Crew host operating system timezone.",
   "tags": [
     "calendar",
     "productivity",

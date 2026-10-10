@@ -10,6 +10,7 @@ from .calendar_storage import CalendarStorage
 from .calendar_connections import CalendarConnections
 from .domain import DraftError, _parse_time
 from .timezone import system_timezone
+from .event_service import EventService, CREW
 
 ACTIVE = {'awaiting_confirmation', 'unknown', 'confirmed'}
 
@@ -21,6 +22,7 @@ def now() -> str:
 class CalendarService:
     def __init__(self, drafts, storage: CalendarStorage, connections: CalendarConnections):
         self.drafts, self.repository, self.storage, self.connections = drafts, drafts.repository, storage, connections
+        self.items = EventService(self.repository, self.validate_target, self.ensure_unsubmitted)
 
     def connection(self, connection_id: str, *, authorize: bool = False) -> dict:
         binding = self.connections.get(connection_id)
@@ -40,6 +42,33 @@ class CalendarService:
                                'capabilities': {'read': False, 'create': False, 'reconcile': False},
                                'calendars': [], **self.storage.connection(binding.id)})
         return {'connections': result}
+
+    def ensure_unsubmitted(self, key):
+        if any(o['draftId'] == key and o['state'] in ACTIVE for o in self.storage.operations()):
+            raise CalendarError('already_submitted', '외부 저장 요청이 있습니다. 결과를 먼저 확인하세요.')
+
+    def validate_target(self, target):
+        if target == CREW:
+            return dict(CREW)
+        if not isinstance(target, dict) or set(target) != {'connectionId','calendarId'}:
+            raise DraftError('저장할 캘린더를 선택하세요.')
+        binding = self.connections.get(target.get('connectionId'))
+        binding.require('create')
+        if not any(c['id'] == target.get('calendarId') and c['writable'] for c in binding.adapter.calendars()):
+            raise CalendarError('read_only', '저장 위치에 접근할 수 없습니다. 다른 캘린더를 직접 선택하세요.')
+        return dict(target)
+
+    def preferences(self, fields):
+        if not isinstance(fields, dict) or not fields or set(fields) - {'defaultDestination','showCrew'}:
+            raise DraftError('캘린더 설정을 확인하세요.')
+        if 'defaultDestination' in fields:
+            self.validate_target(fields['defaultDestination'])
+        if 'showCrew' in fields and type(fields['showCrew']) is not bool:
+            raise DraftError('표시 설정을 확인하세요.')
+        with self.repository.transaction():
+            value = {**self.storage.preferences(), **fields}
+            self.storage.save_preferences(value)
+        return value
 
     def select(self, fields: dict) -> dict:
         if not isinstance(fields, dict):
@@ -80,22 +109,25 @@ class CalendarService:
                 errors.append({'connectionId': binding.id, 'message': exc.message if isinstance(exc, CalendarError) else '이 연결의 일정을 읽지 못했습니다.', 'code': exc.code if isinstance(exc, CalendarError) else 'provider_unavailable'})
         return {'events': events, 'errors': errors, 'checkedAt': now()}
 
-    def list_drafts(self) -> list[dict]:
+    def list_items(self) -> list[dict]:
         operations = self.storage.operations()
         result = []
-        for draft in self.drafts.list(strict=True):
+        for draft in self.repository.items(strict=True):
             relevant = sorted((o for o in operations if o['draftId'] == draft['id']), key=lambda o: o['createdAt'])
             important = [o for o in relevant if o['state'] in ACTIVE]
             result.append({**draft, 'revision': draft.get('revision', 1),
                            'calendarOperation': (important or relevant)[-1] if relevant else None})
         return result
 
+    def list_drafts(self) -> list[dict]:
+        return [item for item in self.list_items() if item['status'] == 'proposed' and not item.get('deletedAt')]
+
     def edit(self, draft_id: str, fields: dict) -> dict:
         payload = event_payload(fields)
         if payload["timezone"] != system_timezone():
             raise CalendarError("timezone_changed", "시스템 시간대가 변경되었습니다. 화면을 새로고침한 뒤 다시 검토하세요.")
         with self.repository.transaction():
-            draft = self.repository.get_draft(draft_id)
+            draft = self.repository.get_item(draft_id)
             revision = draft.get('revision', 1)
             if type(fields.get('revision')) is not int or fields['revision'] != revision:
                 raise CalendarError('stale_draft', '다른 곳에서 변경된 초안입니다. 다시 불러오세요.')
@@ -103,16 +135,18 @@ class CalendarService:
                 raise CalendarError('draft_locked', '저장이 진행 중이거나 완료된 초안은 수정할 수 없습니다.')
             draft.update({k: payload[k] for k in ('title', 'start', 'end', 'timezone')})
             draft.update(notes=payload['notes'], revision=revision + 1, updatedAt=now())
-            self.repository.save_draft(draft)
+            self.repository.save_item(draft)
             return draft
 
     def dismiss(self, draft_id: str) -> dict:
         with self.repository.transaction():
             if any(o['draftId'] == draft_id and o['state'] in ACTIVE for o in self.storage.operations()):
                 raise CalendarError('draft_locked', '저장 중이거나 저장된 초안은 넘길 수 없습니다.')
-            draft = self.repository.get_draft(draft_id)
+            draft = self.repository.get_item(draft_id)
+            if draft['status'] not in {'proposed','dismissed'}:
+                raise CalendarError('not_proposed', '확정 일정은 초안 넘기기로 처리할 수 없습니다.')
             draft.update(status='dismissed', revision=draft.get('revision', 1) + 1, updatedAt=now())
-            self.repository.save_draft(draft)
+            self.repository.save_item(draft)
             return draft
 
     def prepare(self, fields: dict) -> dict:
@@ -128,8 +162,10 @@ class CalendarService:
         if not chosen or not chosen['writable']:
             raise CalendarError('read_only', '이 캘린더에는 저장할 수 없습니다. 다른 위치를 직접 선택하세요.')
         with self.repository.transaction():
-            draft = self.repository.get_draft(fields.get('draftId', ''))
-            if draft['status'] != 'proposed' or type(fields.get('revision')) is not int or draft.get('revision', 1) != fields['revision']:
+            draft = self.repository.get_item(fields.get('draftId', ''))
+            if (draft.get('deletedAt') or draft['status'] not in {'proposed','confirmed'}
+                    or (draft['status'] == 'confirmed' and draft.get('destination') != target)
+                    or type(fields.get('revision')) is not int or draft.get('revision', 1) != fields['revision']):
                 raise CalendarError('stale_draft', '초안이 변경되었습니다. 다시 불러온 뒤 검토하세요.')
             payload = event_payload(draft)
             zone = system_timezone()
@@ -157,8 +193,10 @@ class CalendarService:
                 return op, False
             if op['payload']['timezone'] != system_timezone():
                 raise CalendarError('timezone_changed', '시스템 시간대가 변경되었습니다. 다시 검토하세요.')
-            draft = self.repository.get_draft(op['draftId'])
-            if draft['status'] != 'proposed' or draft.get('revision', 1) != op['draftRevision']:
+            draft = self.repository.get_item(op['draftId'])
+            if (draft.get('deletedAt') or draft['status'] not in {'proposed','confirmed'}
+                    or (draft['status'] == 'confirmed' and draft.get('destination') != op['target'])
+                    or draft.get('revision', 1) != op['draftRevision']):
                 raise CalendarError('stale_draft', '저장 준비 이후 초안이 변경되었습니다.')
             if any(o['id'] != key and o['draftId'] == op['draftId'] and o['state'] in ACTIVE for o in self.storage.operations()):
                 raise CalendarError('already_submitted', '이 초안의 다른 저장 요청이 진행 중입니다.')

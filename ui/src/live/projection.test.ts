@@ -86,3 +86,24 @@ test('spring-forward and 25-hour cross-day intervals preserve elapsed time witho
  assert.equal(new Set(items.map(i=>i.occurrenceKey)).size,1);
  const clipped=eventItems(source,new Date(2026,9,31,12),{first:1,end:2},'America/New_York');assert.equal(clipped[0].end,1500);
 });
+
+test('proposal acceptance keeps display identity, local visibility never changes status',async()=>{
+ const {calendarItems}=await import('./projection.ts');
+ const d:Draft={id:'stable',revision:1,title:'Local',start:event.start,end:event.end,timezone:'Asia/Seoul',status:'proposed',reason:'',source:'proactive',origin:{sessionKey:'dashboard:test',identitySource:'test'}};
+ const proposed=calendarItems([d],base,{first:0,end:7},'Asia/Seoul',true);
+ const accepted={...d,status:'confirmed' as const,destination:{connectionId:'crew',calendarId:'default'}};
+ const local=calendarItems([accepted],base,{first:0,end:7},'Asia/Seoul',true);
+ assert.deepEqual(local.map(i=>i.id),proposed.map(i=>i.id));assert.deepEqual(local.map(i=>i.occurrenceKey),proposed.map(i=>i.occurrenceKey));
+ assert.ok(local.every(i=>i.storage==='local'));assert.equal(calendarItems([accepted],base,{first:0,end:7},'Asia/Seoul',false).length,0);
+ assert.equal(calendarItems([{...accepted,deletedAt:'now'}],base,{first:0,end:7},'Asia/Seoul',true).length,0);
+ assert.equal(calendarItems([d],base,{first:0,end:7},'Asia/Seoul',false).length,2);
+});
+test('external delivery placeholders are not local events and disappear after provider confirmation',async()=>{
+ const {calendarItems}=await import('./projection.ts');
+ const d:Draft={id:'pending',revision:1,title:'External',start:event.start,end:event.end,timezone:'Asia/Seoul',status:'confirmed',reason:'',source:'direct',origin:{sessionKey:'calendar:manual',identitySource:'dashboard'},destination:{connectionId:'apple-local',calendarId:'one'}};
+ assert.ok(calendarItems([d],base,{first:0,end:7},'Asia/Seoul',true).every(i=>i.storage==='pending'));
+ const confirmed={...d,calendarOperation:{state:'confirmed'} as Draft['calendarOperation']};
+ assert.equal(calendarItems([confirmed],base,{first:0,end:7},'Asia/Seoul',true).length,0);
+ const remote=eventItems({...event,draftId:d.id},base,{first:0,end:7},'Asia/Seoul');
+ assert.ok(remote.every(i=>i.draftId===d.id));
+});

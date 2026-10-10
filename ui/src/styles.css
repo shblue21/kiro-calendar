@@ -12,7 +12,7 @@
 @import './calendar/AgendaView.css';
 @import './calendar/DetailPanel.css';
 @import './calendar/DateBadge.css';
-@import './live/DraftEditor.css';
+@import './live/EventForm.css';
 @import './live/CalendarConnections.css';
 @import './live/DraftList.css';
 @import './settings/ProposalSettings.css';

@@ -1,4 +1,4 @@
-"""File persistence adapter. Both settings and drafts share ONE transaction."""
+"""Unified item persistence. Settings, proposals, and events share one process lock."""
 from __future__ import annotations
 import contextlib
 import json
@@ -20,25 +20,25 @@ class Repository(Protocol):
     (including JSON null) and IO failures raise StorageUnavailable. A valid but
     absent draft ID raises DraftNotFound; invalid IDs raise DraftError.
 
-    Reads return detached values. drafts/session_drafts order by createdAt then
+    Reads return detached values. items/session_items order by createdAt then
     id descending (timestamps written by this app are UTC ISO strings). In
     strict mode unreadable records raise StorageUnavailable; otherwise skip
     them. Writes are individually atomic and never report success on failure.
 
     transaction is an exclusive, non-nested cross-process critical section for
-    all settings/draft read-modify-write operations, NOT multi-write rollback.
+    all settings/item read-modify-write operations, NOT multi-write rollback.
     An adapter may provide stronger guarantees, but callers cannot rely on them.
     Never perform external calendar/network operations while holding this lock.
     """
     def transaction(self) -> ContextManager[None]: ...
     def load_settings(self) -> dict[str, Any] | None: ...
     def save_settings(self, value: dict[str, Any]) -> None: ...
-    def drafts(self, *, strict: bool = False) -> list[dict[str, Any]]: ...
-    def session_drafts(self, session_key: str) -> list[dict[str, Any]]: ...
+    def items(self, *, strict: bool = False) -> list[dict[str, Any]]: ...
+    def session_items(self, session_key: str) -> list[dict[str, Any]]: ...
     def was_applied(self, session_key: str) -> bool: ...
     def record_application(self, session_key: str, value: dict[str, Any]) -> None: ...
-    def save_draft(self, value: dict[str, Any]) -> None: ...
-    def get_draft(self, draft_id: str) -> dict[str, Any]: ...
+    def save_item(self, value: dict[str, Any]) -> None: ...
+    def get_item(self, draft_id: str) -> dict[str, Any]: ...
 
 def _atomic_json(path: Path, value: Any) -> None:
     try:
@@ -62,13 +62,14 @@ def _atomic_json(path: Path, value: Any) -> None:
 class JsonRepository:
     def __init__(self, data_dir: Path | str) -> None:
         self.data_dir = Path(data_dir)
-        self.root = self.data_dir / "drafts"
+        self.root = self.data_dir / "calendar" / "items"
+        self.lock_root = self.data_dir / "drafts"
 
     @contextlib.contextmanager
     def transaction(self) -> Iterator[None]:
         try:
-            self.root.mkdir(parents=True, exist_ok=True)
-            with open(self.root / ".lock", "a+") as handle:
+            self.lock_root.mkdir(parents=True, exist_ok=True)
+            with open(self.lock_root / ".lock", "a+") as handle:
                 if fcntl is None:
                     # Crew's Windows lock serializes through msvcrt and fails closed.
                     from kiro_crew.platform_compat import file_lock
@@ -83,8 +84,8 @@ class JsonRepository:
         except OSError as exc:
             raise StorageUnavailable("Persistent state lock or IO unavailable") from exc
 
-    def draft_path(self, draft_id: str) -> Path:
-        if not re.fullmatch(r"[0-9a-f]{16}", draft_id):
+    def item_path(self, draft_id: str) -> Path:
+        if not re.fullmatch(r"(?:[0-9a-f]{16}|[0-9a-f]{32})", draft_id):
             raise DraftError("unknown draft id")
         return self.root / f"{draft_id}.json"
 
@@ -102,11 +103,11 @@ class JsonRepository:
     def save_settings(self, value: dict[str, Any]) -> None:
         _atomic_json(self.data_dir / "settings.json", value)
 
-    def save_draft(self, value: dict[str, Any]) -> None:
-        _atomic_json(self.draft_path(value["id"]), value)
+    def save_item(self, value: dict[str, Any]) -> None:
+        _atomic_json(self.item_path(value["id"]), value)
 
-    def get_draft(self, draft_id: str) -> dict[str, Any]:
-        path = self.draft_path(draft_id)
+    def get_item(self, draft_id: str) -> dict[str, Any]:
+        path = self.item_path(draft_id)
         try:
             value = json.loads(path.read_text(encoding="utf-8"))
             if not isinstance(value, dict) or not {"id", "title", "start", "status", "origin"} <= value.keys():
@@ -117,7 +118,7 @@ class JsonRepository:
         except (OSError, ValueError) as exc:
             raise StorageUnavailable("Draft could not be read") from exc
 
-    def drafts(self, *, strict: bool = False) -> list[dict[str, Any]]:
+    def items(self, *, strict: bool = False) -> list[dict[str, Any]]:
         if not self.root.is_dir():
             return []
         drafts = []
@@ -135,8 +136,8 @@ class JsonRepository:
         return sorted(drafts, key=lambda d: (d.get("createdAt", ""), d["id"]), reverse=True)
 
 
-    def session_drafts(self, session_key: str) -> list[dict[str, Any]]:
-        return [d for d in self.drafts(strict=True) if d["origin"].get("sessionKey") == session_key]
+    def session_items(self, session_key: str) -> list[dict[str, Any]]:
+        return [d for d in self.items(strict=True) if d["origin"].get("sessionKey") == session_key]
 
     def _receipt(self, session_key: str) -> Path:
         import hashlib

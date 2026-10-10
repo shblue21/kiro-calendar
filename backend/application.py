@@ -38,7 +38,7 @@ class DraftService:
                 except DraftError:
                     raise ProposalDenied("unavailable")
                 self.policy.require_enabled(current, session)
-            existing = self.repository.session_drafts(session)
+            existing = self.repository.session_items(session)
             duplicate = self.policy.duplicate(candidate, session, existing, proactive=proactive)
             if duplicate is not None:
                 return duplicate, True
@@ -49,18 +49,20 @@ class DraftService:
             # Repeating the original MCP input must not overwrite that edited record.
             if any(d['id'] == record['id'] for d in existing):
                 record['id'] = uuid.uuid4().hex[:16]
-            self.repository.save_draft(record)
+            self.repository.save_item(record)
             return record, False
 
     def list(self, *, strict: bool = False) -> list[dict]:
-        return self.repository.drafts(strict=strict)
+        return self.repository.items(strict=strict)
 
     def set_status(self, draft_id: str, status: str) -> dict:
         if status != "dismissed":
             raise DraftError("Only dismissing is supported")
         with self.repository.transaction():
-            draft = self.repository.get_draft(draft_id)
+            draft = self.repository.get_item(draft_id)
+            if draft["status"] not in {"proposed", "dismissed"}:
+                raise DraftError("Confirmed events cannot be dismissed as proposals")
             draft["status"] = status
             draft["updatedAt"] = self.clock().isoformat(timespec="seconds")
-            self.repository.save_draft(draft)
+            self.repository.save_item(draft)
             return draft

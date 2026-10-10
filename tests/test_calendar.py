@@ -49,7 +49,7 @@ class CalendarTest(unittest.TestCase):
     def prepare(self,target='a'):
         return self.service.prepare({'draftId':self.draft['id'],'revision':self.draft.get('revision',1),'target':{'connectionId':'primary','calendarId':target}})
     def test_legacy_draft_default_revision_and_edit(self):
-        self.draft.pop('revision');self.services.repository.save_draft(self.draft)
+        self.draft.pop('revision');self.services.repository.save_item(self.draft)
         self.assertEqual(self.service.list_drafts()[0]['revision'],1)
         edited=self.service.edit(self.draft['id'],{**FIELDS,'title':'Changed','revision':1})
         self.assertEqual(edited['revision'],2)
@@ -122,7 +122,7 @@ class CalendarTest(unittest.TestCase):
         edited=self.service.edit(self.draft['id'],{**FIELDS,'revision':1,'title':'Edited by user'})
         new,duplicate=self.services.drafts.create(FIELDS,ORIGIN)
         self.assertFalse(duplicate);self.assertNotEqual(new['id'],edited['id'])
-        self.assertEqual(self.services.repository.get_draft(edited['id'])['title'],'Edited by user')
+        self.assertEqual(self.services.repository.get_item(edited['id'])['title'],'Edited by user')
     def test_external_success_local_record_failure_keeps_write_locked(self):
         from unittest.mock import patch
         op=self.prepare();self.service.claim(op['id'])

@@ -15,6 +15,11 @@
   overflow: hidden;
 }
 
+.cc-editor[open] {
+  display: flex;
+  flex-direction: column;
+}
+
 .cc-editor::backdrop {
   background: #16102055;
 }
@@ -120,3 +125,5 @@
     padding: 14px 18px;
   }
 }
+
+.cc-editor-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
