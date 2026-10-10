@@ -1,467 +1,112 @@
-import { useMemo, useReducer, useRef, useState } from "react";
-import { Btn } from "@kirocrew/app-sdk/ui";
-import { CalendarPage } from "./calendar/CalendarPage";
-import type { CalendarViewItem, CalendarView, CalendarLayout } from "./calendar/types";
-import { EVENT_LINKS, ITEMS, SAMPLE_NOW } from "./preview/fixtures";
-import type { EventLink } from "./preview/fixtures";
-import { PreviewNotice } from "./preview/PreviewControls";
-import type { PreviewScene } from "./preview/PreviewControls";
-import {
-  PREVIEW_TASKS,
-  calendarTasks,
-  workspaceReducer,
-} from "./preview/workspace";
-import type { PreviewTask } from "./preview/workspace";
-import { EventActions } from "./work/EventActions";
-import { AutoSchedulePage } from "./work/AutoSchedulePage";
-import {
-  ArrowLeft,
-  Settings2,
-  Plus,
-  CalendarDays,
-  Sparkles,
-} from "./platform/kiro/icons";
-import { SettingsPage } from "./settings/SettingsPage";
-import { ConnectionDialog } from "./settings/ConnectionDialog";
-import type { PreviewConnection } from "./settings/ConnectionDialog";
-import { ItemEditor } from "./calendar/ItemEditor";
-import type { EditorSession } from "./calendar/ItemEditor";
-import { blankDraft, dayOffset, minuteValue } from "./calendar/editor";
-import type { EditorDraft } from "./calendar/editor";
-import { dateKey, shift } from "./calendar/dates";
-import { calendarRange } from "./calendar/period";
-import { clock } from "./calendar/format";
-import styles from "./styles.css?inline";
-const EMPTY_ITEMS: readonly CalendarViewItem[] = [];
-const PROPOSAL_LINK: EventLink = { state: "origin", conversation: "지원서 작성 대화", proposedOn: "9/30" };
-const initialTasks: PreviewTask[] = [
-  ...PREVIEW_TASKS,
-  ...ITEMS.filter((i) => i.kind === "trigger").map((i) => ({
-    id: i.id,
-    title: i.title,
-    description: i.description,
-    day: i.day,
-    minute: i.start,
-    status: "scheduled" as const,
-    automatic: false,
-    source: "직접 만든 샘플 예약",
-    quote: i.description,
-    reason: "사용자가 요청",
-    repeat: "none" as const,
-  })),
-];
-export default function CalendarPreview() {
-  const [weekStart] = useState(() => new Date(2026, 8, 28, 12));
-  const [scene, setScene] = useState<PreviewScene>("sample");
-  const [page, setPage] = useState<"calendar" | "auto" | "settings">(
-    new URLSearchParams(window.location.search).get("view") === "drafts" ? "settings" : "calendar",
-  );
-  const [view, setView] = useState<CalendarView>("week");
-  const [layout, setLayout] = useState<CalendarLayout>("calendar");
-  const [focusDate, setFocusDate] = useState(() => shift(weekStart, SAMPLE_NOW.day));
-  const offset = Math.floor(dayOffset(dateKey(focusDate), weekStart) / 7);
-  function setOffset(value: number) { setFocusDate(shift(weekStart, value * 7 + SAMPLE_NOW.day)); }
-  const [baseItems, setBaseItems] = useState(() =>
-    ITEMS.filter((i) => i.kind !== "trigger"),
-  );
-  const [state, dispatch] = useReducer(workspaceReducer, {
-    autoOn: true,
-    tasks: initialTasks,
-  });
-  const [editor, setEditor] = useState<EditorSession | null>(null);
-  const [connecting, setConnecting] = useState(false);
-  const [connections, setConnections] = useState<PreviewConnection[]>([
-    {
-      id: "Google Calendar",
-      provider: "Google Calendar",
-      calendars: ["업무 일정"],
-    },
-  ]);
-  const [links, setLinks] = useState<Record<string, EventLink>>(EVENT_LINKS);
-  const retryTimer = useRef<number>();
-  function setLink(id: string, link?: EventLink) {
-    setLinks((all) => {
-      const next = { ...all };
-      if (link) next[id] = link;
-      else delete next[id];
-      return next;
-    });
+import { zonedDay, zonedInput, dateRangeInstants } from './calendar/time';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAppApi, useAppInfo, useChatLauncher } from '@kirocrew/app-sdk';
+import { Btn } from '@kirocrew/app-sdk/ui';
+import { CalendarPage } from './calendar/CalendarPage';
+import { monday, dateKey, shift } from './calendar/dates';
+import { dayOffset } from './calendar/dates';
+import { calendarRange } from './calendar/period';
+import type { CalendarView, CalendarLayout, CalendarViewItem } from './calendar/types';
+import type { Draft, CalendarEvent, Connection } from './live/types';
+import { draftItems, eventItems } from './live/projection';
+import { DraftEditor } from './live/DraftEditor';
+import { CalendarConnections } from './live/CalendarConnections';
+import { DraftList } from './live/DraftList';
+import { ProposalSettings } from './settings/ProposalSettings';
+import { Settings2, Plus, ArrowLeft, RotateCcw } from './platform/kiro/icons';
+import { message } from './live/api';
+import styles from './styles.css?inline';
+
+export default function CalendarApp() {
+  const api = useRef(useAppApi()), {name} = useAppInfo();
+  const [zone,setZone] = useState(''), [error,setError] = useState('');
+  const load = useCallback(async()=>{
+    try {const body=await api.current.get<{settings:{timezone:string}}>(`/api/apps/${name}/settings`);setZone(body.settings.timezone);setError('');}
+    catch {setError('OS 시스템 시간대를 확인하지 못했습니다.');}
+  },[name]);
+  useEffect(()=>{void load();},[load]);
+  if(!zone)return <div className="cc-calendar"><style>{styles}</style><p role="status">{error || '캘린더를 불러오고 있습니다.'}</p>{error && <Btn onClick={()=>void load()}>다시 확인</Btn>}</div>;
+  return <CalendarWorkspace timezone={zone}/>;
+}
+function CalendarWorkspace({timezone}: {timezone:string}) {
+  const api=useRef(useAppApi()), {name}=useAppInfo(), {openChat}=useChatLauncher();
+  const base=`/api/apps/${name}`;
+  const [clock,setClock]=useState(()=>new Date()), [weekStart]=useState(()=>monday(zonedDay(new Date(),timezone)));
+  const [focusDate,setFocusDate]=useState(()=>zonedDay(new Date(),timezone)), [view,setView]=useState<CalendarView>('week'), [layout,setLayout]=useState<CalendarLayout>('calendar');
+  const [page,setPage]=useState<'calendar'|'settings'>(()=>new URLSearchParams(window.location.search).get('view')==='drafts'?'settings':'calendar');
+  const [drafts,setDrafts]=useState<Draft[]>([]), [events,setEvents]=useState<CalendarEvent[]>([]), [connections,setConnections]=useState<Connection[]>([]);
+  const [draftError,setDraftError]=useState(''), [eventError,setEventError]=useState(''), [connectionError,setConnectionError]=useState('');
+  const [loading,setLoading]=useState(true), [refreshing,setRefreshing]=useState(false);
+  const [editor,setEditor]=useState<{key:string;draft:Draft|null}|null>(null);
+  const [jump,setJump]=useState<{id:string;serial:number}>();
+  const [feedback,setFeedback]=useState('');
+  const draftSequence=useRef(0), eventSequence=useRef(0), connectionSequence=useRef(0);
+  const range=calendarRange(focusDate,view,weekStart,layout);
+  const first=shift(weekStart,range.first), last=shift(weekStart,range.end);
+  const {start:rangeStart,end:rangeEnd}=dateRangeInstants(dateKey(first),dateKey(last),timezone);
+  const selected=JSON.stringify(connections.map(c=>[c.id,c.state,c.selectedCalendarIds]));
+  const loadDrafts=useCallback(async()=>{
+    const seq=++draftSequence.current;
+    try {const body=await api.current.get<{drafts:Draft[]}>(`${base}/drafts`);if(seq===draftSequence.current){setDrafts(body.drafts);setDraftError('');}}
+    catch(error){if(seq===draftSequence.current)setDraftError(`초안을 불러오지 못했습니다. ${message(error)}`);}
+    finally{if(seq===draftSequence.current)setLoading(false);}
+  },[base]);
+  const loadConnection=useCallback(async()=>{
+    const seq=++connectionSequence.current;
+    try{const body=await api.current.get<{connections:Connection[]}>(`${base}/calendar/connection`);if(seq===connectionSequence.current){setConnections(body.connections);setConnectionError('');}}
+    catch(error){if(seq===connectionSequence.current){setConnectionError(message(error));setConnections([]);}}
+  },[base]);
+  const loadEvents=useCallback(async()=>{
+    const seq=++eventSequence.current;
+    if(!connections.some(c=>c.selectedCalendarIds.length)){setEvents([]);setEventError('');return;}
+    try {
+      const body=await api.current.get<{events:CalendarEvent[];errors:{message:string}[]}>(`${base}/calendar/events?start=${encodeURIComponent(rangeStart)}&end=${encodeURIComponent(rangeEnd)}`);
+      if(seq===eventSequence.current){setEvents(body.events);setEventError(body.errors.map(e=>e.message).join(' '));}
+    }catch(error){if(seq===eventSequence.current){setEvents([]);setEventError(`일정 조회 실패. ${message(error)}`);}}
+  },[base,rangeStart,rangeEnd,selected]);
+  useEffect(()=>{void loadDrafts();void loadConnection();},[loadDrafts,loadConnection]);
+  useEffect(()=>{setEvents([]);void loadEvents();},[loadEvents]);
+  useEffect(()=>{const timer=window.setInterval(()=>setClock(new Date()),60000);return ()=>window.clearInterval(timer);},[]);
+  const changed=useCallback(async()=>{await Promise.all([loadDrafts(),loadEvents()]);},[loadDrafts,loadEvents]);
+  async function refresh(){setRefreshing(true);await Promise.all([loadDrafts(),loadConnection(),loadEvents()]);setRefreshing(false);}
+  const items=useMemo(()=>[...draftItems(drafts,weekStart,range,timezone),...events.flatMap(e=>eventItems(e,weekStart,range,timezone))], [drafts,events,weekStart,range.first,range.end,timezone]);
+  const offset=Math.floor(dayOffset(dateKey(focusDate),weekStart)/7);
+  const wallClock=zonedInput(clock,timezone);
+  const reference={day:dayOffset(wallClock.slice(0,10),weekStart),instant:clock.toISOString()};
+  function edit(draft:Draft|null){setEditor({key:crypto.randomUUID(),draft});}
+  function selectDraft(draft:Draft){setFocusDate(zonedDay(draft.start,timezone));setPage('calendar');setJump({id:`draft:${draft.id}@${dayOffset(zonedInput(draft.start,timezone).slice(0,10),weekStart)}`,serial:Date.now()});edit(draft);}
+  function origin(key?:string){if(key?.startsWith('dashboard:'))openChat({slotKey:key.slice('dashboard:'.length)});}
+  async function dismiss(draft:Draft){try{await api.current.post(`${base}/drafts/${draft.id}/status`,{status:'dismissed'});await loadDrafts();}catch(error){setFeedback(message(error));}}
+  function actions(id:string){
+    const item=items.find(i=>i.id===id);if(!item)return null;
+    const draft=drafts.find(d=>d.id===item.draftId);
+    const session=draft?.origin.sessionKey || item.providerEvent?.origin?.sessionKey;
+    return <div className="cc-inline-actions">{session?.startsWith('dashboard:') && <Btn onClick={()=>origin(session)}>원래 대화로 돌아가기</Btn>}
+      {draft && <Btn onClick={()=>edit(draft)}>{draft.calendarOperation?.state==='unknown'?'저장 결과 확인':'검토·저장'}</Btn>}</div>;
   }
-  const [proposalStatus, setProposalStatus] = useState<"pending" | "registered" | "dismissed">("pending");
-  const [feedback, setFeedback] = useState("");
-  const [undo, setUndo] = useState<(() => void) | null>(null);
-  const [jump, setJump] = useState<
-    { id: string; serial: number } | undefined
-  >();
-  const items = useMemo(
-    () => [...baseItems, ...calendarTasks(state.tasks, offset, calendarRange(focusDate, view, weekStart))],
-    [baseItems, state.tasks, offset, focusDate, view, weekStart],
-  );
-  const events = baseItems.filter((i) => i.kind === "event");
-  function notify(message: string) {
-    setFeedback(message);
-    setUndo(null);
-  }
-  function openEvent(id: string) {
-    if (!events.some((i) => i.id === id)) {
-      notify("원본 일정이 삭제되었습니다. 연결된 작업은 그대로 유지됩니다.");
-      return;
-    }
-    const item = events.find((i) => i.id === id)!;
-    setFocusDate(shift(weekStart, item.day));
-    setPage("calendar");
-    setJump({ id, serial: Date.now() });
-  }
-  function eventActions(id: string) {
-    const item = events.find((i) => i.id === id);
-    if (!item) return null;
-    return (
-      <EventActions
-        link={links[id]}
-        tasks={state.tasks.filter((t) => t.eventId === id)}
-        weekStart={weekStart}
-        now={SAMPLE_NOW}
-        onStart={() => {
-          setLink(id, { state: "prep", conversation: `${item.title} 준비 대화` });
-          notify("샘플: 일정 제목·시각·설명을 담아 Crew 대화를 시작하는 동작입니다. 실제 대화는 만들지 않았습니다.");
-        }}
-        onReturn={(conversation) =>
-          notify(`샘플: 실제로는 '${conversation}'로 이동합니다. 대화 연결은 아직 구현하지 않았습니다.`)
-        }
-        onRetry={() => {
-          setLink(id, { state: "checking" });
-          window.clearTimeout(retryTimer.current);
-          // Sample lookup resolves to "no linked conversation" rather than inventing one.
-          retryTimer.current = window.setTimeout(() => setLink(id), 700);
-        }}
-        onEditTask={(taskId) => openEditor("task", taskId)}
-      />
-    );
-  }
-  function openEditor(kind: "event" | "task", id?: string) {
-    const draft = blankDraft(weekStart, dayOffset(dateKey(focusDate), weekStart));
-    if (id && kind === "event") {
-      const item = events.find((i) => i.id === id);
-      if (!item) return;
-      Object.assign(draft, {
-        title: item.title,
-        date: dateKey(shift(weekStart, item.day)),
-        start: clock(item.start),
-        end: clock(item.end ?? item.start + 60),
-        allDay: !!item.allDay,
-        source: item.source,
-        description: item.description,
-      });
-    }
-    if (id && kind === "task") {
-      const task = state.tasks.find((t) => t.id === id);
-      if (!task || task.status === "completed") return;
-      Object.assign(draft, {
-        title: task.title,
-        date: dateKey(shift(weekStart, task.day)),
-        start: clock(task.minute),
-        description: task.description,
-        repeat: task.repeat ?? "none",
-        eventId: events.some((e) => e.id === task.eventId) ? task.eventId : "",
-        allDay: false,
-      });
-    }
-    setEditor({ key: crypto.randomUUID(), kind, id, draft });
-  }
-  function save(draft: EditorDraft) {
-    if (!editor) return;
-    const id = editor.id ?? crypto.randomUUID();
-    const day = dayOffset(draft.date, weekStart);
-    let selected = id;
-    if (editor.kind === "event") {
-      const item: CalendarViewItem = {
-        id,
-        kind: "event",
-        day,
-        title: draft.title.trim(),
-        start: draft.allDay ? 0 : minuteValue(draft.start),
-        end: draft.allDay ? undefined : minuteValue(draft.end),
-        allDay: draft.allDay,
-        source: draft.source,
-        description: draft.description.trim(),
-      };
-      setBaseItems((list) =>
-        list.some((i) => i.id === id)
-          ? list.map((i) => (i.id === id ? item : i))
-          : [...list, item],
-      );
-    } else {
-      const previous = state.tasks.find((t) => t.id === id);
-      dispatch({
-        type: "save",
-        task: {
-          id,
-          automatic: false,
-          status: "scheduled",
-          source: "직접 만든 샘플 예약",
-          quote: draft.description,
-          reason: "사용자가 입력",
-          ...previous,
-          title: draft.title.trim(),
-          description: draft.description.trim(),
-          day,
-          minute: minuteValue(draft.start),
-          repeat: draft.repeat,
-          eventId: draft.eventId || undefined,
-        },
-      });
-      if (draft.repeat !== "none") selected = `${id}@${day}`;
-    }
-    if (editor.key.startsWith("proposal-")) {
-      setProposalStatus("registered");
-      setLink(id, PROPOSAL_LINK);
-    }
-    setScene("sample");
-    setFocusDate(shift(weekStart, day));
-    setPage("calendar");
-    setEditor(null);
-    setJump({ id: selected, serial: Date.now() });
-    notify("샘플에 저장했습니다. 실제 일정이나 작업은 생성하지 않았습니다.");
-  }
-  function proposalAction(action: "register" | "edit" | "dismiss") {
-    if (proposalStatus !== "pending") return;
-    if (action === "dismiss") {
-      setProposalStatus("dismissed");
-      return;
-    }
-    const draft = {
-      ...blankDraft(weekStart, 3),
-      title: "지원서 마무리",
-      date: dateKey(shift(weekStart, 3)),
-      start: "19:00",
-      end: "20:00",
-      source: "개인 일정",
-      description: "대화 예시: 지원서 아직 못 썼는데 금요일 마감이야.\n마감 전 마무리 시간을 추천한 샘플입니다.",
-    };
-    if (action === "edit") {
-      setEditor({ key: `proposal-${crypto.randomUUID()}`, kind: "event", draft });
-      return;
-    }
-    const id = "sample-conversation-proposal";
-    setBaseItems((list) => list.some((item) => item.id === id) ? list : [...list, {
-      id, kind: "event", day: 3, title: draft.title, start: 1140, end: 1200,
-      source: draft.source, description: draft.description,
-    }]);
-    setLink(id, PROPOSAL_LINK);
-    setProposalStatus("registered");
-    setScene("sample");
-    setFocusDate(shift(weekStart, 3));
-    setPage("calendar");
-    setJump({ id, serial: Date.now() });
-    notify("샘플 캘린더에 등록했습니다. 실제 캘린더에는 저장하지 않았습니다.");
-  }
-  function remove() {
-    if (!editor?.id) return;
-    const id = editor.id;
-    if (editor.kind === "event") {
-      const removed = events.find((i) => i.id === id);
-      if (!removed) return;
-      setBaseItems((list) => list.filter((i) => i.id !== id));
-      setUndo(
-        () => () =>
-          setBaseItems((list) =>
-            list.some((i) => i.id === id) ? list : [...list, removed],
-          ),
-      );
-    } else {
-      const removed = state.tasks.find((t) => t.id === id);
-      if (!removed) return;
-      dispatch({ type: "status", id, status: "cancelled" });
-      setUndo(() => () => dispatch({ type: "save", task: removed }));
-    }
-    setEditor(null);
-    setPage("calendar");
-    setFeedback("샘플 항목을 삭제했습니다. 연결된 다른 작업은 유지됩니다.");
-  }
-  return (
-    <div className="cc-calendar">
-      <style>{styles}</style>
-      <header className="cc-compact-header">
-        <div className="cc-compact-title">
-          <h1>Calendar</h1>
-          <span
-            className="cc-sample-label"
-            title="달력은 샘플입니다. 설정과 대화 초안은 실제로 저장됩니다."
-          >
-            달력 샘플
-          </span>
-        </div>
-        <div className="cc-header-actions">
-          {page !== "calendar" && (
-            <Btn onClick={() => setPage("calendar")}>
-              <ArrowLeft size={14} />
-              캘린더
-            </Btn>
-          )}
-          <details className="cc-add-menu">
-            <summary>
-              <Plus size={15} />
-              추가
-            </summary>
-            <div className="cc-add-options">
-              <Btn
-                onClick={(e) => {
-                  e.currentTarget.closest("details")?.removeAttribute("open");
-                  openEditor("event");
-                }}
-              >
-                <CalendarDays size={15} />내 일정
-              </Btn>
-              <Btn
-                onClick={(e) => {
-                  e.currentTarget.closest("details")?.removeAttribute("open");
-                  openEditor("task");
-                }}
-              >
-                <Sparkles size={15} />
-                Crew 작업 예약
-              </Btn>
-            </div>
-          </details>
-          <Btn
-            className="cc-settings-entry"
-            aria-label="캘린더 설정"
-            aria-pressed={page === "settings"}
-            onClick={() =>
-              setPage(page === "settings" ? "calendar" : "settings")
-            }
-          >
-            <Settings2 size={16} />
-          </Btn>
-        </div>
-      </header>
-      {feedback && (
-        <div className="cc-feedback" role="status">
-          <span>{feedback}</span>
-          <div>
-            {undo && (
-              <Btn
-                onClick={() => {
-                  undo();
-                  setUndo(null);
-                  setFeedback("삭제를 되돌렸습니다.");
-                }}
-              >
-                되돌리기
-              </Btn>
-            )}
-            <Btn aria-label="안내 닫기" onClick={() => setFeedback("")}>
-              ×
-            </Btn>
-          </div>
-        </div>
-      )}
-      <div
-        className="cc-route-panel"
-        role="region"
-        aria-label="캘린더"
-        hidden={page !== "calendar"}
-      >
-        <CalendarPage
-          items={scene === "empty" ? EMPTY_ITEMS : items}
-          weekStart={weekStart}
-          referenceTime={SAMPLE_NOW}
-          view={view}
-          onView={setView}
-          layout={layout}
-          onLayout={setLayout}
-          focusDate={focusDate}
-          onFocusDate={setFocusDate}
-          offset={offset}
-          onOffset={setOffset}
-          jump={jump}
-          scene={scene}
-          notice={
-            scene === "partial" ? (
-              <PreviewNotice onRecover={() => setScene("sample")} />
-            ) : undefined
-          }
-          onResetPreview={() => setScene("sample")}
-          eventActions={eventActions}
-          onAdd={() => openEditor("event")}
-          onEdit={(item) =>
-            openEditor(
-              item.kind === "event" ? "event" : "task",
-              item.taskId ?? item.id,
-            )
-          }
-        />
-      </div>
-      <div
-        className="cc-route-panel"
-        role="region"
-        aria-label="자동 예약"
-        hidden={page !== "auto"}
-      >
-        <AutoSchedulePage
-          state={state}
-          dispatch={dispatch}
-          weekStart={weekStart}
-          onOpenEvent={openEvent}
-        />
-      </div>
-      <div
-        className="cc-route-panel"
-        role="region"
-        aria-label="설정"
-        hidden={page !== "settings"}
-      >
-        <SettingsPage
-          scene={scene}
-          onScene={setScene}
-          proposalStatus={proposalStatus}
-          onProposalAction={proposalAction}
-          autoOn={state.autoOn}
-          onOpenAuto={() => setPage("auto")}
-          onBack={() => setPage("calendar")}
-          connections={connections}
-          onConnect={() => setConnecting(true)}
-          onDisconnect={(id) => {
-            const connection = connections.find((c) => c.id === id)!;
-            setConnections((list) => list.filter((c) => c.id !== id));
-            setFeedback(
-              "샘플 연결을 해제했습니다. 실제 계정에는 영향이 없습니다.",
-            );
-            setUndo(
-              () => () =>
-                setConnections((list) =>
-                  list.some((c) => c.id === id) ? list : [...list, connection],
-                ),
-            );
-          }}
-        />
-      </div>
-      {editor && (
-        <ItemEditor
-          key={editor.key}
-          session={editor}
-          weekStart={weekStart}
-          events={events}
-          onSave={save}
-          onClose={() => setEditor(null)}
-          onDelete={editor.id ? remove : undefined}
-        />
-      )}
-      {connecting && (
-        <ConnectionDialog
-          onClose={() => setConnecting(false)}
-          onConnect={(connection) => {
-            setConnections((list) => [
-              ...list.filter((c) => c.id !== connection.id),
-              connection,
-            ]);
-            setConnecting(false);
-            notify(
-              "샘플 캘린더 선택을 저장했습니다. 실제 계정은 연결하지 않았습니다.",
-            );
-          }}
-        />
-      )}
+  const visibleDrafts=drafts.filter(d=>d.status==='proposed');
+  return <div className="cc-calendar"><style>{styles}</style>
+    <header className="cc-compact-header"><div className="cc-compact-title"><h1>Calendar</h1><span className="cc-label">{timezone}</span></div>
+      <div className="cc-header-actions">{page!=='calendar' && <Btn onClick={()=>setPage('calendar')}><ArrowLeft size={14}/>캘린더</Btn>}
+      <Btn aria-label="일정 새로고침" disabled={refreshing} onClick={()=>void refresh()}><RotateCcw size={14}/></Btn>
+      <Btn onClick={()=>edit(null)}><Plus size={15}/>일정 추가</Btn><Btn aria-label="캘린더 설정" aria-pressed={page==='settings'} onClick={()=>setPage(page==='settings'?'calendar':'settings')}><Settings2 size={16}/></Btn></div></header>
+    {feedback && <div className="cc-feedback" role="status">{feedback}<Btn aria-label="안내 닫기" onClick={()=>setFeedback('')}>×</Btn></div>}
+    <div className="cc-route-panel" hidden={page!=='calendar'} role="region" aria-label="캘린더">
+      <CalendarPage timezone={timezone} items={items} weekStart={weekStart} referenceTime={reference} view={view} layout={layout} onView={setView} onLayout={setLayout}
+        focusDate={focusDate} onFocusDate={setFocusDate} offset={offset} onOffset={n=>setFocusDate(shift(weekStart,n*7))} jump={jump}
+        status={loading?'loading':'ready'} onReload={()=>void refresh()} onAdd={()=>edit(null)} onEdit={(item:CalendarViewItem)=>{const d=drafts.find(d=>d.id===item.draftId);if(d)edit(d);}}
+        eventActions={actions} notice={<>
+          {(draftError||eventError) && <div className="cc-feedback" role="alert">{[draftError,eventError].filter(Boolean).join(' ')}<Btn onClick={()=>void refresh()}>다시 확인</Btn></div>}
+          {(!connections.some(c=>c.state==='ready' && c.selectedCalendarIds.length>0)) && <div className="cc-live-notice"><span>검토용 초안을 표시합니다. 외부 일정을 보려면 연결에서 표시할 캘린더를 선택하세요.</span><Btn onClick={()=>setPage('settings')}>캘린더 연결</Btn></div>}
+        </>}/>
     </div>
-  );
+    <div className="cc-route-panel" hidden={page!=='settings'} role="region" aria-label="설정"><div className="cc-settings-page">
+      <div className="cc-settings-heading"><h2>설정</h2></div>
+      <CalendarConnections connections={connections} error={connectionError} onRefresh={loadConnection}/>
+      <ProposalSettings/>
+      <DraftList drafts={visibleDrafts} timezone={timezone} error={draftError}
+        onRefresh={()=>void loadDrafts()} onSelect={selectDraft} onDismiss={d=>void dismiss(d)} onOrigin={origin}/>
+    </div></div>
+    {editor && <DraftEditor timezone={timezone} key={editor.key} draft={editor.draft} date={focusDate} connections={connections} onClose={()=>setEditor(null)} onChanged={changed}/>}
+  </div>;
 }

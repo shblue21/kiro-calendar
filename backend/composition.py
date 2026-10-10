@@ -12,3 +12,14 @@ class Services:
         self.settings = SettingsService(self.repository)
         self.drafts = DraftService(self.repository, self.settings)
         self.contexts = SuggestionContextService(self.repository, self.settings)
+
+    def calendar(self):
+        from .calendar_service import CalendarService
+        from .calendar_storage import CalendarStorage
+        from .apple_provider import AppleCalendarProvider
+        from .calendar_connections import CalendarConnection, CalendarConnections
+        root = self.repository.data_dir
+        connections = CalendarConnections([
+            CalendarConnection('apple-local', 'apple', 'Apple Calendar · 이 Mac', AppleCalendarProvider(root.parent, root)),
+        ])
+        return CalendarService(self.drafts, CalendarStorage(root, legacy_connection_id='apple-local'), connections)

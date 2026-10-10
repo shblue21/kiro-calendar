@@ -1,0 +1,18 @@
+.cc-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 0;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.cc-checkbox input {
+  accent-color: var(--cc-accent);
+}
+
+.cc-calendar-choices {
+  display: grid;
+  gap: 10px;
+  padding: 12px 0;
+}

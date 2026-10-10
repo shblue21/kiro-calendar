@@ -9,7 +9,7 @@ import {
   ChevronRight,
   FileText,
 } from "../platform/kiro/icons";
-import type { CalendarViewItem, CalendarReferenceTime } from "./types";
+import type { CalendarViewItem } from "./types";
 import { DAYS } from "./dates";
 import { KIND_LABEL, STATUS_LABEL, timeLabel } from "./format";
 import { spanEnd } from "./layout";
@@ -19,7 +19,7 @@ type Props = {
   item: CalendarViewItem;
   items: readonly CalendarViewItem[];
   dates: Date[];
-  referenceTime: CalendarReferenceTime;
+  referenceMinute: number;
   onClose: () => void;
   /** Event-only primary action area (conversation, result, prep status). */
   actions?: ReactNode;
@@ -31,7 +31,7 @@ export function DetailPanel({
   item,
   items,
   dates,
-  referenceTime,
+  referenceMinute,
   onClose,
   actions,
   onEdit,
@@ -49,7 +49,7 @@ export function DetailPanel({
       <div className="cc-detail-top">
         <span className={`cc-kind-label cc-${item.kind}`}>
           <TypeMark item={item} />
-          {KIND_LABEL[item.kind]}
+          {item.storage === "draft" ? "검토용 초안" : KIND_LABEL[item.kind]}
         </span>
         <Btn aria-label="상세 닫기" onClick={onClose}>
           <X size={17} />
@@ -73,7 +73,7 @@ export function DetailPanel({
           {STATUS_LABEL[item.status]}
         </Badge>
       )}
-      {item.kind !== "run" && <Btn onClick={onEdit}>샘플 편집</Btn>}
+      {item.kind !== "run" && !item.storage && item.editable !== false && <Btn onClick={onEdit}>{item.storage ? "초안 검토·수정" : "편집"}</Btn>}
       <p className="cc-description">{item.description}</p>
       <dl>
         <dt>
@@ -94,7 +94,7 @@ export function DetailPanel({
         {item.kind === "event" && (
           <>
             <dt>저장</dt>
-            <dd>샘플 · 외부 저장 없음</dd>
+            <dd>{item.storage === "external" ? "연결된 캘린더에서 조회" : item.storage === "draft" ? "로컬 초안 · 외부 저장 전" : "외부 저장 정보 없음"}</dd>
           </>
         )}
         {item.kind === "trigger" && (
@@ -110,8 +110,8 @@ export function DetailPanel({
           <>
             <dt>실행 시간</dt>
             <dd>
-              {spanEnd(item, referenceTime.minute) - item.start}분
-              {item.status === "running" ? " 경과 · 예시" : ""}
+              {spanEnd(item, referenceMinute) - item.start}분
+              {item.status === "running" ? " 경과" : ""}
             </dd>
           </>
         )}
@@ -152,7 +152,7 @@ export function DetailPanel({
           </Btn>
           {resultOpen && item.artifactPreview && (
             <div className="cc-result-preview">
-              <Badge variant="muted">예시 문서</Badge>
+              <Badge variant="muted">결과 미리보기</Badge>
               <h4>{item.artifactPreview.title}</h4>
               <p>{item.artifactPreview.summary}</p>
               <ul>
@@ -166,7 +166,7 @@ export function DetailPanel({
       )}
       <p className="cc-detail-bottom">
         {item.kind === "event"
-          ? "원본 캘린더 열기는 아직 지원하지 않습니다."
+          ? item.storage === "external" ? "기존 일정의 수정·삭제는 원본 캘린더에서 해주세요." : item.storage === "draft" ? "검토 후 저장할 캘린더를 선택하세요." : "원본 캘린더 열기는 아직 지원하지 않습니다."
           : item.kind === "trigger"
             ? "Schedule에서 열기는 아직 지원하지 않습니다."
             : "세션 열기는 아직 지원하지 않습니다."}

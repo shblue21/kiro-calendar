@@ -93,3 +93,32 @@ test("a manifest with a backend packages its Python modules only", async (t) => 
   assert.ok(files.includes("backend/routes.py"));
   assert.ok(!files.some((f) => f.includes("__pycache__") || f.endsWith(".md") || f.startsWith("tests")));
 });
+
+test("desktop package requires and preserves the native runtime", async (t) => {
+  const root = await fixture(t);
+  const manifest = JSON.parse(await readFile(path.join(root, "app.json"), "utf8"));
+  manifest.platform = { os: ["macos", "windows", "linux"] };
+  await writeFile(path.join(root, "app.json"), JSON.stringify(manifest));
+  await assert.rejects(packageApp(root, path.join(root, ".build"), {platform:"darwin"}));
+  const bundle = "Crew Calendar Bridge.app";
+  const files = ["Contents/Info.plist", "Contents/MacOS/CrewCalendarBridge", "Contents/_CodeSignature/CodeResources"];
+  for (const file of files) {
+    const source = path.join(root, ".build/native", bundle, file);
+    await mkdir(path.dirname(source), { recursive: true });
+    await writeFile(source, file);
+  }
+  const output = await packageApp(root, path.join(root, ".build"), {platform:"darwin"});
+  for (const file of files) assert.equal(await readFile(path.join(output, "native", bundle, file), "utf8"), file);
+});
+
+test("Windows and Linux core packages do not require or include the Apple bridge", async (t) => {
+  const root = await fixture(t);
+  const manifest = JSON.parse(await readFile(path.join(root, "app.json"), "utf8"));
+  manifest.platform = {os:["macos","windows","linux"],arch:[]};
+  await writeFile(path.join(root, "app.json"), JSON.stringify(manifest));
+  for (const platform of ["win32","linux"]) {
+    const output = await packageApp(root, path.join(root, ".build"), {platform});
+    assert.ok(!(await readdir(output)).includes("native"));
+    assert.ok((await readdir(output)).includes("ui"));
+  }
+});

@@ -1,6 +1,8 @@
 """Small read-only adapter for the installed Crew hook registry."""
 from __future__ import annotations
 import shlex
+import os
+import subprocess
 import sys
 from typing import Any
 from pathlib import Path
@@ -11,7 +13,8 @@ def hook_command() -> str:
     # A stable installed path, never a workspace checkout or arbitrary input.
     from kiro_crew.apps.manager import app_dir
     root = app_dir("crew-calendar")
-    return shlex.join([str(Path(sys.executable).resolve()), str(root / "backend" / "proposal_hook.py"), str(root / "data")])
+    args = [str(Path(sys.executable).resolve()), str(root / "backend" / "proposal_hook.py"), str(root / "data")]
+    return subprocess.list2cmdline(args) if os.name == "nt" else shlex.join(args)
 
 
 def connection_info(session_key: str = "dashboard:ui") -> dict:

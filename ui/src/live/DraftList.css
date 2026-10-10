@@ -1,0 +1,27 @@
+.cc-draft-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-top: 1px solid var(--cc-border);
+}
+
+.cc-draft-row > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.cc-draft-row strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cc-draft-row small {
+  color: var(--cc-muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}

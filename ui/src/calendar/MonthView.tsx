@@ -2,17 +2,18 @@ import type { CalendarViewItem } from "./types";
 import { dateKey, DAYS, shift } from "./dates";
 import { monthDates } from "./period";
 import { timeLabel } from "./format";
+import { DateBadge } from "./DateBadge";
 
 type Props = {
   date: Date;
   base: Date;
-  sampleDate: Date;
+  today: Date;
   items: readonly CalendarViewItem[];
   selectedId?: string;
   onSelect: (item: CalendarViewItem, button: HTMLButtonElement) => void;
   onDay: (date: Date) => void;
 };
-export function MonthView({ date, base, sampleDate, items, selectedId, onSelect, onDay }: Props) {
+export function MonthView({ date, base, today, items, selectedId, onSelect, onDay }: Props) {
   const byDate = new Map<string, CalendarViewItem[]>();
   for (const item of items) {
     const key = dateKey(shift(base, item.day));
@@ -25,8 +26,8 @@ export function MonthView({ date, base, sampleDate, items, selectedId, onSelect,
         const key = dateKey(day);
         const list = (byDate.get(key) ?? []).sort((a, b) => Number(!!b.allDay) - Number(!!a.allDay) || a.start - b.start);
         return <section key={key} aria-label={key} className={`cc-month-cell ${day.getMonth() !== date.getMonth() ? "cc-outside-month" : ""}`}>
-          <button className={`cc-month-day ${key === dateKey(sampleDate) ? "cc-reference-day" : ""}`}
-            aria-label={`${key} 주간 보기`} onClick={() => onDay(day)}>{day.getDate()}</button>
+          <button className="cc-month-day"
+            aria-label={`${key} 주간 보기`} onClick={() => onDay(day)}><DateBadge day={day.getDate()} today={key === dateKey(today)} /></button>
           {list.slice(0, 3).map((item) => <button key={item.id}
             className={`cc-month-item cc-${item.kind} ${item.id === selectedId ? "cc-month-selected" : ""}`}
             aria-label={`${item.title}, ${timeLabel(item)}`} title={`${item.title} · ${timeLabel(item)}`}

@@ -1,0 +1,12 @@
+.cc-calendar {
+  --cc-ink: var(--text, #282333);
+  --cc-muted: var(--muted, #827b8d);
+  --cc-border: var(--border, #e7e2ec);
+  --cc-surface: var(--bg, #fff);
+  --cc-panel: var(--card, var(--bg, #fff));
+  --cc-accent: var(--accent, #9250ef);
+  --cc-soft: color-mix(in srgb, var(--cc-accent) 9%, var(--cc-surface));
+  --cc-event: color-mix(in srgb, var(--cc-accent) 7%, var(--cc-surface));
+  --cc-green: var(--ok, #38996a);
+  --cc-red: var(--danger, #d15163);
+}

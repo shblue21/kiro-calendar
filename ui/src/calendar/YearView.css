@@ -1,0 +1,101 @@
+.cc-year-view {
+  height: 100%;
+  overflow: auto;
+  padding: 18px;
+}
+
+.cc-year-note {
+  font-size: 12px;
+  color: var(--cc-muted);
+  margin: 0 0 18px;
+}
+
+.cc-year-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.cc-year-month {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.cc-year-month:hover {
+  border-color: var(--cc-accent);
+  background: color-mix(in srgb, var(--cc-accent) 4%, transparent);
+}
+
+.cc-year-month:focus-visible {
+  border-color: var(--cc-accent);
+  background: color-mix(in srgb, var(--cc-accent) 4%, transparent);
+}
+
+.cc-year-month-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.cc-year-month-heading strong {
+  font-size: 14px;
+}
+
+.cc-year-month-heading small {
+  color: var(--cc-muted);
+  font-size: 11px;
+}
+
+.cc-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  text-align: center;
+  gap: 1px 0;
+}
+
+.cc-mini-grid > span {
+  min-height: 18px;
+  line-height: 18px;
+  position: relative;
+  font-size: 11px;
+}
+
+.cc-mini-weekday {
+  color: var(--cc-muted);
+}
+
+.cc-occupied-day::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: calc(50% - 1.5px);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--cc-accent);
+}
+
+@media (max-width: 900px) {
+  .cc-year-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .cc-year-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .cc-year-view {
+    padding: 10px;
+  }
+}

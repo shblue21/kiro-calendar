@@ -5,6 +5,7 @@
   "scripts": {
     "build": "npm --prefix ui run build",
     "test": "npm --prefix ui test && node --test scripts/package.test.mjs && python3 -m unittest discover -s tests",
-    "package": "npm run build && node scripts/package.mjs"
+    "build:native": "node scripts/build-native.mjs",
+    "package": "npm run build && npm run build:native && node scripts/package.mjs"
   }
 }

@@ -1,4 +1,5 @@
-import { dateKey, shift } from "./dates.ts";
+import { dateKey, shift, dayOffset } from "../../calendar/dates.ts";
+export { dayOffset } from "../../calendar/dates.ts";
 export type EditorDraft = {
   title: string;
   date: string;
@@ -14,23 +15,6 @@ export function minuteValue(time: string) {
   if (!/^\d{2}:\d{2}$/.test(time)) return NaN;
   const [h, m] = time.split(":").map(Number);
   return h < 24 && m < 60 ? h * 60 + m : NaN;
-}
-export function dayOffset(date: string, base: Date) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  if (!match) return NaN;
-  const [, y, m, d] = match.map(Number);
-  const value = new Date(Date.UTC(y, m - 1, d));
-  if (
-    value.getUTCFullYear() !== y ||
-    value.getUTCMonth() !== m - 1 ||
-    value.getUTCDate() !== d
-  )
-    return NaN;
-  return (
-    (value.getTime() -
-      Date.UTC(base.getFullYear(), base.getMonth(), base.getDate())) /
-    86400000
-  );
 }
 export function validateDraft(
   draft: EditorDraft,

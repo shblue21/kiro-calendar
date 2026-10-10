@@ -106,7 +106,7 @@ class DraftCandidate:
         draft_id = hashlib.sha256("\0".join([session, self.title.casefold(), normalized]).encode()).hexdigest()[:16]
         decision = hashlib.sha256(f"{session}\0{self.action_key}\0{self.occurrence}".encode()).hexdigest()
         created = now.isoformat(timespec="seconds")
-        return {"schemaVersion": SCHEMA_VERSION, "id": draft_id, "title": self.title,
+        return {"schemaVersion": SCHEMA_VERSION, "revision": 1, "id": draft_id, "title": self.title,
                 "start": self.start.isoformat(), "end": self.end.isoformat() if self.end else None,
                 "timezone": self.timezone, "reason": self.reason, "status": "proposed",
                 "source": "proactive" if proactive else "manual", "decisionKey": decision,

@@ -1,0 +1,141 @@
+.cc-detail {
+  width: 300px;
+  flex: 0 0 300px;
+  background: var(--cc-panel);
+  border-left: 1px solid var(--cc-border);
+  padding: 0 0 15px 20px;
+  overflow-y: auto;
+  max-height: none;
+}
+
+.cc-detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cc-detail-top > button {
+  padding: 4px;
+  border: 0;
+}
+
+.cc-kind-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--cc-accent);
+}
+
+.cc-detail h2 {
+  font-size: 21px;
+  letter-spacing: -0.03em;
+  line-height: 1.4;
+  font-weight: 600;
+  margin: 16px 0 10px;
+  overflow-wrap: anywhere;
+}
+
+.cc-detail h2:focus {
+  outline: none;
+}
+
+.cc-description {
+  font-size: 13px;
+  color: var(--cc-muted);
+  line-height: 1.8;
+  margin: 17px 0 22px;
+}
+
+.cc-detail dl {
+  display: grid;
+  grid-template-columns: 98px minmax(0, 1fr);
+  gap: 15px 10px;
+  font-size: 12px;
+  padding: 20px 0;
+  border-top: 1px solid var(--cc-border);
+  border-bottom: 1px solid var(--cc-border);
+  margin: 0;
+}
+
+.cc-detail dt {
+  color: var(--cc-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.cc-detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.cc-detail h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 18px 0 10px;
+}
+
+.cc-related-link {
+  width: 100%;
+  justify-content: space-between !important;
+}
+
+.cc-detail-bottom {
+  padding-top: 16px;
+  margin: 24px 0 0;
+  border-top: 1px solid var(--cc-border);
+  font-size: 11px;
+  color: var(--cc-muted);
+}
+
+.cc-result > button {
+  width: 100%;
+  justify-content: space-between !important;
+}
+
+.cc-result-preview {
+  padding: 14px;
+  background: var(--cc-soft);
+  border-radius: 8px;
+  margin-top: 10px;
+  line-height: 1.7;
+  font-size: 12px;
+}
+
+.cc-result-preview h4 {
+  font-size: 14px;
+  margin: 10px 0;
+}
+
+.cc-result-preview ul {
+  padding-left: 18px;
+  list-style: disc;
+}
+
+@media (max-width: 1250px) {
+  .cc-detail {
+    position: absolute;
+    z-index: 8;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 320px;
+    max-height: none;
+    padding: 16px 20px;
+    border: 1px solid var(--cc-border);
+    border-radius: 10px;
+    box-shadow: -12px 10px 40px #0002;
+  }
+}
+
+@media (max-width: 760px) {
+  .cc-detail {
+    position: absolute;
+    width: 100%;
+    padding: 18px;
+    max-height: calc(100dvh - 190px);
+    overflow: auto;
+  }
+}

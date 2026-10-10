@@ -2,6 +2,7 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Callable
+import uuid
 from .domain import DraftCandidate, DraftError, ProposalDenied
 from .repository import Repository
 from .settings import SettingsService
@@ -44,6 +45,10 @@ class DraftService:
             if proactive:
                 self.policy.require_new_proposal(candidate, session, existing, stamp)
             record = candidate.to_record(origin, proactive=proactive, now=stamp)
+            # A user can edit a draft while its identity and external links stay stable.
+            # Repeating the original MCP input must not overwrite that edited record.
+            if any(d['id'] == record['id'] for d in existing):
+                record['id'] = uuid.uuid4().hex[:16]
             self.repository.save_draft(record)
             return record, False
 

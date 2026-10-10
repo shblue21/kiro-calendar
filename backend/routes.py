@@ -38,7 +38,7 @@ async def list_drafts(request: Any, ctx: Any) -> Any:
     from aiohttp import web
     domain = _module("domain")
     try:
-        items = await asyncio.to_thread(lambda: _services(ctx).drafts.list(strict=True))
+        items = await asyncio.to_thread(lambda: _services(ctx).calendar().list_drafts())
     except (domain.DraftError, OSError):
         return web.json_response({"error": "Drafts unavailable"}, status=503)
     return web.json_response({"drafts": [_view(d) for d in items]})
@@ -49,10 +49,13 @@ async def update_status(request: Any, ctx: Any) -> Any:
     domain = _module("domain")
     try:
         body = await request.json()
-        draft = await asyncio.to_thread(lambda: _services(ctx).drafts.set_status(
-            request.match_info.get("draft_id", ""), body.get("status") if isinstance(body, dict) else ""))
+        if not isinstance(body, dict) or body.get("status") != "dismissed":
+            raise domain.DraftError("Only dismissing is supported")
+        draft = await asyncio.to_thread(lambda: _services(ctx).calendar().dismiss(request.match_info.get("draft_id", "")))
     except (domain.StorageUnavailable, OSError):
         return web.json_response({"error": "Draft update failed"}, status=503)
+    except _module("calendar_domain").CalendarError as exc:
+        return web.json_response({"error": exc.message, "code": exc.code}, status=409)
     except (domain.DraftError, ValueError):
         return web.json_response({"error": "Invalid draft update"}, status=400)
     return web.json_response({"draft": _view(draft)})
@@ -104,4 +107,4 @@ def register_routes(ctx: Any) -> list[Any]:
     return [AppRoute("GET", "/drafts", list_drafts),
             AppRoute("POST", "/drafts/{draft_id}/status", update_status),
             AppRoute("GET", "/settings", settings_get),
-            AppRoute("PUT", "/settings", settings_put)]
+            AppRoute("PUT", "/settings", settings_put)] + _module("calendar_routes").routes()

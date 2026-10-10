@@ -5,7 +5,7 @@ import {
   calendarTasks,
   workspaceReducer,
   PREVIEW_TASKS,
-} from "../preview/workspace.ts";
+} from "./workspace.ts";
 const base = new Date(2026, 8, 28, 12);
 test("date input crosses months and rejects invalid dates", () => {
   assert.equal(dayOffset("2026-10-05", base), 7);

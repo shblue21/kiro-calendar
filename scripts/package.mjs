@@ -78,7 +78,7 @@ async function requireAsset(staging, relativePath) {
 }
 
 // Runtime allowlist; never copy the project root or consult .gitignore as a package filter.
-export async function packageApp(sourceRoot, buildRoot) {
+export async function packageApp(sourceRoot, buildRoot, { platform = process.platform } = {}) {
   const manifestPath = path.join(sourceRoot, "app.json");
   if ((await lstat(manifestPath)).isSymbolicLink())
     throw new Error("Manifest must not be a symlink");
@@ -99,6 +99,17 @@ export async function packageApp(sourceRoot, buildRoot) {
     }
     if (manifest.backend || manifest.mcpServers)
       await copyBackend(path.join(sourceRoot, "backend"), path.join(staging, "backend"));
+    if (platform === "darwin" && manifest.platform?.os?.includes("macos")) {
+      const bundle = "Crew Calendar Bridge.app";
+      for (const file of ["Contents/Info.plist", "Contents/MacOS/CrewCalendarBridge", "Contents/_CodeSignature/CodeResources"]) {
+        const source = path.join(sourceRoot, ".build/native", bundle, file);
+        const stat = await lstat(source);
+        if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`Invalid native runtime: ${source}`);
+        const destination = path.join(staging, "native", bundle, file);
+        await mkdir(path.dirname(destination), { recursive: true });
+        await copyFile(source, destination);
+      }
+    }
     await requireAsset(staging, manifest.ui?.entry);
     for (const page of manifest.ui?.pages ?? []) {
       for (const field of ["entryPoint", "iconUrl", "iconInactiveUrl"]) {

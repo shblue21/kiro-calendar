@@ -1,0 +1,46 @@
+.cc-calendar {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  color: var(--cc-ink);
+  font-size: 13px;
+}
+
+.cc-calendar * {
+  box-sizing: border-box;
+}
+
+.cc-calendar button:focus-visible {
+  outline: 2px solid var(--cc-accent);
+  outline-offset: 3px;
+}
+
+.cc-calendar svg {
+  flex-shrink: 0;
+}
+
+.cc-calendar [hidden] {
+  display: none !important;
+}
+
+.cc-label {
+  font-size: 10px;
+  color: var(--cc-muted);
+  background: var(--cc-soft);
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.cc-inline-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-calendar * {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

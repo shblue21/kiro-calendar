@@ -8,7 +8,6 @@ import {
   Search,
 } from "../platform/kiro/icons";
 import { KIND_ICON } from "./TypeMark";
-import { KIND_LABEL } from "./format";
 import type { CalendarLayers, CalendarView, CalendarLayout, Kind } from "./types";
 
 type Props = {
@@ -71,7 +70,7 @@ export function CalendarToolbar({
         <Btn aria-label={`다음 ${view === "month" ? "달" : view === "year" ? "해" : "주"}`} onClick={onNext}>
           <ChevronRight size={16} />
         </Btn>
-        <Btn onClick={onReset}>예시 날짜</Btn>
+        <Btn onClick={onReset}>오늘</Btn>
         <h2>{range}</h2>
       </div>
       <div className="cc-toolbar-actions">
@@ -106,7 +105,7 @@ export function CalendarToolbar({
           {open && (
             <div id="cc-display-options" className="cc-display-popover">
               <h3>표시할 항목</h3>
-              {(["event", "trigger", "run"] as Kind[]).map((kind) => {
+              {(["event"] as Kind[]).map((kind) => {
                 const Icon = KIND_ICON[kind];
                 return (
                   <label key={kind}>
@@ -116,7 +115,7 @@ export function CalendarToolbar({
                       onChange={() => onToggle(kind)}
                     />
                     <Icon size={14} />
-                    {KIND_LABEL[kind]}
+                    일정·초안
                   </label>
                 );
               })}

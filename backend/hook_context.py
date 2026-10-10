@@ -50,6 +50,6 @@ def render_on(settings: dict, stamp: datetime) -> str:
         "completed work, or previously dismissed/duplicate ideas. The tool checks the live toggle and limits frequency. "
         "After created, append only one short sentence suggesting the time and a link to /apps/crew-calendar?view=drafts . "
         "After disabled/cooldown/duplicate/dismissed, do not repeat a calendar suggestion. "
-        "These are local review drafts ONLY. External calendar registration, acceptance and reminder delivery are NOT implemented. "
+        "These are local review drafts ONLY. External writes require separate user review and separate confirmation in Calendar; never claim these tools registered an event or reminder. "
         "An explicit request to save a draft uses create_schedule_draft, never relabel an unsolicited suggestion as explicit."
     )

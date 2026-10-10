@@ -1,0 +1,137 @@
+.cc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 17px;
+}
+
+.cc-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cc-date-nav h2 {
+  margin: 0 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.cc-view-switch {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--cc-border);
+  border-radius: 9px;
+}
+
+.cc-view-switch button {
+  border-color: transparent;
+}
+
+.cc-view-switch button[aria-pressed="true"] {
+  color: var(--cc-accent);
+  background: var(--cc-soft);
+  border-color: var(--cc-border);
+}
+
+.cc-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cc-display-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 7px);
+  padding: 18px;
+  width: 225px;
+  max-width: calc(100vw - 40px);
+  background: var(--cc-panel);
+  border: 1px solid var(--cc-border);
+  border-radius: 9px;
+  box-shadow: 0 10px 30px #0002;
+  z-index: 25;
+}
+
+.cc-display-popover h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.cc-display-menu {
+  position: relative;
+}
+
+.cc-display-popover label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cc-display-popover input {
+  accent-color: var(--cc-accent);
+}
+
+.cc-compact-toolbar {
+  min-height: 44px;
+  margin-bottom: 8px;
+  padding: 2px 0;
+  position: relative;
+  z-index: 10;
+}
+
+.cc-compact-toolbar .cc-date-nav h2 {
+  font-size: 14px;
+  margin-left: 7px;
+}
+
+.cc-compact-toolbar .cc-view-switch {
+  padding: 2px;
+}
+
+.cc-view-select {
+  font: inherit;
+  font-size: 12px;
+  color: var(--cc-ink);
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: 7px;
+  padding: 6px 26px 6px 10px;
+  min-height: 32px;
+}
+
+@media (max-width: 760px) {
+  .cc-toolbar {
+    gap: 10px;
+  }
+
+  .cc-date-nav h2 {
+    font-size: 14px;
+    margin: 7px 0 0;
+    width: 100%;
+  }
+
+  .cc-compact-toolbar {
+    gap: 9px;
+  }
+
+  .cc-compact-toolbar .cc-date-nav h2 {
+    font-size: 13px;
+    margin: 5px 0 0;
+  }
+
+  .cc-compact-toolbar .cc-toolbar-actions {
+    margin-left: auto;
+  }
+}

@@ -1,8 +1,8 @@
 {
   "name": "crew-calendar",
-  "version": "0.1.0",
-  "displayName": "Calendar Preview",
-  "description": "Calendar UI preview with persistent conversation-linked drafts and opt-in proactive draft suggestions. External calendar writes and reminders are not implemented.",
+  "version": "0.2.0",
+  "displayName": "Calendar",
+  "description": "Review conversation-linked drafts using the host operating system timezone. On macOS, optionally connect Apple Calendar and save reviewed events after native confirmation. External calendar connections on other platforms are not yet implemented.",
   "tags": [
     "calendar",
     "productivity",
@@ -13,7 +13,7 @@
     "pages": [
       {
         "route": "/apps/crew-calendar",
-        "label": "Calendar Preview",
+        "label": "Calendar",
         "icon": "Calendar",
         "iconUrl": "assets/calendar-spark.svg"
       }
@@ -27,7 +27,9 @@
     "api": [
       "/api/apps/crew-calendar/drafts",
       "/api/apps/crew-calendar/drafts/*",
-      "/api/apps/crew-calendar/settings"
+      "/api/apps/crew-calendar/settings",
+      "/api/apps/crew-calendar/calendar",
+      "/api/apps/crew-calendar/calendar/*"
     ],
     "events": [],
     "storage": true,
@@ -48,5 +50,14 @@
         "crew-calendar"
       ]
     }
-  }
+  },
+  "platform": {
+    "os": [
+      "macos",
+      "windows",
+      "linux"
+    ],
+    "arch": []
+  },
+  "minKiroCrewVersion": "0.9.0-nightly.20261003t172902"
 }

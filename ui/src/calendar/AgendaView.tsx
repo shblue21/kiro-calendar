@@ -9,7 +9,7 @@ import { TypeMark } from "./TypeMark";
 type Props = {
   items: readonly CalendarViewItem[];
   base: Date;
-  sampleDate: Date;
+  today: Date;
   selectedId?: string;
   onSelect: (item: CalendarViewItem, button: HTMLButtonElement) => void;
 };
@@ -17,7 +17,7 @@ type Props = {
 export function AgendaView({
   items,
   base,
-  sampleDate,
+  today,
   selectedId,
   onSelect,
 }: Props) {
@@ -44,8 +44,8 @@ export function AgendaView({
             <h3>
               {date.getMonth() + 1}월 {date.getDate()}일{" "}
               <span>{DAYS[(date.getDay() + 6) % 7]}요일</span>
-              {dateKey(date) === dateKey(sampleDate) && (
-                <Badge variant="aim">예시 현재 날짜</Badge>
+              {dateKey(date) === dateKey(today) && (
+                <Badge variant="aim">오늘</Badge>
               )}
             </h3>
             {list.map((item) => (

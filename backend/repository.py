@@ -70,12 +70,16 @@ class JsonRepository:
             self.root.mkdir(parents=True, exist_ok=True)
             with open(self.root / ".lock", "a+") as handle:
                 if fcntl is None:
-                    raise StorageUnavailable("Interprocess locking unavailable on this platform")
-                fcntl.flock(handle, fcntl.LOCK_EX)
-                try:
-                    yield
-                finally:
-                    fcntl.flock(handle, fcntl.LOCK_UN)
+                    # Crew's Windows lock serializes through msvcrt and fails closed.
+                    from kiro_crew.platform_compat import file_lock
+                    with file_lock(handle.fileno(), required=True):
+                        yield
+                else:
+                    fcntl.flock(handle, fcntl.LOCK_EX)
+                    try:
+                        yield
+                    finally:
+                        fcntl.flock(handle, fcntl.LOCK_UN)
         except OSError as exc:
             raise StorageUnavailable("Persistent state lock or IO unavailable") from exc
 

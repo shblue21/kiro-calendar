@@ -1,4 +1,4 @@
-import type { CalendarViewItem } from "../calendar/types";
+import type { CalendarViewItem } from "../../calendar/types";
 
 export type PreviewTask = {
   id: string;
@@ -93,6 +93,7 @@ export function calendarTasks(
       return days.map((day) => ({
         id:
           task.repeat && task.repeat !== "none" ? `${task.id}@${day}` : task.id,
+        occurrenceKey: JSON.stringify(["preview-task", task.id, task.repeat && task.repeat !== "none" ? day : null]),
         taskId: task.id,
         recurrence:
           task.repeat === "daily"

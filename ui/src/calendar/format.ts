@@ -16,6 +16,7 @@ export function clock(minute: number) {
 }
 export function timeLabel(item: Item) {
   if (item.allDay) return "종일";
+  if (item.timeLabels) return `${item.timeLabels.start}–${item.timeLabels.end}`;
   if (item.kind === "trigger")
     return clock(item.start) + (item.flexible ? " 부근" : "");
   return `${clock(item.start)}–${item.end == null ? "현재" : clock(item.end)}`;

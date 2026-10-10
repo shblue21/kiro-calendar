@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { monthDates, movePeriod, calendarRange } from "./period.ts";
 import { dateKey } from "./dates.ts";
-import { calendarTasks } from "../preview/workspace.ts";
+import { calendarTasks } from "../testing/preview/workspace.ts";
 
 test("month grid starts on Monday and includes leap day", () => {
   const dates = monthDates(new Date(2028, 1, 15, 12));

@@ -59,7 +59,7 @@ export function ProposalSettings() {
     <div className="cc-preference-row">
       <div>
         <h3 id="cc-settings-proposals">대화 중 일정 제안</h3>
-        <p>대화에서 챙길 일을 발견하면 검토용 초안을 제안해요.<br />외부 캘린더 등록이나 알림은 아직 지원하지 않아요.</p>
+        <p>대화에서 챙길 일을 발견하면 검토용 초안을 제안해요.<br />초안만 제안하며, 외부 캘린더 저장은 직접 검토한 뒤 진행해요.</p>
       </div>
       <label className="cc-auto-switch">
         <span>{!data ? "확인 중" : busy ? "저장 중" : enabled ? "ON" : "OFF"}</span>

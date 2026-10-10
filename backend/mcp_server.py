@@ -41,7 +41,7 @@ TOOL = {
         "Save ONE schedule draft to the Crew Calendar app, linked to this conversation. "
         "Call only when the user explicitly asks to add, register or hold time for something. "
         "Do not call proactively. This does not write to any calendar; the user reviews the "
-        "draft in the Calendar app. External calendar registration and reminder delivery are NOT implemented. "
+        "draft in the Calendar app. External writes require the separate Calendar review UI and separate confirmation; these tools NEVER write externally or deliver reminders. "
         "Only use for an explicit request, even when automatic suggestions are OFF. Use ISO times with a UTC offset."
     ),
     "inputSchema": {
@@ -113,7 +113,7 @@ def call_tool(store, params: dict[str, Any]) -> dict[str, Any]:
         text = f"Saved a local review draft: {draft['title']} ({draft['start']})."
     text += (f" Draft ID: {draft['id']}; origin: {draft['origin']['sessionKey']}. "
              "View in Calendar settings: /apps/crew-calendar?view=drafts . "
-             "External calendar registration and reminders are NOT implemented. Do not promise them.")
+             "This tool did NOT write externally or schedule reminders. The user can review and save to a connected calendar through the app UI.")
     return _result(text, data={"outcome": outcome, "draft": draft, "duplicate": duplicate})
 
 

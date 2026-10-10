@@ -1,34 +1,40 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import { Btn } from "@kirocrew/app-sdk/ui";
 import type { CalendarViewItem, CalendarReferenceTime } from "./types";
 import { DAYS, dateKey } from "./dates";
-import { clock, KIND_LABEL, STATUS_LABEL, timeLabel } from "./format";
-import { place, spanEnd } from "./layout";
+import { KIND_LABEL, STATUS_LABEL, timeLabel } from "./format";
+import { place, minuteOffset, WEEK_LAYOUT } from "./layout";
 import { TypeMark } from "./TypeMark";
+import { dayTimeline, elapsedMinute, zonedInput } from "./time";
+import { DateBadge } from "./DateBadge";
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTE_PX = 64 / 60;
 
 type Props = {
+  timezone: string;
   items: readonly CalendarViewItem[];
   dates: Date[];
   referenceTime: CalendarReferenceTime;
-  inSampleWeek: boolean;
+  isCurrentWeek: boolean;
   selectedId?: string;
   onSelect: (item: CalendarViewItem, button: HTMLButtonElement) => void;
 };
 
 export function WeekView({
+  timezone,
   items,
   dates,
   referenceTime,
-  inSampleWeek,
+  isCurrentWeek,
   selectedId,
   onSelect,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const firstDay = dateKey(dates[0]);
+  const timelineKey = dates.map(dateKey).join('|');
+  const timelines = useMemo(()=>timelineKey.split('|').map(day=>dayTimeline(day,timezone)),[timelineKey,timezone]);
+  const separateClocks = timelines.some(day=>day.clockChanges);
+  const gridMinutes = Math.max(...timelines.map(day=>day.durationMinutes));
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
@@ -42,7 +48,7 @@ export function WeekView({
         element.scrollHeight <= element.clientHeight
       )
         return;
-      element.scrollTop = 9 * 64;
+      element.scrollTop = minuteOffset(9 * 60);
       positioned = true;
       observer.disconnect();
     };
@@ -61,10 +67,10 @@ export function WeekView({
         {dates.map((date, i) => (
           <div
             key={dateKey(date)}
-            className={`cc-day-heading ${inSampleWeek && i === referenceTime.day ? "cc-sample-day" : ""}`}
+            className="cc-day-heading"
           >
             <span>{DAYS[i]}</span>
-            <span className="cc-date-number">{date.getDate()}</span>
+            <DateBadge className="cc-date-number" day={date.getDate()} today={isCurrentWeek && i === ((referenceTime.day % 7) + 7) % 7} />
           </div>
         ))}
       </div>
@@ -86,39 +92,38 @@ export function WeekView({
           </div>
         ))}
       </div>
+      {separateClocks && <p className="cc-time-axis-note">시각 변경이 있는 주입니다. 각 날짜 열의 시각을 기준으로 확인하세요.</p>}
       <div className="cc-time-scroll" ref={scrollRef}>
-        <div className="cc-time-grid">
+        <div className="cc-time-grid" style={{"--cc-hour-height": `${WEEK_LAYOUT.hourHeightPx}px`, "--cc-day-height": `${minuteOffset(gridMinutes)}px`} as CSSProperties}>
           <div className="cc-hour-labels">
-            {HOURS.map((h) => (
-              <span key={h} style={{ top: h * 64 }}>
-                {clock(h * 60)}
-              </span>
+            {!separateClocks && timelines[0].ticks.map((tick) => (
+              <span key={tick.minute} style={{top:minuteOffset(tick.minute)}}>{tick.label}</span>
             ))}
           </div>
           {dates.map((date, day) => (
             <div
               className={`cc-day-column ${day > 4 ? "cc-weekend" : ""}`}
+              style={{height:minuteOffset(timelines[day].durationMinutes), "--cc-clock-gutter": separateClocks ? "60px" : "0px"} as CSSProperties}
               key={dateKey(date)}
               aria-label={`${date.getMonth() + 1}월 ${date.getDate()}일 ${DAYS[day]}요일`}
             >
+              {separateClocks && timelines[day].ticks.map(tick=><span key={tick.minute} className="cc-day-clock" style={{top:minuteOffset(tick.minute)}}>{tick.label.split(" ").map(part=><span key={part}>{part}</span>)}</span>)}
               {place(
                 items.filter((x) => x.day === day),
-                referenceTime.minute,
-              ).map(({ item, lane, lanes }) => {
-                const height =
-                  (spanEnd(item, referenceTime.minute) - item.start) *
-                  MINUTE_PX;
+                elapsedMinute(referenceTime.instant,timelines[day]),
+              ).map(({ item, lane, lanes, geometry }) => {
                 const positioning = {
-                  top: item.start * MINUTE_PX,
-                  left: `calc(${(lane * 100) / lanes}% + 4px)`,
-                  width: `calc(${100 / lanes}% - 8px)`,
-                  ...(item.kind === "event" ? { height } : {}),
-                  "--cc-span": `${height}px`,
+                  top: geometry.topPx,
+                  left: `calc((100% - var(--cc-clock-gutter)) * ${lane / lanes} + 4px)`,
+                  width: `calc((100% - var(--cc-clock-gutter)) / ${lanes} - 8px)`,
+                  height: geometry.heightPx,
+                  "--cc-span": `${geometry.durationMarkHeightPx}px`,
                 } as CSSProperties;
                 return (
-                  <Btn
+                  <button
+                    type="button"
                     key={item.id}
-                    className={`cc-item cc-item-${item.kind} cc-status-${item.status ?? "event"} ${selectedId === item.id ? "cc-item-selected" : ""}`}
+                    className={`cc-item cc-item-${item.kind} ${geometry.compact ? "cc-item-event-short" : ""} cc-status-${item.status ?? "event"} ${selectedId === item.id ? "cc-item-selected" : ""}`}
                     style={positioning}
                     onClick={(e) => onSelect(item, e.currentTarget)}
                     aria-label={`${KIND_LABEL[item.kind]} ${item.title}, ${timeLabel(item)}${item.status ? ", " + STATUS_LABEL[item.status] : ""}`}
@@ -139,15 +144,15 @@ export function WeekView({
                         {STATUS_LABEL[item.status!]}
                       </span>
                     )}
-                  </Btn>
+                  </button>
                 );
               })}
-              {inSampleWeek && day === referenceTime.day && (
+              {isCurrentWeek && day === ((referenceTime.day % 7) + 7) % 7 && (
                 <div
                   className="cc-now-line"
-                  style={{ top: referenceTime.minute * MINUTE_PX }}
+                  style={{ top: minuteOffset(elapsedMinute(referenceTime.instant,timelines[day])) }}
                 >
-                  <span>예시 {clock(referenceTime.minute)}</span>
+                  <span>현재 {zonedInput(referenceTime.instant,timezone).slice(11)}</span>
                 </div>
               )}
             </div>

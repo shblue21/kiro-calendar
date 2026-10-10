@@ -1,5 +1,5 @@
 import { dateKey, monday, shift } from "./dates.ts";
-import { dayOffset } from "./editor.ts";
+import { dayOffset } from "./dates.ts";
 import type { CalendarView } from "./types.ts";
 
 export function monthDates(date: Date) {
