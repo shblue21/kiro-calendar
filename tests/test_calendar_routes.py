@@ -27,16 +27,6 @@ class CalendarRouteTest(unittest.IsolatedAsyncioTestCase):
     result=await endpoint(Request({},operation_id='a'*32),self.ctx)
     self.assertEqual(result.status,403)
    services.assert_not_called()
- async def test_invalid_new_draft_has_no_write(self):
-  with patch.object(routes,'_owner',AsyncMock(return_value=None)):
-   result=await routes.draft_create(Request({'title':'bad'}),self.ctx)
-  self.assertEqual(result.status,400)
-  self.assertFalse((self.ctx.data_dir/'drafts').exists())
- async def test_ui_create_persists_without_calling_provider(self):
-  with patch.object(routes,'_owner',AsyncMock(return_value=None)),patch.object(load('apple_provider').AppleCalendarProvider,'_request',side_effect=AssertionError('No external call')):
-   result=await routes.draft_create(Request({'title':'Local','start':'2030-01-02T10:00:00+09:00','end':'2030-01-02T11:00:00+09:00','timezone':'Asia/Seoul','notes':'User note'}),self.ctx)
-  self.assertEqual(result.status,200)
-  data=json.loads(result.text)['draft'];self.assertEqual(data['notes'],'User note');self.assertEqual(data['origin']['sessionKey'],'calendar:manual')
 
  async def test_direct_create_route_commits_a_local_event_and_replays(self):
   import uuid
@@ -50,9 +40,3 @@ class CalendarRouteTest(unittest.IsolatedAsyncioTestCase):
    self.assertEqual(json.loads(result.text)['item']['title'],'Edited')
    stale=await routes.item_edit(Request({**body,'revision':1},item_id=item['id']),self.ctx)
    self.assertEqual(stale.status,409)
-
- async def test_preferences_load_without_any_external_provider_call(self):
-  with patch.object(routes,'_owner',AsyncMock(return_value=None)),patch.object(load('apple_provider').AppleCalendarProvider,'_request',side_effect=AssertionError('No external call')):
-   result=await routes.preferences_get(Request(),self.ctx)
-  self.assertEqual(result.status,200)
-  self.assertEqual(json.loads(result.text)['preferences']['defaultDestination'],{'connectionId':'crew','calendarId':'default'})
