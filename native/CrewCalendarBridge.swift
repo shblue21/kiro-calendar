@@ -15,12 +15,12 @@ func string(_ obj: Object, _ key: String) throws -> String {
 func date(_ value: String) throws -> Date {
     let parser = ISO8601DateFormatter()
     parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    if let d = parser.date(from: value) { return d }
+    if let d = parser.date(from: value) { return Date(timeIntervalSince1970: floor(d.timeIntervalSince1970)) }
     parser.formatOptions = [.withInternetDateTime]
     guard let d = parser.date(from: value) else { throw BridgeError(code: "invalid_date", message: "날짜와 시간대를 확인하세요.") }
     return d
 }
-func iso(_ value: Date) -> String { ISO8601DateFormatter().string(from: value) }
+func iso(_ value: Date) -> String { ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: floor(value.timeIntervalSince1970))) }
 func atomic(_ value: Object, at url: URL) throws {
     let data = try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys])
     try data.write(to: url, options: .atomic)
@@ -77,11 +77,21 @@ final class Bridge: NSObject, NSApplicationDelegate {
             }
             finish(result)
         } catch let error as BridgeError {
-            finish(["error": ["code": writeMayHaveHappened ? "outcome_unknown" : error.code, "message": error.message]])
+            finishFailure(code: error.code, message: error.message)
         } catch {
             // Never put event contents, paths or OS diagnostic secrets in API responses.
-            finish(["error": ["code": writeMayHaveHappened ? "outcome_unknown" : "provider_error", "message": "캘린더 연결 작업을 완료하지 못했습니다."]])
+            finishFailure(code: "provider_error", message: "캘린더 연결 작업을 완료하지 못했습니다.")
         }
+    }
+    func finishFailure(code: String, message: String) {
+        var result: Object = ["error": ["code": code, "message": message]]
+        // Delivery outcomes carry their state even when they include diagnostics.
+        if request["action"] as? String == "create" {
+            result["state"] = writeMayHaveHappened ? "unknown" : "failed"
+        } else if request["action"] as? String == "reconcile" {
+            result["state"] = "unknown"
+        }
+        finish(result)
     }
     func finish(_ value: Object) {
         if let url = responseURL { try? atomic(value, at: url) }
@@ -167,7 +177,8 @@ final class Bridge: NSObject, NSApplicationDelegate {
     }
     func matches(_ event: EKEvent, _ payload: Object, _ calendar: EKCalendar, _ first: Date, _ last: Date) -> Bool {
         event.calendar.calendarIdentifier == calendar.calendarIdentifier && event.title == payload["title"] as? String &&
-        abs(event.startDate.timeIntervalSince(first)) < 1 && abs(event.endDate.timeIntervalSince(last)) < 1 &&
+        floor(event.startDate.timeIntervalSince1970) == first.timeIntervalSince1970 &&
+        floor(event.endDate.timeIntervalSince1970) == last.timeIntervalSince1970 &&
         !event.isAllDay && !event.hasRecurrenceRules && (event.notes ?? "") == (payload["notes"] as? String ?? "")
     }
     func readBack(_ id: String, _ payload: Object, _ calendar: EKCalendar, _ first: Date, _ last: Date, _ journal: Object?) -> Object {

@@ -5,7 +5,7 @@ import platform
 import subprocess
 import uuid
 from pathlib import Path
-from .calendar_domain import CalendarError
+from .calendar_domain import CalendarError, delivery_result
 from .repository import _atomic_json
 
 
@@ -27,22 +27,29 @@ class AppleCalendarProvider:
                                  'pendingMessage': 'Mac의 Crew Calendar 연결 창에서 내용을 확인하세요. 이 패널을 닫아도 확인 창은 취소되지 않습니다.'}}
 
     def status(self) -> dict:
-        return self._state(self._request('status'))
+        return self._state(self._command('status'))
 
     def authorize(self) -> dict:
-        return self._state(self._request('authorize'))
+        return self._state(self._command('authorize'))
 
     def calendars(self) -> list[dict]:
-        return self._request('calendars')['calendars']
+        return self._command('calendars')['calendars']
 
     def events(self, calendar_ids: list[str], start: str, end: str) -> dict:
-        return self._request('events', {'calendarIds': calendar_ids, 'start': start, 'end': end})
+        return self._command('events', {'calendarIds': calendar_ids, 'start': start, 'end': end})
 
     def create(self, operation: dict) -> dict:
-        return self._request('create', {'operation': operation})
+        return delivery_result(self._request('create', {'operation': operation}))
 
     def reconcile(self, operation: dict) -> dict:
-        return self._request('reconcile', {'operation': operation})
+        return delivery_result(self._request('reconcile', {'operation': operation}))
+
+    def _command(self, action: str, payload: dict | None = None) -> dict:
+        value = self._request(action, payload)
+        if value.get('error'):
+            error = value['error']
+            raise CalendarError(error.get('code', 'provider_error'), error.get('message', '캘린더 연결 실패'))
+        return value
 
     def _request(self, action: str, payload: dict | None = None) -> dict:
         if platform.system() != 'Darwin':
@@ -67,9 +74,6 @@ class AppleCalendarProvider:
             value = json.loads(response_path.read_text(encoding='utf-8'))
             if not isinstance(value, dict):
                 raise ValueError()
-            if value.get('error'):
-                error = value['error']
-                raise CalendarError(error.get('code', 'provider_error'), error.get('message', '캘린더 연결 실패'))
             return value
         except subprocess.TimeoutExpired as exc:
             # The native window may still be open. A create is NEVER automatically repeated.

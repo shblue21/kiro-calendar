@@ -1,10 +1,11 @@
+import { civilDate } from "./dates.ts";
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { countMonthlyItems } from './count.ts';
 import { eventItems } from '../live/projection.ts';
 import type { CalendarEvent } from '../live/types.ts';
 
-const base = new Date(2026, 0, 1, 12);
+const base = civilDate("2026-01-01");
 const range = {first: -7, end: 740};
 const event: CalendarEvent = {connectionId:'account',calendarId:'calendar',eventId:'event',title:'여행',
   start:'2026-10-05T00:00:00+09:00',end:'2026-10-07T00:00:00+09:00',

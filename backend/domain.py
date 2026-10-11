@@ -7,12 +7,12 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import hashlib
 import re
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 class DraftError(ValueError):
     pass
 
 
-class DraftNotFound(DraftError):
+class ItemNotFound(DraftError):
     """A well-formed draft identifier does not exist."""
 
 
@@ -39,7 +39,8 @@ def _parse_time(value: Any, field: str) -> datetime:
         raise DraftError(f"{field} is not ISO 8601") from exc
     if parsed.tzinfo is None:
         raise DraftError(f"{field} needs a UTC offset")
-    return parsed
+    # Calendar instants have whole-second precision across storage and providers.
+    return parsed.replace(microsecond=0)
 
 
 def _text(value: Any, field: str, limit: int, required: bool = False) -> str:

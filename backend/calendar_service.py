@@ -1,275 +1,354 @@
-"""Calendar use cases. External work always happens outside the local state lock."""
+"""Calendar reads and external delivery. Each operation belongs to one atomic item.
+
+No global operation log participates in reads or mutations. Provider work runs
+outside the lock; responses must match the current immutable operation identity.
+"""
+
 from __future__ import annotations
-import hashlib
-import json
 import uuid
-from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
-from .calendar_domain import CalendarError, event_payload, interval
-from .calendar_storage import CalendarStorage
-from .calendar_connections import CalendarConnections
+from zoneinfo import ZoneInfo
+from .calendar_domain import (
+    CalendarError, event_payload, interval, delivery_result, delivery_failure,
+)
 from .domain import DraftError, _parse_time
+from .event_service import EventService
+from .entry_policy import CREW, delivery, require_action, require_revision, view
 from .timezone import system_timezone
-from .event_service import EventService, CREW
-
-ACTIVE = {'awaiting_confirmation', 'unknown', 'confirmed'}
 
 
-def now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
+def now():
+    return datetime.now(timezone.utc).isoformat()
 
 
 class CalendarService:
-    def __init__(self, drafts, storage: CalendarStorage, connections: CalendarConnections):
-        self.drafts, self.repository, self.storage, self.connections = drafts, drafts.repository, storage, connections
-        self.items = EventService(self.repository, self.validate_target, self.ensure_unsubmitted)
+    def __init__(self, drafts, storage, connections):
+        self.repository, self.storage, self.connections = (
+            drafts.repository,
+            storage,
+            connections,
+        )
+        self.items = EventService(self.repository, self.validate_target)
 
-    def connection(self, connection_id: str, *, authorize: bool = False) -> dict:
+    def connection(self, connection_id, *, authorize=False):
         binding = self.connections.get(connection_id)
         state = binding.status(authorize=authorize)
-        calendars = binding.adapter.calendars() if any(state.get('capabilities', {}).get(k) for k in ('read', 'create')) and state['state'] == 'ready' else []
-        return {**state, 'calendars': calendars, **self.storage.connection(binding.id)}
+        calendars = (
+            binding.adapter.calendars()
+            if state["state"] == "ready"
+            and any(state.get("capabilities", {}).get(k) for k in ("read", "create"))
+            else []
+        )
+        return {**state, "calendars": calendars, **self.storage.connection(binding.id)}
 
-    def list_connections(self) -> dict:
+    def list_connections(self):
         result = []
         for binding in self.connections.all():
             try:
                 result.append(self.connection(binding.id))
             except Exception as exc:
-                message = exc.message if isinstance(exc, CalendarError) else "연결 상태를 확인하지 못했습니다."
-                result.append({'id': binding.id, 'provider': binding.provider_key, 'title': binding.title,
-                               'state': 'unavailable', 'message': message,
-                               'capabilities': {'read': False, 'create': False, 'reconcile': False},
-                               'calendars': [], **self.storage.connection(binding.id)})
-        return {'connections': result}
-
-    def ensure_unsubmitted(self, key):
-        if any(o['draftId'] == key and o['state'] in ACTIVE for o in self.storage.operations()):
-            raise CalendarError('already_submitted', '외부 저장 요청이 있습니다. 결과를 먼저 확인하세요.')
+                result.append(
+                    {
+                        "id": binding.id,
+                        "provider": binding.provider_key,
+                        "title": binding.title,
+                        "state": "unavailable",
+                        "message": (
+                            exc.message
+                            if isinstance(exc, CalendarError)
+                            else "연결 상태를 확인하지 못했습니다."
+                        ),
+                        "capabilities": {
+                            "read": False,
+                            "create": False,
+                            "reconcile": False,
+                        },
+                        "calendars": [],
+                        **self.storage.connection(binding.id),
+                    }
+                )
+        return {"connections": result}
 
     def validate_target(self, target):
         if target == CREW:
             return dict(CREW)
-        if not isinstance(target, dict) or set(target) != {'connectionId','calendarId'}:
-            raise DraftError('저장할 캘린더를 선택하세요.')
-        binding = self.connections.get(target.get('connectionId'))
-        binding.require('create')
-        if not any(c['id'] == target.get('calendarId') and c['writable'] for c in binding.adapter.calendars()):
-            raise CalendarError('read_only', '저장 위치에 접근할 수 없습니다. 다른 캘린더를 직접 선택하세요.')
+        if not isinstance(target, dict) or set(target) != {
+            "connectionId",
+            "calendarId",
+        }:
+            raise DraftError("저장할 캘린더를 선택하세요.")
+        binding = self.connections.get(target.get("connectionId"))
+        binding.require("create")
+        if not any(
+            c["id"] == target.get("calendarId") and c["writable"]
+            for c in binding.adapter.calendars()
+        ):
+            raise CalendarError(
+                "read_only",
+                "저장 위치에 접근할 수 없습니다. 다른 캘린더를 직접 선택하세요.",
+            )
         return dict(target)
 
     def preferences(self, fields):
-        if not isinstance(fields, dict) or not fields or set(fields) - {'defaultDestination','showCrew'}:
-            raise DraftError('캘린더 설정을 확인하세요.')
-        if 'defaultDestination' in fields:
-            self.validate_target(fields['defaultDestination'])
-        if 'showCrew' in fields and type(fields['showCrew']) is not bool:
-            raise DraftError('표시 설정을 확인하세요.')
+        if (
+            not isinstance(fields, dict)
+            or not fields
+            or set(fields) - {"defaultDestination", "showCrew"}
+        ):
+            raise DraftError("캘린더 설정을 확인하세요.")
+        if "defaultDestination" in fields:
+            self.validate_target(fields["defaultDestination"])
+        if "showCrew" in fields and type(fields["showCrew"]) is not bool:
+            raise DraftError("표시 설정을 확인하세요.")
         with self.repository.transaction():
             value = {**self.storage.preferences(), **fields}
             self.storage.save_preferences(value)
         return value
 
-    def select(self, fields: dict) -> dict:
+    def select(self, fields):
         if not isinstance(fields, dict):
-            raise DraftError('연결 설정을 확인하세요.')
-        binding = self.connections.get(fields.get('connectionId'))
-        binding.require('read')
-        ids, default = fields.get('selectedCalendarIds'), fields.get('defaultCalendarId', '')
-        if not isinstance(ids, list) or len(ids) > 30 or any(not isinstance(x, str) for x in ids) or not isinstance(default, str):
-            raise DraftError('표시할 캘린더를 확인하세요.')
-        calendars = binding.adapter.calendars()
-        known = {c['id']: c for c in calendars}
-        if any(x not in known for x in ids) or (default and (default not in known or not known[default]['writable'])):
-            raise DraftError('접근 가능한 캘린더를 선택하세요. 저장 위치에는 쓰기 권한이 필요합니다.')
+            raise DraftError("연결 설정을 확인하세요.")
+        binding = self.connections.get(fields.get("connectionId"))
+        binding.require("read")
+        ids = fields.get("selectedCalendarIds")
+        if (
+            not isinstance(ids, list)
+            or len(ids) > 30
+            or any(not isinstance(x, str) for x in ids)
+        ):
+            raise DraftError("표시할 캘린더를 확인하세요.")
+        known = {c["id"] for c in binding.adapter.calendars()}
+        if any(x not in known for x in ids):
+            raise DraftError("접근 가능한 캘린더를 선택하세요.")
         with self.repository.transaction():
-            self.storage.save_connection(binding.id, {'selectedCalendarIds': list(dict.fromkeys(ids)), 'defaultCalendarId': default})
+            self.storage.save_connection(
+                binding.id,
+                {
+                    "selectedCalendarIds": list(dict.fromkeys(ids)),
+                    "defaultCalendarId": "",
+                },
+            )
         return self.storage.connection(binding.id)
 
-    def events(self, start: str, end: str) -> dict:
+    def list_items(self):
+        snapshot = self.repository.scan_items()
+        return {
+            "items": [view(item) for item in snapshot["items"]],
+            "errors": snapshot["errors"],
+        }
+
+    def events(self, start, end):
         start, end = interval(start, end)
-        events, errors = [], []
-        links = {(o['target']['connectionId'], o['target']['calendarId'], o.get('event', {}).get('eventId')): o
-                 for o in self.storage.operations() if o['state'] == 'confirmed'}
+        snapshot = self.repository.scan_items()
+        links = {}
+        for item in snapshot["items"]:
+            ref = item.get("externalRef")
+            if ref:
+                links[(ref["connectionId"], ref["calendarId"], ref["eventId"])] = item
+        events, errors = [], list(snapshot["errors"])
         for binding in self.connections.all():
-            selected = self.storage.connection(binding.id)['selectedCalendarIds']
+            selected = self.storage.connection(binding.id)["selectedCalendarIds"]
             if not selected:
                 continue
             try:
-                binding.require('read')
+                binding.require("read")
                 response = binding.adapter.events(selected, start, end)
-                errors.extend({**e, 'connectionId': binding.id} for e in response.get('errors', []))
-                for raw in response.get('events', []):
-                    event = {**raw, 'connectionId': binding.id, 'provider': binding.provider_key, 'connectionTitle': binding.title}
-                    op = links.get((binding.id, event['calendarId'], event['eventId']))
-                    if op and _parse_time(event['start'], 'start') == _parse_time(op['event']['start'], 'start'):
-                        event['draftId'], event['origin'] = op['draftId'], op['origin']
+                errors.extend(
+                    {**e, "connectionId": binding.id}
+                    for e in response.get("errors", [])
+                )
+                for raw in response.get("events", []):
+                    event = {
+                        **raw,
+                        "connectionId": binding.id,
+                        "provider": binding.provider_key,
+                        "connectionTitle": binding.title,
+                    }
+                    owner = links.get(
+                        (binding.id, event["calendarId"], event["eventId"])
+                    )
+                    if owner:
+                        event.update(itemId=owner["id"], origin=owner["origin"])
                     events.append(event)
             except Exception as exc:
-                errors.append({'connectionId': binding.id, 'message': exc.message if isinstance(exc, CalendarError) else '이 연결의 일정을 읽지 못했습니다.', 'code': exc.code if isinstance(exc, CalendarError) else 'provider_unavailable'})
-        return {'events': events, 'errors': errors, 'checkedAt': now()}
+                errors.append(
+                    {
+                        "connectionId": binding.id,
+                        "message": (
+                            exc.message
+                            if isinstance(exc, CalendarError)
+                            else "이 연결의 일정을 읽지 못했습니다."
+                        ),
+                    }
+                )
+        return {"events": events, "errors": errors, "checkedAt": now()}
 
-    def list_items(self) -> list[dict]:
-        operations = self.storage.operations()
-        result = []
-        for draft in self.repository.items(strict=True):
-            relevant = sorted((o for o in operations if o['draftId'] == draft['id']), key=lambda o: o['createdAt'])
-            important = [o for o in relevant if o['state'] in ACTIVE]
-            result.append({**draft, 'revision': draft.get('revision', 1),
-                           'calendarOperation': (important or relevant)[-1] if relevant else None})
-        return result
+    def _operation(self, item, operation_id):
+        op = delivery(item)
+        if not op or op["state"] == "unavailable" or op["id"] != operation_id:
+            raise CalendarError(
+                "operation_changed",
+                "이전 저장 요청입니다. 현재 일정 상태를 다시 확인하세요.",
+            )
+        return op
 
-    def list_drafts(self) -> list[dict]:
-        return [item for item in self.list_items() if item['status'] == 'proposed' and not item.get('deletedAt')]
+    def get_operation(self, item_id, operation_id):
+        return self._operation(self.repository.get_item(item_id), operation_id)
 
-    def edit(self, draft_id: str, fields: dict) -> dict:
-        payload = event_payload(fields)
-        if payload["timezone"] != system_timezone():
-            raise CalendarError("timezone_changed", "시스템 시간대가 변경되었습니다. 화면을 새로고침한 뒤 다시 검토하세요.")
+    def prepare(self, item_id, revision):
+        snapshot = self.repository.get_item(item_id)
+        require_revision(snapshot, revision)
+        require_action(snapshot, "submit")
+        target = self.validate_target(snapshot["destination"])
+        binding = self.connections.get(target["connectionId"])
+        state = binding.require("create")
+        chosen = next(
+            c for c in binding.adapter.calendars() if c["id"] == target["calendarId"]
+        )
         with self.repository.transaction():
-            draft = self.repository.get_item(draft_id)
-            revision = draft.get('revision', 1)
-            if type(fields.get('revision')) is not int or fields['revision'] != revision:
-                raise CalendarError('stale_draft', '다른 곳에서 변경된 초안입니다. 다시 불러오세요.')
-            if draft['status'] != 'proposed' or any(o['draftId'] == draft_id and o['state'] in ACTIVE for o in self.storage.operations()):
-                raise CalendarError('draft_locked', '저장이 진행 중이거나 완료된 초안은 수정할 수 없습니다.')
-            draft.update({k: payload[k] for k in ('title', 'start', 'end', 'timezone')})
-            draft.update(notes=payload['notes'], revision=revision + 1, updatedAt=now())
-            self.repository.save_item(draft)
-            return draft
-
-    def dismiss(self, draft_id: str) -> dict:
-        with self.repository.transaction():
-            if any(o['draftId'] == draft_id and o['state'] in ACTIVE for o in self.storage.operations()):
-                raise CalendarError('draft_locked', '저장 중이거나 저장된 초안은 넘길 수 없습니다.')
-            draft = self.repository.get_item(draft_id)
-            if draft['status'] not in {'proposed','dismissed'}:
-                raise CalendarError('not_proposed', '확정 일정은 초안 넘기기로 처리할 수 없습니다.')
-            draft.update(status='dismissed', revision=draft.get('revision', 1) + 1, updatedAt=now())
-            self.repository.save_item(draft)
-            return draft
-
-    def prepare(self, fields: dict) -> dict:
-        if not isinstance(fields, dict):
-            raise DraftError('저장 요청을 확인하세요.')
-        target = fields.get('target')
-        if not isinstance(target, dict) or not isinstance(target.get('connectionId'), str) or not isinstance(target.get('calendarId'), str):
-            raise DraftError('저장할 캘린더를 선택하세요.')
-        binding = self.connections.get(target['connectionId'])
-        connection_state = binding.require('create')
-        calendars = binding.adapter.calendars()
-        chosen = next((c for c in calendars if c['id'] == target['calendarId']), None)
-        if not chosen or not chosen['writable']:
-            raise CalendarError('read_only', '이 캘린더에는 저장할 수 없습니다. 다른 위치를 직접 선택하세요.')
-        with self.repository.transaction():
-            draft = self.repository.get_item(fields.get('draftId', ''))
-            if (draft.get('deletedAt') or draft['status'] not in {'proposed','confirmed'}
-                    or (draft['status'] == 'confirmed' and draft.get('destination') != target)
-                    or type(fields.get('revision')) is not int or draft.get('revision', 1) != fields['revision']):
-                raise CalendarError('stale_draft', '초안이 변경되었습니다. 다시 불러온 뒤 검토하세요.')
-            payload = event_payload(draft)
+            item = self.repository.get_item(item_id)
+            require_revision(item, revision)
+            require_action(item, "submit")
+            current = delivery(item)
+            payload = event_payload(item)
             zone = system_timezone()
-            payload.update(timezone=zone, **{k: _parse_time(payload[k], k).astimezone(ZoneInfo(zone)).isoformat() for k in ('start', 'end')})
-            existing = [o for o in self.storage.operations() if o['draftId'] == draft['id']]
-            if any(o['state'] in ACTIVE for o in existing):
-                raise CalendarError('already_submitted', '이미 저장 요청이 있습니다. 새로 저장하지 말고 결과를 확인하세요.')
-            digest = hashlib.sha256(json.dumps({'payload': payload, 'target': target}, sort_keys=True).encode()).hexdigest()
-            old = next((o for o in existing if o['state'] == 'prepared' and o['payloadDigest'] == digest and o['draftRevision'] == fields['revision'] and o.get('provider') == binding.provider_key and o.get('confirmation') == connection_state['confirmation']), None)
-            if old:
-                return old
-            op = {'id': uuid.uuid4().hex, 'draftId': draft['id'], 'draftRevision': fields['revision'],
-                  'origin': draft['origin'], 'target': {'connectionId': binding.id, 'calendarId': chosen['id']},
-                  'calendarTitle': chosen['title'], 'sourceTitle': chosen['sourceTitle'],
-                  'provider': binding.provider_key, 'connectionTitle': binding.title, 'confirmation': connection_state['confirmation'],
-                  'canReconcile': connection_state['capabilities'].get('reconcile', False),
-                  'payload': payload, 'payloadDigest': digest, 'state': 'prepared', 'createdAt': now(), 'updatedAt': now()}
-            self.storage.save_operation(op)
+            payload.update(
+                timezone=zone,
+                **{
+                    k: _parse_time(payload[k], k).astimezone(ZoneInfo(zone)).isoformat()
+                    for k in ("start", "end")
+                },
+            )
+            if (
+                current
+                and current["state"] == "prepared"
+                and current["itemRevision"] == revision
+                and current["payload"] == payload
+                and current["provider"] == binding.provider_key
+                and current["confirmation"] == state["confirmation"]
+            ):
+                return current
+            op = {
+                "id": uuid.uuid4().hex,
+                "itemId": item_id,
+                "itemRevision": revision,
+                "origin": item["origin"],
+                "target": target,
+                "provider": binding.provider_key,
+                "connectionTitle": binding.title,
+                "calendarTitle": chosen["title"],
+                "sourceTitle": chosen["sourceTitle"],
+                "confirmation": state["confirmation"],
+                "canReconcile": state["capabilities"].get("reconcile", False),
+                "payload": payload,
+                "state": "prepared",
+                "createdAt": now(),
+                "updatedAt": now(),
+            }
+            item["delivery"] = op
+            self.repository.save_item(item)
             return op
 
-    def claim(self, key: str) -> tuple[dict, bool]:
+    def claim(self, item_id, operation_id):
         with self.repository.transaction():
-            op = self.storage.operation(key)
-            if op['state'] != 'prepared':
+            item = self.repository.get_item(item_id)
+            op = self._operation(item, operation_id)
+            if op["state"] != "prepared":
                 return op, False
-            if op['payload']['timezone'] != system_timezone():
-                raise CalendarError('timezone_changed', '시스템 시간대가 변경되었습니다. 다시 검토하세요.')
-            draft = self.repository.get_item(op['draftId'])
-            if (draft.get('deletedAt') or draft['status'] not in {'proposed','confirmed'}
-                    or (draft['status'] == 'confirmed' and draft.get('destination') != op['target'])
-                    or draft.get('revision', 1) != op['draftRevision']):
-                raise CalendarError('stale_draft', '저장 준비 이후 초안이 변경되었습니다.')
-            if any(o['id'] != key and o['draftId'] == op['draftId'] and o['state'] in ACTIVE for o in self.storage.operations()):
-                raise CalendarError('already_submitted', '이 초안의 다른 저장 요청이 진행 중입니다.')
-            op.update(state='awaiting_confirmation', updatedAt=now())
-            self.storage.save_operation(op)
+            require_revision(item, op["itemRevision"])
+            require_action(item, "submit")
+            if op["payload"]["timezone"] != system_timezone():
+                raise CalendarError(
+                    "timezone_changed",
+                    "시스템 시간대가 변경되었습니다. 내용을 다시 검토하세요.",
+                )
+            op.update(state="awaiting_confirmation", updatedAt=now())
+            item["delivery"] = op
+            self.repository.save_item(item)
             return op, True
 
-    def execute_claimed(self, key: str) -> dict:
-        op = self.storage.operation(key)
+    def execute_claimed(self, item_id, operation_id):
+        op = self.get_operation(item_id, operation_id)
         try:
-            binding = self.connections.get(op['target']['connectionId'])
-            state = binding.require('create')
-            if op.get('provider', binding.provider_key) != binding.provider_key or op.get('confirmation', state['confirmation']) != state['confirmation']:
-                raise CalendarError('connection_changed', '연결의 저장 방식이 변경되었습니다. 다시 검토하세요.')
-            result = binding.adapter.create(op)
-        except CalendarError as exc:
-            result = {'state': 'unknown' if exc.code == 'outcome_unknown' else 'failed',
-                      'error': {'code': exc.code, 'message': exc.message}}
-        except Exception:
-            result = {'state': 'unknown', 'error': {'code': 'outcome_unknown', 'message': '저장 결과를 확인해야 합니다.'}}
-        return self._record_result(key, result)
+            binding = self.connections.get(op["target"]["connectionId"])
+            state = binding.require("create")
+            if (
+                op["provider"] != binding.provider_key
+                or op["confirmation"] != state["confirmation"]
+            ):
+                raise CalendarError(
+                    "connection_changed",
+                    "저장 방식이 변경되었습니다. 내용을 다시 검토하세요.",
+                )
+        except Exception as exc:
+            # No create call has started; a failed preflight cannot have written.
+            return self._record_result(
+                item_id, operation_id, delivery_failure(exc, "failed")
+            )
+        try:
+            result = delivery_result(binding.adapter.create(op))
+        except Exception as exc:
+            # Once dispatched, only an explicit provider outcome can prove no write.
+            result = delivery_failure(exc, "unknown")
+        return self._record_result(item_id, operation_id, result)
 
-    def _record_result(self, key: str, result: dict) -> dict:
-        allowed = {'confirmed', 'cancelled', 'failed', 'unknown', 'awaiting_confirmation'}
-        state = result.get('state') if result.get('state') in allowed else 'unknown'
+    def _record_result(self, item_id, operation_id, result, *, verification=False):
         with self.repository.transaction():
-            op = self.storage.operation(key)
-            if op['state'] == 'confirmed':
+            item = self.repository.get_item(item_id)
+            op = self._operation(item, operation_id)
+            # Terminal evidence cannot be weakened by an older in-flight read.
+            if op["state"] in {"confirmed", "cancelled", "failed"}:
+                if verification and op["state"] == "confirmed":
+                    op.update(verification=result, verifiedAt=now())
+                    self.repository.save_item(item)
                 return op
-            event = result.get('event')
-            if state == 'confirmed':
-                if not isinstance(event, dict) or event.get('calendarId') != op['target']['calendarId'] or not event.get('eventId'):
-                    state = 'unknown'
-                else:
-                    try:
-                        matches = (event.get('title') == op['payload']['title']
-                                   and _parse_time(event.get('start'), 'start') == _parse_time(op['payload']['start'], 'start')
-                                   and _parse_time(event.get('end'), 'end') == _parse_time(op['payload']['end'], 'end')
-                                   and not event.get('allDay') and not event.get('recurring')
-                                   and event.get('notes', '') == op['payload']['notes'])
-                    except DraftError:
-                        matches = False
-                    if not matches:
-                        state = 'unknown'
+            state = result["state"]
+            if op["state"] == "unknown" and state == "awaiting_confirmation":
+                return op
+            event = result.get("event")
+            if state == "confirmed":
+                try:
+                    matches = (
+                        isinstance(event, dict)
+                        and isinstance(event.get("eventId"), str)
+                        and bool(event["eventId"])
+                        and event.get("calendarId") == op["target"]["calendarId"]
+                        and all(
+                            event.get(k, "") == op["payload"][k]
+                            for k in ("title", "notes")
+                        )
+                        and all(
+                            _parse_time(event.get(k), k)
+                            == _parse_time(op["payload"][k], k)
+                            for k in ("start", "end")
+                        )
+                        and not event.get("allDay")
+                        and not event.get("recurring")
+                    )
+                except DraftError:
+                    matches = False
+                if not matches:
+                    state = "unknown"
             op.update(state=state, updatedAt=now())
-            if state == 'confirmed':
-                op.update(event={**event, 'connectionId': op['target']['connectionId']}, confirmedAt=now())
-                op.pop('error', None)
-            elif result.get('error'):
-                op['error'] = result['error']
-            self.storage.save_operation(op)
+            if state == "confirmed":
+                op.update(event=event, confirmedAt=now())
+                op.pop("error", None)
+                item["externalRef"] = {**op["target"], "eventId": event["eventId"]}
+            elif result.get("error"):
+                op["error"] = result["error"]
+            else:
+                op.pop("error", None)
+            item["delivery"] = op
+            self.repository.save_item(item)
             return op
 
-    def get_operation(self, key: str) -> dict:
-        # History remains readable even when its original connection is unavailable.
-        return self.storage.operation(key)
-
-    def reconcile(self, key: str) -> dict:
-        op = self.storage.operation(key)
-        if op['state'] not in {'unknown', 'awaiting_confirmation', 'confirmed'}:
-            return op
-        binding = self.connections.get(op['target']['connectionId'])
-        if op.get('provider', binding.provider_key) != binding.provider_key:
-            raise CalendarError('connection_changed', '원래 공급자 연결을 확인하세요.')
-        binding.require('reconcile')
-        result = binding.adapter.reconcile(op)
-        # A previously confirmed event can be missing or edited. Report that readback
-        # separately; never clear its creation evidence or offer automatic recreation.
-        if op['state'] == 'confirmed':
-            with self.repository.transaction():
-                current = self.storage.operation(key)
-                current['verification'] = result
-                current['verifiedAt'] = now()
-                self.storage.save_operation(current)
-                return current
-        return self._record_result(key, result)
+    def reconcile(self, item_id, operation_id):
+        item = self.repository.get_item(item_id)
+        require_action(item, "reconcile")
+        op = self._operation(item, operation_id)
+        binding = self.connections.get(op["target"]["connectionId"])
+        binding.require("reconcile")
+        if op["provider"] != binding.provider_key:
+            raise CalendarError("connection_changed", "원래 공급자 연결을 확인하세요.")
+        result = delivery_result(binding.adapter.reconcile(op))
+        return self._record_result(item_id, operation_id, result, verification=True)

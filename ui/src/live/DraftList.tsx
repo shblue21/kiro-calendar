@@ -1,5 +1,6 @@
 import { Btn } from '@kirocrew/app-sdk/ui';
 import type { Draft } from './types';
+import {can} from './types';
 
 /** Presentational list. Requests, navigation and refresh coordination stay in App. */
 export function DraftList({drafts,timezone,error,onRefresh,onSelect,onDismiss,onOrigin}: {
@@ -11,10 +12,10 @@ export function DraftList({drafts,timezone,error,onRefresh,onSelect,onDismiss,on
     {error && <p role="alert">{error}</p>}
     {!drafts.length && <p>보관 중인 초안이 없습니다.</p>}
     {drafts.map(d=><div className="cc-draft-row" key={d.id}>
-      <div><strong>{d.title}</strong><span>{new Date(d.start).toLocaleString('ko-KR',{timeZone:timezone})} · {d.calendarOperation?.state==='confirmed'?'저장 확인됨':d.calendarOperation?.state==='awaiting_confirmation'?'저장 확인 대기':d.calendarOperation?.state==='unknown'?'저장 결과 확인 필요':'검토용 초안'}</span>{d.reason && <small>{d.reason}</small>}</div>
-      <div className="cc-inline-actions"><Btn primary onClick={()=>onSelect(d)}>{d.calendarOperation?.state==='confirmed'?'저장 정보':'검토·수정'}</Btn>
+      <div><strong>{d.title}</strong><span>{new Date(d.start).toLocaleString('ko-KR',{timeZone:timezone})} · {d.delivery?.state==='confirmed'?'저장 확인됨':d.delivery?.state==='awaiting_confirmation'?'저장 확인 대기':d.delivery?.state==='unknown'?'저장 결과 확인 필요':'검토용 초안'}</span>{d.reason && <small>{d.reason}</small>}</div>
+      <div className="cc-inline-actions"><Btn primary onClick={()=>onSelect(d)}>{can(d,'edit')?'검토·수정':'저장 상태 확인'}</Btn>
         {d.origin.sessionKey.startsWith('dashboard:') && <Btn onClick={()=>onOrigin(d.origin.sessionKey)}>원래 대화</Btn>}
-        {!['awaiting_confirmation','unknown','confirmed'].includes(d.calendarOperation?.state || '') && <Btn onClick={()=>onDismiss(d)}>넘기기</Btn>}
+        {can(d,'dismiss') && <Btn onClick={()=>onDismiss(d)}>넘기기</Btn>}
       </div>
     </div>)}
   </section>;

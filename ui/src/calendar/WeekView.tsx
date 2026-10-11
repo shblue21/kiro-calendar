@@ -1,3 +1,4 @@
+import type { CivilDate } from "./dates.ts";
 import { useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import { Btn } from "@kirocrew/app-sdk/ui";
@@ -13,7 +14,7 @@ import { DateBadge } from "./DateBadge";
 type Props = {
   timezone: string;
   items: readonly CalendarViewItem[];
-  dates: Date[];
+  dates: CivilDate[];
   referenceTime: CalendarReferenceTime;
   isCurrentWeek: boolean;
   selectedId?: string;
@@ -70,7 +71,7 @@ export function WeekView({
             className="cc-day-heading"
           >
             <span>{DAYS[i]}</span>
-            <DateBadge className="cc-date-number" day={date.getDate()} today={isCurrentWeek && i === ((referenceTime.day % 7) + 7) % 7} />
+            <DateBadge className="cc-date-number" day={date.day} today={isCurrentWeek && i === ((referenceTime.day % 7) + 7) % 7} />
           </div>
         ))}
       </div>
@@ -105,7 +106,7 @@ export function WeekView({
               className={`cc-day-column ${day > 4 ? "cc-weekend" : ""}`}
               style={{height:minuteOffset(timelines[day].durationMinutes), "--cc-clock-gutter": separateClocks ? "60px" : "0px"} as CSSProperties}
               key={dateKey(date)}
-              aria-label={`${date.getMonth() + 1}월 ${date.getDate()}일 ${DAYS[day]}요일`}
+              aria-label={`${date.month}월 ${date.day}일 ${DAYS[day]}요일`}
             >
               {separateClocks && timelines[day].ticks.map(tick=><span key={tick.minute} className="cc-day-clock" style={{top:minuteOffset(tick.minute)}}>{tick.label.split(" ").map(part=><span key={part}>{part}</span>)}</span>)}
               {place(

@@ -1,3 +1,4 @@
+import type { CivilDate } from "./dates.ts";
 import { Fragment } from "react";
 import { Badge, Btn } from "@kirocrew/app-sdk/ui";
 import { ChevronRight } from "../platform/kiro/icons";
@@ -8,8 +9,8 @@ import { TypeMark } from "./TypeMark";
 
 type Props = {
   items: readonly CalendarViewItem[];
-  base: Date;
-  today: Date;
+  base: CivilDate;
+  today: CivilDate;
   selectedId?: string;
   onSelect: (item: CalendarViewItem, button: HTMLButtonElement) => void;
 };
@@ -24,7 +25,7 @@ export function AgendaView({
   const days = [...new Set(items.map((item) => item.day))].sort((a, b) => a - b);
   const monthOf = (day: number) => {
     const date = shift(base, day);
-    return `${date.getFullYear()}-${date.getMonth()}`;
+    return `${date.year}-${date.month}`;
   };
   // Month headings only when the listed days span more than one month.
   const multiMonth = new Set(days.map(monthOf)).size > 1;
@@ -39,11 +40,11 @@ export function AgendaView({
         if (!list.length) return null;
         return (
           <Fragment key={day}>
-          {monthHeading && <h2 className="cc-agenda-month">{date.getFullYear()}년 {date.getMonth() + 1}월</h2>}
+          {monthHeading && <h2 className="cc-agenda-month">{date.year}년 {date.month}월</h2>}
           <section>
             <h3>
-              {date.getMonth() + 1}월 {date.getDate()}일{" "}
-              <span>{DAYS[(date.getDay() + 6) % 7]}요일</span>
+              {date.month}월 {date.day}일{" "}
+              <span>{DAYS[date.dayOfWeek - 1]}요일</span>
               {dateKey(date) === dateKey(today) && (
                 <Badge variant="aim">오늘</Badge>
               )}

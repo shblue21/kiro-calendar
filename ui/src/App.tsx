@@ -21,7 +21,7 @@ import { calendarItems, eventItems } from "./live/projection";
 import {
   NewEventEditor,
   ProposalEditor,
-  LocalEventEditor,
+  ConfirmedEventEditor,
 } from "./live/EventEditors";
 import { ExternalSavePanel } from "./live/ExternalSavePanel";
 import { CalendarPreferences } from "./live/CalendarPreferences";
@@ -32,6 +32,7 @@ import { DraftList } from "./live/DraftList";
 import { ProposalSettings } from "./settings/ProposalSettings";
 import { Settings2, Plus, ArrowLeft, RotateCcw } from "./platform/kiro/icons";
 import { message } from "./live/api";
+import { can } from "./live/types";
 import styles from "./styles.css?inline";
 
 export default function CalendarApp() {
@@ -46,24 +47,29 @@ export default function CalendarApp() {
       );
       setZone(body.settings.timezone);
       setError("");
+      return body.settings.timezone;
     } catch {
       setError("OS 시스템 시간대를 확인하지 못했습니다.");
+      throw new Error("OS 시스템 시간대를 확인하지 못했습니다.");
     }
   }, [name]);
   useEffect(() => {
-    void load();
+    const refreshZone = () => { void load().catch(() => {}); };
+    refreshZone();
+    window.addEventListener("focus", refreshZone);
+    return () => window.removeEventListener("focus", refreshZone);
   }, [load]);
   if (!zone)
     return (
       <div className="cc-calendar">
         <style>{styles}</style>
         <p role="status">{error || "캘린더를 불러오고 있습니다."}</p>
-        {error && <Btn onClick={() => void load()}>다시 확인</Btn>}
+        {error && <Btn onClick={() => void load().catch(() => {})}>다시 확인</Btn>}
       </div>
     );
-  return <CalendarWorkspace timezone={zone} />;
+  return <CalendarWorkspace timezone={zone} refreshTimezone={load} />;
 }
-function CalendarWorkspace({ timezone }: { timezone: string }) {
+function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; refreshTimezone: () => Promise<string> }) {
   const api = useRef(useAppApi()),
     { name } = useAppInfo(),
     { openChat } = useChatLauncher();
@@ -95,7 +101,8 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [editor, setEditor] = useState<{
     key: string;
-    draft: CalendarItem | null;
+    item: CalendarItem | null;
+    mode: "content" | "delivery";
     startImmediately?: boolean;
   } | null>(null);
   const [undo, setUndo] = useState<CalendarItem | null>(null);
@@ -119,12 +126,13 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
   const loadRecords = useCallback(async () => {
     const seq = ++recordSequence.current;
     try {
-      const body = await api.current.get<{ items: CalendarItem[] }>(
-        `${base}/calendar/items`,
-      );
+      const body = await api.current.get<{
+        items: CalendarItem[];
+        errors: { message: string }[];
+      }>(`${base}/calendar/items`);
       if (seq === recordSequence.current) {
         setRecords(body.items);
-        setRecordError("");
+        setRecordError(body.errors.map((e) => e.message).join(" "));
       }
     } catch (error) {
       if (seq === recordSequence.current)
@@ -210,13 +218,15 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
   }, [loadRecords, loadEvents]);
   async function refresh() {
     setRefreshing(true);
-    await Promise.all([
-      loadRecords(),
-      loadConnection(),
-      loadPreferences(),
-      loadEvents(),
-    ]);
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        refreshTimezone(), loadRecords(), loadConnection(), loadPreferences(), loadEvents(),
+      ]);
+    } catch (error) {
+      setFeedback(message(error));
+    } finally {
+      setRefreshing(false);
+    }
   }
   const items = useMemo(
     () => [
@@ -246,11 +256,23 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
     instant: clock.toISOString(),
   };
   function edit(draft: CalendarItem | null) {
-    if (!preferencesReady) {
+    if (draft && !can(draft, "edit")) {
+      openDelivery(draft);
+      return;
+    }
+    if ((!draft || draft.status === "proposed") && !preferencesReady) {
       setFeedback("기본 저장 위치를 불러온 뒤 다시 시도하세요.");
       return;
     }
-    setEditor({ key: crypto.randomUUID(), draft });
+    setEditor({ key: crypto.randomUUID(), item: draft, mode: "content" });
+  }
+  function openDelivery(item: CalendarItem, startImmediately = false) {
+    setEditor({
+      key: crypto.randomUUID(),
+      item,
+      mode: "delivery",
+      startImmediately,
+    });
   }
   function selectDraft(draft: CalendarItem) {
     setFocusDate(zonedDay(draft.start, timezone));
@@ -266,26 +288,19 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
       item.status === "confirmed" &&
       item.destination?.connectionId !== "crew"
     ) {
-      setEditor({
-        key: crypto.randomUUID(),
-        draft: item,
-        startImmediately: true,
-      });
+      openDelivery(item, true);
     } else setEditor(null);
     await changed();
   }
   async function remove(item: CalendarItem) {
-    try {
-      const result = await api.current.post<{ item: CalendarItem }>(
-        `${base}/calendar/items/${item.id}/delete`,
-        { revision: item.revision },
-      );
-      setUndo(result.item);
-      setFeedback("일정을 삭제했습니다.");
-      await changed();
-    } catch (e) {
-      setFeedback(message(e));
-    }
+    const result = await api.current.post<{ item: CalendarItem }>(
+      `${base}/calendar/items/${item.id}/delete`,
+      { revision: item.revision },
+    );
+    setUndo(result.item);
+    setFeedback("일정을 삭제했습니다.");
+    setEditor(null);
+    await changed();
   }
   async function restore(item: CalendarItem) {
     await api.current.post(`${base}/calendar/items/${item.id}/restore`, {
@@ -301,8 +316,8 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
   }
   async function dismiss(draft: CalendarItem) {
     try {
-      await api.current.post(`${base}/drafts/${draft.id}/status`, {
-        status: "dismissed",
+      await api.current.post(`${base}/calendar/items/${draft.id}/dismiss`, {
+        revision: draft.revision,
       });
       await loadRecords();
     } catch (error) {
@@ -312,7 +327,7 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
   function actions(id: string) {
     const item = items.find((i) => i.id === id);
     if (!item) return null;
-    const draft = records.find((d) => d.id === item.draftId);
+    const draft = records.find((d) => d.id === item.itemId);
     const session =
       draft?.origin.sessionKey || item.providerEvent?.origin?.sessionKey;
     return (
@@ -320,21 +335,25 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
         {session?.startsWith("dashboard:") && (
           <Btn onClick={() => origin(session)}>원래 대화로 돌아가기</Btn>
         )}
-        {draft && (
+        {draft && can(draft, "edit") && (
           <Btn onClick={() => edit(draft)}>
-            {draft.status === "proposed"
-              ? "검토·저장"
-              : draft.destination?.connectionId === "crew"
-                ? "수정"
-                : "외부 저장 상태"}
+            {draft.status === "proposed" ? "검토·저장" : "수정"}
           </Btn>
         )}
         {draft?.status === "confirmed" &&
-          draft.destination?.connectionId === "crew" && (
-            <Btn danger onClick={() => void remove(draft)}>
-              삭제
-            </Btn>
+          draft.destination.connectionId !== "crew" && (
+            <Btn onClick={() => openDelivery(draft)}>외부 저장 상태</Btn>
           )}
+        {draft && can(draft, "delete") && (
+          <Btn
+            danger
+            onClick={() =>
+              void remove(draft).catch((e) => setFeedback(message(e)))
+            }
+          >
+            삭제
+          </Btn>
+        )}
       </div>
     );
   }
@@ -419,7 +438,7 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
           onReload={() => void refresh()}
           onAdd={() => edit(null)}
           onEdit={(item: CalendarViewItem) => {
-            const d = records.find((d) => d.id === item.draftId);
+            const d = records.find((d) => d.id === item.itemId);
             if (d) edit(d);
           }}
           eventActions={actions}
@@ -479,7 +498,7 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
               .map((d) => (
                 <div className="cc-draft-row" key={d.id}>
                   <strong>{d.title}</strong>
-                  <Btn onClick={() => edit(d)}>저장 상태</Btn>
+                  <Btn onClick={() => openDelivery(d)}>저장 상태</Btn>
                 </div>
               ))}
           </section>
@@ -490,8 +509,9 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
         </div>
       </div>
       {editor &&
-        (!editor.draft ? (
+        (!editor.item ? (
           <NewEventEditor
+            refreshTimezone={refreshTimezone}
             key={editor.key}
             date={focusDate}
             timezone={timezone}
@@ -500,34 +520,40 @@ function CalendarWorkspace({ timezone }: { timezone: string }) {
             onClose={() => setEditor(null)}
             onSaved={saved}
           />
-        ) : editor.draft.status === "proposed" ? (
-          <ProposalEditor
-            key={editor.key}
-            item={editor.draft}
-            date={focusDate}
-            timezone={timezone}
-            connections={connections}
-            defaultDestination={preferences.defaultDestination}
-            onClose={() => setEditor(null)}
-            onSaved={saved}
-          />
-        ) : editor.draft.destination?.connectionId === "crew" ? (
-          <LocalEventEditor
-            key={editor.key}
-            item={editor.draft}
-            date={focusDate}
-            timezone={timezone}
-            onClose={() => setEditor(null)}
-            onSaved={saved}
-          />
-        ) : (
+        ) : editor.mode === "delivery" ? (
           <ExternalSavePanel
+            refreshTimezone={refreshTimezone}
             key={editor.key}
-            item={editor.draft}
+            item={editor.item}
             timezone={timezone}
             startImmediately={editor.startImmediately}
             onClose={() => setEditor(null)}
             onChanged={changed}
+            onEdit={edit}
+            onDelete={remove}
+          />
+        ) : editor.item.status === "proposed" ? (
+          <ProposalEditor
+            refreshTimezone={refreshTimezone}
+            key={editor.key}
+            item={editor.item}
+            date={focusDate}
+            timezone={timezone}
+            connections={connections}
+            defaultDestination={preferences.defaultDestination}
+            onClose={() => setEditor(null)}
+            onSaved={saved}
+          />
+        ) : (
+          <ConfirmedEventEditor
+            refreshTimezone={refreshTimezone}
+            key={editor.key}
+            item={editor.item}
+            date={focusDate}
+            timezone={timezone}
+            connections={connections}
+            onClose={() => setEditor(null)}
+            onSaved={saved}
           />
         ))}
     </div>

@@ -23,7 +23,7 @@ export type CalendarViewItem = {
   related?: string;
   allDay?: boolean;
   storage?: "draft" | "external" | "local" | "pending";
-  draftId?: string;
+  itemId?: string;
   providerEvent?: import("../live/types").CalendarEvent;
   editable?: boolean;
   artifactPreview?: { title: string; summary: string; bullets: string[] };

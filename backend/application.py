@@ -51,18 +51,3 @@ class DraftService:
                 record['id'] = uuid.uuid4().hex[:16]
             self.repository.save_item(record)
             return record, False
-
-    def list(self, *, strict: bool = False) -> list[dict]:
-        return self.repository.items(strict=strict)
-
-    def set_status(self, draft_id: str, status: str) -> dict:
-        if status != "dismissed":
-            raise DraftError("Only dismissing is supported")
-        with self.repository.transaction():
-            draft = self.repository.get_item(draft_id)
-            if draft["status"] not in {"proposed", "dismissed"}:
-                raise DraftError("Confirmed events cannot be dismissed as proposals")
-            draft["status"] = status
-            draft["updatedAt"] = self.clock().isoformat(timespec="seconds")
-            self.repository.save_item(draft)
-            return draft

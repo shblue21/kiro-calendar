@@ -10,10 +10,9 @@ import json
 import uuid
 from datetime import datetime, timezone
 from .calendar_domain import CalendarError, event_payload
-from .domain import DraftError, DraftNotFound
+from .domain import DraftError, ItemNotFound
 from .timezone import system_timezone
-
-CREW = {"connectionId": "crew", "calendarId": "default"}
+from .entry_policy import CREW, require_action, require_revision
 
 
 def stamp():
@@ -37,10 +36,9 @@ def request_id(value):
 
 
 class EventService:
-    def __init__(self, repository, validate_target, ensure_unsubmitted):
+    def __init__(self, repository, validate_target):
         self.repository = repository
         self.validate_target = validate_target
-        self.ensure_unsubmitted = ensure_unsubmitted
 
     def create(self, fields):
         value = payload(fields)
@@ -54,7 +52,7 @@ class EventService:
         with self.repository.transaction():
             try:
                 old = self.repository.get_item(key)
-            except DraftNotFound:
+            except ItemNotFound:
                 old = None
             if old is not None:
                 if old.get("creationDigest") != digest:
@@ -64,7 +62,7 @@ class EventService:
                 return old
             item = {
                 **value,
-                "schemaVersion": 2,
+                "schemaVersion": 3,
                 "id": key,
                 "revision": 1,
                 "status": "confirmed",
@@ -81,14 +79,6 @@ class EventService:
             }
             self.repository.save_item(item)
             return item
-
-    def _version(self, item, fields):
-        if type(fields.get("revision")) is not int or fields["revision"] != item.get(
-            "revision", 1
-        ):
-            raise CalendarError(
-                "stale_event", "다른 곳에서 변경된 일정입니다. 닫고 다시 불러오세요."
-            )
 
     def accept(self, key, fields):
         value = payload(fields)
@@ -112,10 +102,8 @@ class EventService:
                         "request_conflict", "같은 수락 요청의 내용이 변경되었습니다."
                     )
                 return item
-            self._version(item, fields)
-            self.ensure_unsubmitted(key)
-            if item["status"] != "proposed" or item.get("deletedAt"):
-                raise CalendarError("not_proposed", "이미 처리된 제안입니다.")
+            require_revision(item, fields.get("revision"))
+            require_action(item, "accept")
             item.update(value)
             item.update(
                 status="confirmed",
@@ -129,36 +117,47 @@ class EventService:
 
     def edit(self, key, fields):
         value = payload(fields)
+        # Provider access checks happen outside the record lock.
+        target = fields.get("destination")
+        snapshot = self.repository.get_item(key)
+        require_revision(snapshot, fields.get("revision"))
+        if target is not None and target != snapshot["destination"]:
+            target = self.validate_target(target)
         with self.repository.transaction():
             item = self.repository.get_item(key)
-            self._version(item, fields)
-            self._local(item)
-            if item.get("deletedAt"):
-                raise CalendarError(
-                    "deleted_event", "삭제된 일정입니다. 먼저 복원하세요."
-                )
+            require_revision(item, fields.get("revision"))
+            require_action(item, "edit")
+            if target is not None and target != item["destination"]:
+                require_action(item, "retarget")
+                item["destination"] = target
             item.update(value)
+            # Editing unsubmitted content supersedes any prepared/cancelled attempt.
+            item.pop("delivery", None)
             item.update(revision=item["revision"] + 1, updatedAt=stamp())
             self.repository.save_item(item)
             return item
 
-    def _local(self, item):
-        if item["status"] != "confirmed" or item.get("destination") != CREW:
-            raise CalendarError(
-                "not_local",
-                "Crew Calendar에 저장된 일정만 수정하거나 삭제할 수 있습니다.",
+    def dismiss(self, key, fields):
+        with self.repository.transaction():
+            item = self.repository.get_item(key)
+            require_revision(item, fields.get("revision"))
+            require_action(item, "dismiss")
+            item.update(
+                status="dismissed", revision=item["revision"] + 1, updatedAt=stamp()
             )
+            self.repository.save_item(item)
+            return item
 
     def set_deleted(self, key, fields, deleted):
         with self.repository.transaction():
             item = self.repository.get_item(key)
-            self._version(item, fields)
-            self._local(item)
-            if bool(item.get("deletedAt")) != deleted:
-                item.update(
-                    deletedAt=stamp() if deleted else None,
-                    revision=item["revision"] + 1,
-                    updatedAt=stamp(),
-                )
-                self.repository.save_item(item)
+            require_revision(item, fields.get("revision"))
+            require_action(item, "delete" if deleted else "restore")
+            item.pop("delivery", None)
+            item.update(
+                deletedAt=stamp() if deleted else None,
+                revision=item["revision"] + 1,
+                updatedAt=stamp(),
+            )
+            self.repository.save_item(item)
             return item

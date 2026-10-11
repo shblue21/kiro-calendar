@@ -23,7 +23,7 @@ class CalendarRouteTest(unittest.IsolatedAsyncioTestCase):
  async def test_nonowner_cannot_request_access_or_start_native_write(self):
   denied=web.json_response({'error':'owner_only'},status=403)
   with patch.object(routes,'_owner',AsyncMock(return_value=denied)),patch.object(routes,'Services') as services:
-   for endpoint in [routes.authorize,routes.prepare,routes.execute,routes.item_create,routes.item_edit,routes.item_accept,routes.item_delete,routes.item_restore,routes.preferences_put]:
+   for endpoint in [routes.item_get,routes.authorize,routes.prepare,routes.execute,routes.item_create,routes.item_edit,routes.item_accept,routes.item_dismiss,routes.item_delete,routes.item_restore,routes.preferences_put]:
     result=await endpoint(Request({},operation_id='a'*32),self.ctx)
     self.assertEqual(result.status,403)
    services.assert_not_called()
@@ -35,8 +35,27 @@ class CalendarRouteTest(unittest.IsolatedAsyncioTestCase):
    first=await routes.item_create(Request(body),self.ctx)
    second=await routes.item_create(Request(body),self.ctx)
    item=json.loads(first.text)['item'];self.assertEqual(item['status'],'confirmed')
+   snapshot=await routes.item_get(Request(item_id=item['id']),self.ctx)
+   self.assertEqual(json.loads(snapshot.text)['item'],item)
    self.assertEqual(json.loads(second.text)['item']['id'],item['id'])
    result=await routes.item_edit(Request({**body,'title':'Edited','revision':1},item_id=item['id']),self.ctx)
    self.assertEqual(json.loads(result.text)['item']['title'],'Edited')
    stale=await routes.item_edit(Request({**body,'revision':1},item_id=item['id']),self.ctx)
    self.assertEqual(stale.status,409)
+  # Simulate discarding an accepted execute response; GET recovers the snapshot,
+  # and even an execute replay must not dispatch a second provider write.
+  from test_calendar import CalendarTest
+  fixture=CalendarTest();fixture.setUp()
+  try:
+   op=fixture.prepare();key=fixture.item['id']
+   with patch.object(routes,'_owner',AsyncMock(return_value=None)),patch.object(routes,'Services',return_value=SimpleNamespace(calendar=lambda:fixture.service)):
+    await routes.execute(Request(item_id=key,operation_id=op['id']),self.ctx)
+    snapshot=await routes.item_get(Request(item_id=key),self.ctx)
+    self.assertIn(json.loads(snapshot.text)['item']['delivery']['state'],['awaiting_confirmation','confirmed'])
+    await routes.execute(Request(item_id=key,operation_id=op['id']),self.ctx)
+    import asyncio
+    await asyncio.gather(*list(routes._tasks))
+    snapshot=await routes.item_get(Request(item_id=key),self.ctx)
+    self.assertEqual(json.loads(snapshot.text)['item']['delivery']['state'],'confirmed')
+    self.assertEqual(fixture.provider.created,1)
+  finally:fixture.tearDown()

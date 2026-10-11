@@ -12,12 +12,33 @@ class CalendarError(Exception):
 
 
 class CalendarProvider(Protocol):
+    """Delivery calls return outcomes; exceptions do not establish absence of a write."""
     def status(self) -> dict: ...
     def authorize(self) -> dict: ...
     def calendars(self) -> list[dict]: ...
     def events(self, calendar_ids: list[str], start: str, end: str) -> dict: ...
     def create(self, operation: dict) -> dict: ...
     def reconcile(self, operation: dict) -> dict: ...
+
+
+def delivery_result(value: dict) -> dict:
+    """Decode the delivery envelope independently of command/transport errors."""
+    if (
+        not isinstance(value, dict)
+        or value.get('state') not in ('confirmed', 'cancelled', 'failed', 'unknown', 'awaiting_confirmation')
+        or not isinstance(value.get('error', {}), dict)
+        or any(not isinstance(value.get('error', {}).get(k, ''), str) for k in ('code', 'message'))
+        or (value.get('state') == 'confirmed' and not isinstance(value.get('event'), dict))
+    ):
+        raise CalendarError('provider_contract', '캘린더 저장 결과를 확인하지 못했습니다.')
+    return value
+
+
+def delivery_failure(exc: Exception, state: str) -> dict:
+    return {'state': state, 'error': {
+        'code': exc.code if isinstance(exc, CalendarError) else 'provider_error',
+        'message': exc.message if isinstance(exc, CalendarError) else '캘린더 연결 작업을 완료하지 못했습니다.',
+    }}
 
 
 def event_payload(fields: dict) -> dict:

@@ -20,45 +20,12 @@ def _module(name: str) -> Any:
     return module.load(name)
 
 
-def _view(draft: dict) -> dict:
-    origin = draft.get("origin") or {}
-    return {**draft, "source": draft.get("source", "manual"),
-            "returnTarget": _module("host").return_target(str(origin.get("sessionKey", "")))}
-
-
 def _chats(request: Any) -> list[dict]:
     return _module("host").eligible_chats(request)
 
 
 def _services(ctx: Any):
     return _module("composition").Services(ctx.data_dir)
-
-
-async def list_drafts(request: Any, ctx: Any) -> Any:
-    from aiohttp import web
-    domain = _module("domain")
-    try:
-        items = await asyncio.to_thread(lambda: _services(ctx).calendar().list_drafts())
-    except (domain.DraftError, OSError):
-        return web.json_response({"error": "Drafts unavailable"}, status=503)
-    return web.json_response({"drafts": [_view(d) for d in items]})
-
-
-async def update_status(request: Any, ctx: Any) -> Any:
-    from aiohttp import web
-    domain = _module("domain")
-    try:
-        body = await request.json()
-        if not isinstance(body, dict) or body.get("status") != "dismissed":
-            raise domain.DraftError("Only dismissing is supported")
-        draft = await asyncio.to_thread(lambda: _services(ctx).calendar().dismiss(request.match_info.get("draft_id", "")))
-    except (domain.StorageUnavailable, OSError):
-        return web.json_response({"error": "Draft update failed"}, status=503)
-    except _module("calendar_domain").CalendarError as exc:
-        return web.json_response({"error": exc.message, "code": exc.code}, status=409)
-    except (domain.DraftError, ValueError):
-        return web.json_response({"error": "Invalid draft update"}, status=400)
-    return web.json_response({"draft": _view(draft)})
 
 
 async def settings_get(request: Any, ctx: Any) -> Any:
@@ -104,7 +71,5 @@ async def settings_put(request: Any, ctx: Any) -> Any:
 
 def register_routes(ctx: Any) -> list[Any]:
     from kiro_crew.apps.route_registry import AppRoute
-    return [AppRoute("GET", "/drafts", list_drafts),
-            AppRoute("POST", "/drafts/{draft_id}/status", update_status),
-            AppRoute("GET", "/settings", settings_get),
+    return [AppRoute("GET", "/settings", settings_get),
             AppRoute("PUT", "/settings", settings_put)] + _module("calendar_routes").routes()

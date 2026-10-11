@@ -1,3 +1,4 @@
+import type { CivilDate } from "./dates.ts";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Btn } from "@kirocrew/app-sdk/ui";
@@ -24,7 +25,7 @@ import { DetailPanel } from "./DetailPanel";
 type Props = {
   timezone: string;
   items: readonly CalendarViewItem[];
-  weekStart: Date;
+  weekStart: CivilDate;
   referenceTime: CalendarReferenceTime;
   view: CalendarView;
   layout: CalendarLayout;
@@ -33,8 +34,8 @@ type Props = {
   notice?: ReactNode;
   onReload: () => void;
   eventActions: (id: string) => ReactNode;
-  focusDate: Date;
-  onFocusDate: (date: Date) => void;
+  focusDate: CivilDate;
+  onFocusDate: (date: CivilDate) => void;
   offset: number;
   onOffset: (offset: number) => void;
   jump?: { id: string; serial: number };
@@ -92,9 +93,9 @@ export function CalendarPage({
   const detailDates = DAYS.map((_, day) => shift(weekStart, selectedWeek * 7 + day));
   const selected = selectedCanonical ? { ...selectedCanonical, day: selectedCanonical.day - selectedWeek * 7 } : undefined;
   const filteredOut = periodItems.length > 0 && items.length === 0;
-  const rangeLabel = effectiveView === "year" ? `${focusDate.getFullYear()}년`
-    : effectiveView === "month" ? `${focusDate.getFullYear()}년 ${focusDate.getMonth() + 1}월`
-    : `${dates[0].getFullYear()}년 ${dates[0].getMonth() + 1}월 ${dates[0].getDate()}일–${dates[6].getFullYear() !== dates[0].getFullYear() ? `${dates[6].getFullYear()}년 ` : ""}${dates[6].getMonth() + 1}월 ${dates[6].getDate()}일`;
+  const rangeLabel = effectiveView === "year" ? `${focusDate.year}년`
+    : effectiveView === "month" ? `${focusDate.year}년 ${focusDate.month}월`
+    : `${dates[0].year}년 ${dates[0].month}월 ${dates[0].day}일–${dates[6].year !== dates[0].year ? `${dates[6].year}년 ` : ""}${dates[6].month}월 ${dates[6].day}일`;
   useEffect(() => {
     if (jump) {
       setSelectedId(jump.id);
@@ -114,7 +115,7 @@ export function CalendarPage({
       onFocusDate(shift(weekStart, canonical.day));
     setSelectedId(item.id);
   }
-  function moveDate(next: Date) {
+  function moveDate(next: CivilDate) {
     onFocusDate(next);
     setSelectedId(null);
   }

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {dayTimeline,dateRangeInstants,zonedISO,elapsedMinute} from './time.ts';
+import {dayTimeline,dateRangeInstants,zonedISO,elapsedMinute,timeSelection,resolveTime,editTime,timeChoices,rezoneTime} from './time.ts';
 
 test('query date boundaries accept repeated midnight without weakening user input validation',()=>{
  const range=dateRangeInstants('2026-11-01','2026-12-01','America/Havana');
@@ -18,4 +18,13 @@ test('repeated hour ticks and instants remain distinct',()=>{
  const spring=dayTimeline('2026-03-08','America/New_York');
  assert.equal(spring.ticks[2].label,'03:00');
  assert.equal(day.durationMinutes,1500);assert.equal(spring.durationMinutes,1380);
+ const known=timeSelection('2026-11-01T01:30:15.123456-04:00','America/New_York');
+ assert.equal(resolveTime(known,'America/New_York'),'2026-11-01T01:30:15-04:00');
+ assert.equal(resolveTime(rezoneTime(known,'UTC'),'UTC'),'2026-11-01T05:30:15+00:00');
+ const edited=editTime('2026-11-01T01:30','America/New_York');
+ assert.throws(()=>resolveTime(edited,'America/New_York'));
+ assert.deepEqual(rezoneTime(edited,'UTC'),edited);
+ const choices=timeChoices(edited.wall,'America/New_York');assert.equal(choices.length,2);
+ assert.equal(resolveTime({...edited,instant:choices[1].instant},'America/New_York'),'2026-11-01T01:30:00-05:00');
+ assert.equal(timeChoices('2026-03-08T02:30','America/New_York').length,0);
 });

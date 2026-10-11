@@ -1,125 +1,71 @@
+import { DeliverySession, deliveryState } from "./delivery";
 import { useEffect, useRef, useState } from "react";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
 import { Btn } from "@kirocrew/app-sdk/ui";
-import type { CalendarItem, Operation } from "./types";
-import { localInput } from "./projection";
-import { message } from "./api";
+import { can } from "./types";
+import type { CalendarItem, DeliveryResponse } from "./types";
+import { timeSelection, selectedOffset, zonedInput } from "../calendar/time";
 
-/** Only external delivery lives here. Editing and local lifecycle have separate screens. */
 export function ExternalSavePanel({
   item,
   timezone,
+  refreshTimezone,
   startImmediately = false,
   onClose,
   onChanged,
+  onEdit,
+  onDelete,
 }: {
   item: CalendarItem;
   timezone: string;
+  refreshTimezone: () => Promise<string>;
   startImmediately?: boolean;
   onClose: () => void;
   onChanged: () => Promise<void>;
+  onEdit: (item: CalendarItem) => void;
+  onDelete: (item: CalendarItem) => Promise<void>;
 }) {
   const api = useRef(useAppApi()),
-    { name } = useAppInfo(),
-    base = `/api/apps/${name}/calendar`;
+    { name } = useAppInfo();
+  const base = `/api/apps/${name}/calendar/items/${item.id}/delivery`;
   const dialog = useRef<HTMLDialogElement>(null),
     started = useRef(false);
-  const [operation, setOperation] = useState<Operation | null>(
-      item.calendarOperation || null,
-    ),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+  const [{item:current,busy,checking,error},setSnapshot] = useState(() => deliveryState(item));
+  const [session] = useState(() => new DeliverySession(item, {
+    read: async () => (await api.current.get<{item:CalendarItem}>(`/api/apps/${name}/calendar/items/${item.id}`)).item,
+    prepare: async (revision) => {
+      await refreshTimezone();
+      return api.current.post<DeliveryResponse>(base,{revision});
+    },
+    execute: (id) => api.current.post<DeliveryResponse>(`${base}/${id}/execute`),
+    reconcile: (id) => api.current.post<DeliveryResponse>(`${base}/${id}/reconcile`),
+  },setSnapshot));
+  const op = current.delivery?.state === "unavailable" ? null : current.delivery;
+  const state = current.delivery?.state;
   useEffect(() => {
     dialog.current?.showModal();
     return () => dialog.current?.close();
   }, []);
-  async function execute(op: Operation) {
-    const result = await api.current.post<{ operation: Operation }>(
-      `${base}/operations/${op.id}/execute`,
-    );
-    setOperation(result.operation);
-    await onChanged();
-  }
-  async function begin() {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const { operation: op } = await api.current.post<{
-        operation: Operation;
-      }>(`${base}/operations`, {
-        draftId: item.id,
-        revision: item.revision,
-        target: item.destination,
-      });
-      setOperation(op);
-      if (op.confirmation?.mode === "provider") await execute(op);
-    } catch (e) {
-      setError(message(e));
-      await onChanged();
-    } finally {
-      setBusy(false);
-    }
+  async function perform(action:()=>Promise<unknown>) {
+    const before=session.state.item;
+    await action();
+    if(JSON.stringify(before)!==JSON.stringify(session.state.item))await onChanged();
   }
   useEffect(() => {
-    if (startImmediately && !started.current) {
+    if (!started.current) {
       started.current = true;
-      void begin();
+      void perform(() => startImmediately ? session.save() : session.refresh());
     }
   }, []);
   useEffect(() => {
-    if (operation?.state !== "awaiting_confirmation") return;
-    let active = true;
-    const timer = window.setInterval(() => {
-      void api.current
-        .get<{ operation: Operation }>(`${base}/operations/${operation.id}`)
-        .then(async (body) => {
-          if (!active) return;
-          setOperation(body.operation);
-          if (body.operation.state !== "awaiting_confirmation")
-            await onChanged();
-        })
-        .catch(() => {
-          if (active)
-            setError(
-              "저장 결과를 불러오지 못했습니다. 결과를 다시 확인하세요.",
-            );
-        });
-    }, 1500);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, [operation?.id, operation?.state]);
-  async function confirm() {
-    if (!operation) return;
-    setBusy(true);
-    setError("");
-    try {
-      await execute(operation);
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function reconcile() {
-    if (!operation) return;
-    setBusy(true);
-    setError("");
-    try {
-      const body = await api.current.post<{ operation: Operation }>(
-        `${base}/operations/${operation.id}/reconcile`,
-      );
-      setOperation(body.operation);
-      await onChanged();
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  const state = operation?.state;
+    if (!checking && state !== "awaiting_confirmation" && state !== "unknown") return;
+    const timer=window.setInterval(()=>{
+      if(!session.state.busy)void perform(()=>session.refresh());
+    },1500);
+    return ()=>window.clearInterval(timer);
+  },[checking,state,session]);
+  const label = (instant: string) =>
+    `${zonedInput(instant, timezone)} UTC${selectedOffset(timeSelection(instant, timezone), timezone)}`;
   return (
     <dialog
       ref={dialog}
@@ -140,34 +86,32 @@ export function ExternalSavePanel({
         </Btn>
       </header>
       <div className="cc-editor-body">
-        <h3>{item.title}</h3>
+        <h3>{current.title}</h3>
         <p>
-          {localInput(item.start, timezone)} –{" "}
-          {item.end ? localInput(item.end, timezone) : ""}
+          {label(current.start)} – {current.end ? label(current.end) : ""}
         </p>
-        <p>{item.notes}</p>
+        <p>{current.notes}</p>
         <p>
-          {[
-            operation?.connectionTitle,
-            operation?.sourceTitle,
-            operation?.calendarTitle,
-          ]
+          {[op?.connectionTitle, op?.sourceTitle, op?.calendarTitle]
             .filter(Boolean)
             .join(" · ") || "선택한 외부 캘린더"}
         </p>
         <div className="cc-operation-state" role="status">
           {!state && (
             <p>
-              선택한 외부 캘린더에 저장할 내용이 보관되어 있습니다. 아직 외부
-              저장은 완료되지 않았습니다.
+              아직 외부에 저장되지 않았습니다. 내용을 수정하거나 저장 요청을
+              삭제할 수 있습니다.
             </p>
           )}
           {state === "prepared" && (
-            <p>위 내용을 확인한 뒤 외부 캘린더에 저장하세요.</p>
+            <p>
+              위 내용을 확인한 뒤 저장하세요. 수정하거나 요청을 삭제할 수도
+              있습니다.
+            </p>
           )}
           {state === "awaiting_confirmation" && (
             <p>
-              {operation?.confirmation?.pendingMessage ||
+              {op?.confirmation?.pendingMessage ||
                 "저장 결과를 확인하고 있습니다."}
             </p>
           )}
@@ -175,10 +119,16 @@ export function ExternalSavePanel({
             <p>저장 확인됨 · 외부 캘린더에서 다시 조회했습니다.</p>
           )}
           {state === "cancelled" && (
-            <p>외부 저장을 취소했습니다. 검토한 내용은 보관되어 있습니다.</p>
+            <p>
+              외부 저장을 취소했습니다. 내용을 수정하거나 요청을 삭제할 수
+              있습니다.
+            </p>
           )}
           {state === "failed" && (
-            <p>{operation?.error?.message || "외부 저장에 실패했습니다."}</p>
+            <p>
+              {op?.error?.message ||
+                "외부에 저장하지 못했습니다. 내용을 수정하거나 요청을 삭제할 수 있습니다."}
+            </p>
           )}
           {state === "unknown" && (
             <p>
@@ -186,43 +136,54 @@ export function ExternalSavePanel({
               확인하세요.
             </p>
           )}
-          {operation?.verification &&
-            operation.verification.state !== "confirmed" && (
-              <p role="alert">
-                {operation.verification.error?.message ||
-                  "원본 일정이 변경되었거나 조회할 수 없습니다."}
-              </p>
-            )}
+          {current.delivery?.state === "unavailable" && (
+            <p role="alert">{current.delivery.error.message}</p>
+          )}
+          {op?.verification && op.verification.state !== "confirmed" && (
+            <p role="alert">
+              {op.verification.error?.message ||
+                "원본 일정이 변경되었거나 조회할 수 없습니다."}
+            </p>
+          )}
         </div>
+        {checking && <p role="status">기존 저장 요청의 현재 상태를 확인하고 있습니다.</p>}
         {error && (
           <p role="alert" className="cc-form-error">
             {error}
           </p>
         )}
+        <div className="cc-inline-actions">
+          {!checking && can(current, "edit") && (
+            <Btn disabled={busy} onClick={() => onEdit(current)}>
+              내용 수정
+            </Btn>
+          )}
+          {!checking && can(current, "delete") && (
+            <Btn
+              danger
+              disabled={busy}
+              onClick={() => void perform(() => session.run(() => onDelete(current)))}
+            >
+              요청 삭제
+            </Btn>
+          )}
+        </div>
       </div>
       <footer className="cc-editor-footer">
         <Btn disabled={busy} onClick={onClose}>
           닫기
         </Btn>
         <div>
-          {(!state || state === "failed" || state === "cancelled") && (
-            <Btn primary disabled={busy} onClick={() => void begin()}>
-              외부 저장 다시 진행
+          {!checking && can(current, "submit") && (
+            <Btn primary disabled={busy} onClick={() => void perform(()=>session.save())}>
+              {op?.state === "prepared" ? op.confirmation?.actionLabel || "이 캘린더에 저장" : "외부 저장 진행"}
             </Btn>
           )}
-          {state === "prepared" && (
-            <Btn primary disabled={busy} onClick={() => void confirm()}>
-              {operation?.confirmation?.actionLabel || "이 캘린더에 저장"}
+          {(checking || can(current, "reconcile")) && (
+            <Btn disabled={busy} onClick={()=>void perform(()=>checking ? session.refresh() : session.reconcile())}>
+              {checking ? "현재 저장 상태 확인" : "저장 결과 다시 확인"}
             </Btn>
           )}
-          {["awaiting_confirmation", "unknown", "confirmed"].includes(
-            state || "",
-          ) &&
-            operation?.canReconcile !== false && (
-              <Btn disabled={busy} onClick={() => void reconcile()}>
-                저장 결과 다시 확인
-              </Btn>
-            )}
         </div>
       </footer>
     </dialog>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Btn } from "@kirocrew/app-sdk/ui";
 import type { CalendarItem } from "./types";
+import { can } from "./types";
 import { message } from "./api";
 export function EventTrash({
   items,
@@ -19,7 +20,7 @@ export function EventTrash({
           <div className="cc-draft-row" key={item.id}>
             <strong>{item.title}</strong>
             <Btn
-              disabled={!!busy}
+              disabled={!!busy || !can(item, "restore")}
               onClick={() => {
                 setBusy(item.id);
                 setError("");

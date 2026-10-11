@@ -1,12 +1,15 @@
+import type { CivilDate } from "../calendar/dates.ts";
 import { useState } from "react";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
 import { EventForm } from "./EventForm";
 import { DestinationSelect, destinationKey } from "./DestinationSelect";
 import type { CalendarItem, Connection, Destination } from "./types";
+import { can } from "./types";
 
 type Common = {
-  date: Date;
+  date: CivilDate;
   timezone: string;
+  refreshTimezone: () => Promise<string>;
   onClose: () => void;
   onSaved: (item: CalendarItem) => Promise<void>;
 };
@@ -72,11 +75,14 @@ export function ProposalEditor(props: Targeted & { item: CalendarItem }) {
       secondary={{
         label: "초안 수정 저장",
         action: async (fields) => {
-          await api.put(`${base}/drafts/${props.item.id}`, {
-            ...fields,
-            revision: props.item.revision,
-          });
-          await props.onSaved({ ...props.item, ...fields });
+          const result = await api.put<{ item: CalendarItem }>(
+            `${base}/items/${props.item.id}`,
+            {
+              ...fields,
+              revision: props.item.revision,
+            },
+          );
+          await props.onSaved(result.item);
         },
       }}
       onSubmit={async (fields) => {
@@ -100,24 +106,47 @@ export function ProposalEditor(props: Targeted & { item: CalendarItem }) {
     </EventForm>
   );
 }
-export function LocalEventEditor(props: Common & { item: CalendarItem }) {
+export function ConfirmedEventEditor(
+  props: Common & { item: CalendarItem; connections: Connection[] },
+) {
   const api = useAppApi(),
     { name } = useAppInfo();
+  const [target, setTarget] = useState(props.item.destination);
+  const retarget = can(props.item, "retarget");
   return (
     <EventForm
       {...props}
       heading="일정 수정"
-      label="Crew Calendar"
-      submitLabel="변경 저장"
+      label={retarget ? "외부 저장 내용 수정" : "Crew Calendar"}
+      submitLabel={
+        retarget
+          ? saveLabel(target, props.connections, "변경 저장")
+          : "변경 저장"
+      }
+      targetChanged={
+        destinationKey(target) !== destinationKey(props.item.destination)
+      }
       onSubmit={async (fields) => {
         const result = await api.put<{ item: CalendarItem }>(
           `/api/apps/${name}/calendar/items/${props.item.id}`,
-          { ...fields, revision: props.item.revision },
+          {
+            ...fields,
+            revision: props.item.revision,
+            ...(retarget ? { destination: target } : {}),
+          },
         );
         await props.onSaved(result.item);
       }}
     >
-      <p className="cc-settings-section-note">저장 위치: Crew Calendar</p>
+      {retarget ? (
+        <DestinationSelect
+          connections={props.connections}
+          value={target}
+          onChange={setTarget}
+        />
+      ) : (
+        <p className="cc-settings-section-note">저장 위치: Crew Calendar</p>
+      )}
     </EventForm>
   );
 }

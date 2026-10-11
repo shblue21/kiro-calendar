@@ -1,83 +1,173 @@
-"""One-time, locked publication of legacy drafts into the unified item store.
+"""Publish v3 entries atomically, keeping all pre-release source files intact.
 
-The old draft directory and a snapshot of operations remain as recovery evidence.
-A complete staged directory is atomically renamed; an interrupted attempt can restart.
+Delivery is embedded in the owning item; retired global operation files are never
+read on the live path. Damaged legacy evidence blocks only possibly affected
+external intents, while healthy local entries remain usable.
 """
 
 from __future__ import annotations
 import json
 import os
+import re
 import shutil
 import tempfile
 from pathlib import Path
 from .domain import StorageUnavailable
 from .repository import _atomic_json
+from .entry_policy import CREW, delivery
 
-CREW = {"connectionId": "crew", "calendarId": "default"}
+
+def legacy_evidence(folder):
+    """Keep unreadable evidence alongside usable attempts, including known ownership."""
+    by_item, damaged = {}, []
+    for path in folder.glob("*.json"):
+        if path.name.startswith("."):
+            continue
+        op = None
+        try:
+            op = json.loads(path.read_text())
+            if (
+                not isinstance(op, dict)
+                or not all(
+                    isinstance(op.get(k), str)
+                    for k in ("draftId", "id", "state", "createdAt")
+                )
+                or op["state"]
+                not in {
+                    "prepared",
+                    "awaiting_confirmation",
+                    "unknown",
+                    "confirmed",
+                    "cancelled",
+                    "failed",
+                }
+                or not isinstance(op.get("target"), dict)
+                or not all(
+                    isinstance(op["target"].get(k), str) and op["target"][k]
+                    for k in ("connectionId", "calendarId")
+                )
+            ):
+                raise ValueError()
+            by_item.setdefault(op["draftId"], []).append(op)
+        except (ValueError, KeyError, TypeError, OSError):
+            owner = op.get("draftId") if isinstance(op, dict) else None
+            if not isinstance(owner, str) or not re.fullmatch(
+                r"(?:[0-9a-f]{16}|[0-9a-f]{32})", owner
+            ):
+                owner = None
+            damaged.append({"file": path.name, "itemId": owner})
+    return by_item, damaged
 
 
-def migrate(repository) -> None:
-    legacy = repository.data_dir / "drafts"
-    if repository.root.exists() or not any(legacy.glob("*.json")):
+def migrate(repository):
+    if repository.root.exists():
+        return
+    calendar = repository.root.parent
+    source = calendar / "items"
+    if not source.exists():
+        source = repository.data_dir / "drafts"
+    if not any(source.glob("*.json")):
         return
     with repository.transaction():
         if repository.root.exists():
             return
-        calendar = repository.root.parent
         calendar.mkdir(parents=True, exist_ok=True)
-        backup = calendar / "migration-v2-backup"
+        backup = calendar / "migration-v3-backup"
         if not backup.exists():
-            staged_backup = Path(tempfile.mkdtemp(prefix=".backup-", dir=calendar))
+            staged = Path(tempfile.mkdtemp(prefix=".backup-", dir=calendar))
             try:
-                shutil.copytree(legacy, staged_backup / "drafts")
-                operations = calendar / "operations"
-                if operations.exists():
-                    shutil.copytree(operations, staged_backup / "operations")
-                os.rename(staged_backup, backup)
+                shutil.copytree(source, staged / source.name)
+                if (calendar / "operations").exists():
+                    shutil.copytree(calendar / "operations", staged / "operations")
+                os.rename(staged, backup)
             finally:
-                if staged_backup.exists():
-                    shutil.rmtree(staged_backup)
-        stage = Path(tempfile.mkdtemp(prefix=".items-", dir=calendar))
+                if staged.exists():
+                    shutil.rmtree(staged)
+        by_item, damaged = legacy_evidence(calendar / "operations")
+        stage = Path(tempfile.mkdtemp(prefix=".entries-", dir=calendar))
         try:
-            operations = [
-                json.loads(p.read_text())
-                for p in (calendar / "operations").glob("*.json")
-            ]
-            for path in legacy.glob("*.json"):
-                item = json.loads(path.read_text())
-                if (
-                    not isinstance(item, dict)
-                    or not {"id", "title", "start", "status", "origin"} <= item.keys()
-                ):
-                    raise StorageUnavailable(
-                        "기존 일정 데이터를 읽지 못했습니다. 원본을 보존했습니다."
-                    )
-                repository.item_path(
-                    item["id"]
-                )  # validate identifier before publishing
-                relevant = sorted(
-                    (o for o in operations if o["draftId"] == item["id"]),
-                    key=lambda o: o["createdAt"],
+            for path in source.glob("*.json"):
+                if path.name.startswith("."):
+                    continue
+                try:
+                    item = json.loads(path.read_text())
+                    if not isinstance(item, dict) or not all(
+                        k in item for k in ("id", "status", "start", "title", "origin")
+                    ):
+                        raise ValueError()
+                    repository.item_path(item["id"])
+                except (ValueError, TypeError, OSError):
+                    # Keep damaged entry bytes too: collection reads report them without hiding healthy entries.
+                    shutil.copyfile(path, stage / path.name)
+                    continue
+                ops = sorted(
+                    by_item.get(item["id"], []),
+                    key=lambda op: (op["createdAt"], op["id"]),
                 )
                 active = [
-                    o
-                    for o in relevant
-                    if o["state"] in {"awaiting_confirmation", "unknown", "confirmed"}
+                    op
+                    for op in ops
+                    if op["state"] in {"awaiting_confirmation", "unknown", "confirmed"}
                 ]
-                op = (active or relevant)[-1] if relevant else None
-                accepted = op and op["state"] != "cancelled"
-                item.update(
-                    schemaVersion=2,
-                    revision=item.get("revision", 1),
-                    destination=op["target"] if accepted else dict(CREW),
-                )
-                if accepted:
-                    item["status"] = "confirmed"
+                op = (active or ops)[-1] if ops else None
+                previous_version = 2 if source.name == "items" else 1
+                item.update(schemaVersion=3, revision=item.get("revision", 1))
+                item.setdefault("destination", dict(CREW))
+                item.setdefault("source", "manual")
+                if op:
+                    op = {
+                        **op,
+                        "itemId": item["id"],
+                        "itemRevision": op.get("draftRevision", item["revision"]),
+                    }
+                    op.pop("draftId", None)
+                    op.pop("draftRevision", None)
+                    if previous_version < 2 and op["state"] in {
+                        "awaiting_confirmation",
+                        "unknown",
+                        "confirmed",
+                    }:
+                        item.update(status="confirmed", destination=op["target"])
+                    if op["target"] != item["destination"]:
+                        if op["state"] in {
+                            "awaiting_confirmation",
+                            "unknown",
+                            "confirmed",
+                        }:
+                            item["delivery"] = {"state": "unavailable"}
+                    elif op["state"] != "prepared":
+                        if op["target"]["connectionId"] == "apple-local":
+                            op.setdefault("provider", "apple")
+                            op.setdefault("connectionTitle", "Apple Calendar · 이 Mac")
+                            op.setdefault("canReconcile", True)
+                        item["delivery"] = op
+                        item["delivery"] = delivery(item)
+                        if item["delivery"]["state"] == "confirmed":
+                            item["externalRef"] = {
+                                **op["target"],
+                                "eventId": op["event"]["eventId"],
+                            }
+                # No older attempt proves absence of a later write whose evidence
+                # is unreadable. Evaluate completeness independently of selection.
+                if any(
+                    evidence["itemId"] == item["id"]
+                    or (
+                        evidence["itemId"] is None
+                        and (item["destination"] != CREW or previous_version < 2)
+                    )
+                    for evidence in damaged
+                ):
+                    item["delivery"] = {"state": "unavailable"}
                 _atomic_json(stage / path.name, item)
+            if damaged:
+                _atomic_json(
+                    stage / ".migration-report.json",
+                    {"unreadableLegacyOperations": damaged},
+                )
             os.rename(stage, repository.root)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             raise StorageUnavailable(
-                "일정 데이터 전환을 완료하지 못했습니다. 원본을 보존했습니다."
+                "일정 전환을 완료하지 못했습니다. 원본 데이터는 보존되어 있습니다."
             ) from exc
         finally:
             if stage.exists():

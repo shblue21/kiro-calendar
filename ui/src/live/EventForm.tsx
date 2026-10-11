@@ -1,7 +1,9 @@
+import type { CivilDate } from "../calendar/dates.ts";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Btn } from "@kirocrew/app-sdk/ui";
-import { inputISO, localInput } from "./projection";
+import { editTime, timeSelection, resolveTime, rezoneTime } from "../calendar/time";
+import { TimeField } from "./TimeField";
 import { dateKey } from "../calendar/dates";
 import type { CalendarItem } from "./types";
 import { message } from "./api";
@@ -15,8 +17,9 @@ export type EventFields = {
 };
 type Props = {
   item?: CalendarItem;
-  date: Date;
+  date: CivilDate;
   timezone: string;
+  refreshTimezone: () => Promise<string>;
   heading: string;
   label: string;
   submitLabel: string;
@@ -32,6 +35,7 @@ export function EventForm({
   item,
   date,
   timezone,
+  refreshTimezone,
   heading,
   label,
   submitLabel,
@@ -41,21 +45,36 @@ export function EventForm({
   secondary,
   targetChanged = false,
 }: Props) {
-  const initial = {
+  const initialFields = () => ({
     title: item?.title || "",
-    start: item ? localInput(item.start, timezone) : `${dateKey(date)}T10:00`,
+    start: item
+      ? timeSelection(item.start, timezone)
+      : editTime(`${dateKey(date)}T10:00`, timezone),
     end: item?.end
-      ? localInput(item.end, timezone)
+      ? timeSelection(item.end, timezone)
       : item
-        ? localInput(
+        ? timeSelection(
             new Date(+new Date(item.start) + 3600000).toISOString(),
             timezone,
           )
-        : `${dateKey(date)}T11:00`,
+        : editTime(`${dateKey(date)}T11:00`, timezone),
     notes: item?.notes || "",
+  });
+  const [session, setSession] = useState(() => {
+    const initial = initialFields();
+    return { zone: timezone, initial, values: initial };
+  });
+  const rezone = (fields: typeof session.values) => ({
+    ...fields, start: rezoneTime(fields.start, timezone), end: rezoneTime(fields.end, timezone),
+  });
+  const current = session.zone === timezone ? session : {
+    zone: timezone, initial: rezone(session.initial), values: rezone(session.values),
   };
-  const [values, setValues] = useState(initial),
-    [busy, setBusy] = useState(false),
+  if (current !== session) setSession(current);
+  const { initial, values } = current;
+  const setValues = (update: (fields: typeof values) => typeof values) =>
+    setSession((s) => ({ ...s, values: update(s.values) }));
+  const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [leave, setLeave] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -70,7 +89,7 @@ export function EventForm({
     if (dirty) setLeave(true);
     else onClose();
   };
-  function set(field: keyof typeof values, value: string) {
+  function set(field: "title" | "notes", value: string) {
     setValues((v) => ({ ...v, [field]: value }));
   }
   async function perform(action: (fields: EventFields) => Promise<void>) {
@@ -78,11 +97,14 @@ export function EventForm({
     setBusy(true);
     setError("");
     try {
+      const latestZone = await refreshTimezone();
+      if (latestZone !== timezone)
+        throw new Error("시스템 시간대가 변경되어 입력 시각을 갱신했습니다. 내용을 확인한 뒤 다시 저장하세요.");
       const fields = {
         ...values,
         timezone,
-        start: inputISO(values.start, timezone),
-        end: inputISO(values.end, timezone),
+        start: resolveTime(values.start, timezone),
+        end: resolveTime(values.end, timezone),
       };
       if (
         !fields.title.trim() ||
@@ -140,26 +162,18 @@ export function EventForm({
               />
             </label>
             <div className="cc-field-pair">
-              <label className="cc-field">
-                시작
-                <input
-                  className="cc-control"
-                  type="datetime-local"
-                  required
-                  value={values.start}
-                  onChange={(e) => set("start", e.target.value)}
-                />
-              </label>
-              <label className="cc-field">
-                종료
-                <input
-                  className="cc-control"
-                  type="datetime-local"
-                  required
-                  value={values.end}
-                  onChange={(e) => set("end", e.target.value)}
-                />
-              </label>
+              <TimeField
+                label="시작"
+                value={values.start}
+                zone={timezone}
+                onChange={(start) => setValues((v) => ({ ...v, start }))}
+              />
+              <TimeField
+                label="종료"
+                value={values.end}
+                zone={timezone}
+                onChange={(end) => setValues((v) => ({ ...v, end }))}
+              />
             </div>
             <p className="cc-settings-section-note">
               표시·입력 시간대: {timezone}. 단일 일정만 저장하며 반복·초대는

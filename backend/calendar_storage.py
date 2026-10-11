@@ -1,10 +1,9 @@
-"""Calendar connection and operation records; shares the draft transaction lock."""
+"""Calendar preferences only. Delivery state lives in its owning item."""
 from __future__ import annotations
 import json
-import re
 from pathlib import Path
 from .repository import _atomic_json
-from .domain import StorageUnavailable, DraftError
+from .domain import StorageUnavailable
 
 
 class CalendarStorage:
@@ -44,23 +43,6 @@ class CalendarStorage:
         connections = self._connections()
         connections[connection_id] = value
         _atomic_json(self.root / 'connections.json', {'schemaVersion': 1, 'connections': connections})
-
-    def operation_path(self, key: str) -> Path:
-        if not isinstance(key, str) or not re.fullmatch(r'[0-9a-f]{32}', key):
-            raise DraftError('Invalid operation ID')
-        return self.root / 'operations' / (key + '.json')
-
-    def operation(self, key: str) -> dict:
-        value = self._read(self.operation_path(key))
-        if value is None:
-            raise DraftError('저장 요청을 찾을 수 없습니다.')
-        return value
-
-    def operations(self) -> list[dict]:
-        return [self.operation(p.stem) for p in (self.root / 'operations').glob('*.json') if not p.name.startswith('.')]
-
-    def save_operation(self, value: dict) -> None:
-        _atomic_json(self.operation_path(value['id']), value)
 
     def preferences(self) -> dict:
         value = self._read(self.root / 'preferences.json', {

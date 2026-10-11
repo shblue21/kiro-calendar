@@ -1,3 +1,4 @@
+import type { CivilDate } from "./dates.ts";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Badge, Btn } from "@kirocrew/app-sdk/ui";
@@ -18,7 +19,7 @@ import { TypeMark } from "./TypeMark";
 type Props = {
   item: CalendarViewItem;
   items: readonly CalendarViewItem[];
-  dates: Date[];
+  dates: CivilDate[];
   referenceMinute: number;
   onClose: () => void;
   /** Event-only primary action area (conversation, result, prep status). */
@@ -81,8 +82,8 @@ export function DetailPanel({
           날짜
         </dt>
         <dd>
-          {dates[item.day].getMonth() + 1}월 {dates[item.day].getDate()}일 (
-          {DAYS[(dates[item.day].getDay() + 6) % 7]})
+          {dates[item.day].month}월 {dates[item.day].day}일 (
+          {DAYS[dates[item.day].dayOfWeek - 1]})
         </dd>
         <dt>
           <Clock3 size={14} />

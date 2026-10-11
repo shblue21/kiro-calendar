@@ -9,7 +9,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
-from drafts import DraftStore, ProposalDenied
+from runtime import load
+Services = load("composition").Services
+ProposalDenied = load("domain").ProposalDenied
 
 A = {"sessionKey": "dashboard:chat-a", "sessionType": "dashboard", "identitySource": "test"}
 B = {**A, "sessionKey": "dashboard:chat-b"}
@@ -22,20 +24,21 @@ class ProposalTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
-        self.store = DraftStore(self.root)
+        self.services = Services(self.root)
+        self.store = self.services.drafts
 
     def tearDown(self):
         self.tmp.cleanup()
 
     def enable(self):
-        self.store.update_settings({"sessionKeys": [A["sessionKey"]], "suggestionsEnabled": True})
+        self.services.settings.update({"sessionKeys": [A["sessionKey"]], "suggestionsEnabled": True})
 
     def test_scope_and_off_are_checked_on_every_call_manual_still_works(self):
         self.enable()
         with self.assertRaises(ProposalDenied) as error:
             self.store.create(FIELDS, B, proactive=True, now=NOW)
         self.assertEqual(error.exception.code, "out_of_scope")
-        self.store.update_settings({"suggestionsEnabled": False})
+        self.services.settings.update({"suggestionsEnabled": False})
         with self.assertRaises(ProposalDenied) as error:
             self.store.create(FIELDS, A, proactive=True, now=NOW)
         self.assertEqual(error.exception.code, "disabled")
@@ -72,7 +75,7 @@ class McpServerTest(unittest.TestCase):
                 call(2, MCP_FIELDS, "dashboard:chat-2-bbb"),
                 call(3, {**MCP_FIELDS, "title": "A의 두 번째"}, "dashboard:chat-1-aaa"),
             ], Path(tmp))
-            drafts = DraftStore(tmp).list()
+            drafts = Services(tmp).repository.items()
         self.assertTrue(all(not r["result"]["isError"] for r in out))
         self.assertEqual(len({d["id"] for d in drafts}), 3)
         self.assertEqual(sorted(d["origin"]["sessionKey"] for d in drafts if d["title"] == MCP_FIELDS["title"]),
