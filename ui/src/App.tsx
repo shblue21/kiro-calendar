@@ -1,8 +1,15 @@
 import { WorkspacePage } from "./layout/WorkspacePage";
 import type { EventSeed } from "./calendar/creation";
 import { useAppApi, useAppInfo, useChatLauncher } from "@kirocrew/app-sdk";
-import { Btn } from "@kirocrew/app-sdk/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Btn, PageHeader, SegmentedControl } from "@kirocrew/app-sdk/ui";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useId,
+} from "react";
 import { CalendarPage } from "./calendar/CalendarPage";
 import { dateKey, dayOffset, monday, shift } from "./calendar/dates";
 import { calendarRange } from "./calendar/period";
@@ -92,6 +99,7 @@ function CalendarWorkspace({
   refreshTimezone: () => Promise<string>;
 }) {
   const language = useLocale();
+  const workspaceTabsId = useId();
   const api = useRef(useAppApi()),
     { name } = useAppInfo(),
     { openChat } = useChatLauncher();
@@ -420,62 +428,53 @@ function CalendarWorkspace({
   return (
     <div className="cc-calendar">
       <style>{styles}</style>
-      <header className="cc-compact-header">
-        <div className="cc-compact-title">
-          <h1>Calendar</h1>
-          <span className="cc-label">{timezone}</span>
-        </div>
-        <div className="cc-header-actions">
-          <Btn
-            aria-label={t("common.refreshEvents")}
-            disabled={refreshing}
-            onClick={() => void refresh()}
-          >
-            <RotateCcw size={14} />
-          </Btn>
-          <Btn disabled={!preferencesReady} onClick={() => edit(null)}>
-            <Plus size={15} />
-            {t("common.addEvent")}
-          </Btn>
-          <Btn
-            aria-label={t("common.calendarSettings")}
-            aria-pressed={page === "settings"}
-            onClick={() =>
-              setPage(page === "settings" ? "calendar" : "settings")
-            }
-          >
-            <Settings2 size={16} />
-          </Btn>
-        </div>
+      <header className="cc-app-header">
+        <PageHeader
+          title={<h1 className="cc-app-title">Calendar</h1>}
+          subtitle={timezone}
+          actions={
+            <>
+              <Btn
+                aria-label={t("common.refreshEvents")}
+                disabled={refreshing}
+                onClick={() => void refresh()}
+              >
+                <RotateCcw size={14} />
+              </Btn>
+              <Btn disabled={!preferencesReady} onClick={() => edit(null)}>
+                <Plus size={15} />
+                {t("common.addEvent")}
+              </Btn>
+              <Btn
+                aria-label={t("common.calendarSettings")}
+                aria-pressed={page === "settings"}
+                onClick={() =>
+                  setPage(page === "settings" ? "calendar" : "settings")
+                }
+              >
+                <Settings2 size={16} />
+              </Btn>
+            </>
+          }
+        />
       </header>
       <nav className="cc-work-nav" aria-label={t("navigation.label")}>
-        <button
-          type="button"
-          aria-current={page === "calendar" ? "page" : undefined}
-          onClick={() => setPage("calendar")}
-        >
-          {t("common.calendar")}
-        </button>
-        <button
-          type="button"
-          aria-current={page === "proposals" ? "page" : undefined}
-          aria-label={t("navigation.proposalCount", {
-            count: visibleDrafts.length,
-          })}
-          onClick={() => setPage("proposals")}
-        >
-          {t("navigation.proposals")}
-          {visibleDrafts.length > 0 && (
-            <span className="cc-count">{visibleDrafts.length}</span>
-          )}
-        </button>
-        <button
-          type="button"
-          aria-current={page === "activity" ? "page" : undefined}
-          onClick={() => setPage("activity")}
-        >
-          {t("navigation.activity")}
-        </button>
+        <SegmentedControl
+          ariaLabel={t("navigation.label")}
+          layoutId={workspaceTabsId}
+          collapse={false}
+          value={page}
+          onChange={setPage}
+          segments={[
+            { key: "calendar", label: t("common.calendar") },
+            {
+              key: "proposals",
+              label: t("navigation.proposals"),
+              count: visibleDrafts.length,
+            },
+            { key: "activity", label: t("navigation.activity") },
+          ]}
+        />
       </nav>
       {feedback && (
         <div

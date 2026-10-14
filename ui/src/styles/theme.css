@@ -1,18 +1,6 @@
+/* Host theme tokens are consumed directly; only calendar geometry is local. */
 .cc-calendar {
   --cc-detail-width: 340px;
-  --cc-space-page: 20px;
-  --cc-control-border: color-mix(in srgb, var(--cc-ink) 45%, var(--cc-surface));
-  --cc-radius-control: 7px;
-  --cc-focus-width: 2px;
-  --cc-space-field: 16px;
-  --cc-ink: var(--text, #282333);
-  --cc-muted: color-mix(in srgb, var(--cc-ink) 72%, var(--cc-surface));
-  --cc-border: var(--border, #e7e2ec);
-  --cc-surface: var(--bg, #fff);
-  --cc-panel: var(--card, var(--bg, #fff));
-  --cc-accent: var(--accent, #9250ef);
-  --cc-soft: color-mix(in srgb, var(--cc-accent) 9%, var(--cc-surface));
-  --cc-event: color-mix(in srgb, var(--cc-accent) 7%, var(--cc-surface));
-  --cc-green: var(--ok, #2e7d55);
-  --cc-red: var(--danger, #b0303f);
+  --cc-space-page: calc(var(--spacing) * 5);
+  --cc-space-field: calc(var(--spacing) * 4);
 }

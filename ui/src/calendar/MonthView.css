@@ -9,12 +9,12 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--cc-surface);
+  background: var(--bg);
   text-align: center;
-  font-size: 12px;
-  color: var(--cc-muted);
+  font-size: var(--text-xs);
+  color: var(--muted);
   padding: 10px 0;
-  border-bottom: 1px solid var(--cc-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cc-month-grid {
@@ -28,8 +28,8 @@
   position: relative;
   min-width: 0;
   padding: 5px;
-  border-right: 1px solid var(--cc-border);
-  border-bottom: 1px solid var(--cc-border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cc-month-cell:nth-child(7n) {
@@ -44,18 +44,18 @@
   background: transparent;
   color: inherit;
   border-radius: 50%;
-  font-size: 12px;
+  font-size: var(--text-xs);
   cursor: pointer;
   margin-bottom: 3px;
   padding: 0;
 }
 
 .cc-outside-month .cc-month-day {
-  color: var(--cc-muted);
+  color: var(--muted);
 }
 
 .cc-outside-month {
-  background: color-mix(in srgb, var(--cc-border) 15%, transparent);
+  background: color-mix(in srgb, var(--border) 15%, transparent);
 }
 
 .cc-month-item {
@@ -67,16 +67,12 @@
   padding: 4px;
   margin-bottom: 3px;
   border: 0;
-  border-left: 2px solid var(--cc-calendar-color, var(--cc-accent));
-  border-radius: 3px;
+  border-left: 2px solid var(--cc-calendar-color);
+  border-radius: var(--radius-sm);
   color: inherit;
-  background: color-mix(
-    in srgb,
-    var(--cc-calendar-color, var(--cc-accent)) 7%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--cc-calendar-color) 7%, transparent);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--text-xs);
   cursor: pointer;
 }
 
@@ -85,7 +81,7 @@
 }
 
 .cc-month-item.cc-run {
-  border-left-color: var(--cc-green);
+  border-left-color: var(--ok);
 }
 
 .cc-month-item span:last-child {
@@ -96,15 +92,15 @@
 
 .cc-month-item-time {
   flex-shrink: 0;
-  color: var(--cc-muted);
-  font-size: 10px;
+  color: var(--muted);
+  font-size: var(--text-xs);
 }
 
 .cc-month-more {
   border: 0;
   background: transparent;
-  color: var(--cc-muted);
-  font-size: 11px;
+  color: var(--muted);
+  font-size: var(--text-xs);
   padding: 3px;
   cursor: pointer;
 }
@@ -112,10 +108,6 @@
 @container calendar (max-width: 760px) {
   .cc-month-cell {
     padding: 3px;
-  }
-
-  .cc-month-item {
-    font-size: 10px;
   }
 
   .cc-month-item-time {
@@ -129,12 +121,12 @@
   right: 6px;
   border: 0;
   padding: 4px;
-  border-radius: 4px;
-  color: var(--cc-muted);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
   background: transparent;
   cursor: pointer;
 }
 .cc-month-add:hover {
-  background: var(--cc-soft);
-  color: var(--cc-ink);
+  background: var(--accent-subtle);
+  color: var(--text);
 }

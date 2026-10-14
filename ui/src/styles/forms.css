@@ -2,30 +2,15 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 500;
   min-width: 0;
   margin: 0;
 }
 
-.cc-control {
-  font: inherit;
-  color: var(--cc-ink);
-  background: var(--cc-surface);
-  border: 1px solid var(--cc-control-border);
-  border-radius: var(--cc-radius-control);
-  padding: 10px;
-  width: 100%;
-  min-width: 0;
-}
-
-textarea.cc-control {
-  resize: vertical;
-}
-
 .cc-field small {
-  color: var(--cc-muted);
-  font-size: 11px;
+  color: var(--muted);
+  font-size: var(--text-xs);
   font-weight: 400;
   line-height: 1.7;
 }
@@ -37,19 +22,29 @@ textarea.cc-control {
 }
 
 .cc-form-error {
-  color: var(--cc-red);
-  font-size: 12px;
+  color: var(--danger);
+  font-size: var(--text-xs);
   line-height: 1.7;
 }
 
 @media (max-width: 600px) {
-  .cc-field .cc-control {
-    font-size: 16px;
-  }
-
   .cc-field-pair {
     gap: 8px;
   }
 }
 
-.cc-preferences-fields { display: grid; gap: var(--cc-space-field); margin-top: var(--cc-space-field); }
+.cc-preferences-fields {
+  display: grid;
+  gap: var(--cc-space-field);
+  margin-top: var(--cc-space-field);
+}
+
+.cc-field > input {
+  width: 100%;
+  flex: none;
+}
+.cc-field label {
+  display: grid;
+  gap: calc(var(--spacing) * 2);
+  min-width: 0;
+}

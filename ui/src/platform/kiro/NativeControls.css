@@ -1,0 +1,20 @@
+.cc-native-control {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+.cc-native-control:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+textarea.cc-native-control {
+  resize: vertical;
+}

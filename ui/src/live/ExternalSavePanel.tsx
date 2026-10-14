@@ -1,6 +1,6 @@
 import { itemLocation } from "./location.ts";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
-import { Btn } from "@kirocrew/app-sdk/ui";
+import { Btn, Badge } from "@kirocrew/app-sdk/ui";
 import { useEffect, useRef, useState } from "react";
 import { selectedOffset, timeSelection, zonedInput } from "../calendar/time";
 import { confirmationAction, confirmationPending } from "../i18n/delivery";
@@ -105,7 +105,7 @@ export function ExternalSavePanel({
     >
       <header className="cc-editor-header">
         <div>
-          <span className="cc-label">{t("common.externalCalendar")}</span>
+          <Badge variant="muted">{t("common.externalCalendar")}</Badge>
           <h2 id="cc-external-title">{t("common.saveStatus")}</h2>
         </div>
         <Btn

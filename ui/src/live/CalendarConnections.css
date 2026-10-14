@@ -4,11 +4,11 @@
   gap: 9px;
   padding: 10px 0;
   margin-bottom: 14px;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .cc-checkbox input {
-  accent-color: var(--cc-accent);
+  accent-color: var(--accent);
 }
 
 .cc-calendar-choices {

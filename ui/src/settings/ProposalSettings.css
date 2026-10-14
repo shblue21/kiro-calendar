@@ -1,45 +1,9 @@
-.cc-auto-switch {
+.cc-proposal-toggle {
   display: flex;
-  gap: 12px;
+  gap: calc(var(--spacing) * 3);
   align-items: center;
-  color: var(--cc-accent);
-  font-size: 13px;
-}
-
-.cc-auto-switch input {
-  appearance: none;
-  width: 42px;
-  height: 25px;
-  background: var(--cc-border);
-  border-radius: 20px;
-  position: relative;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.cc-auto-switch input::before {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 3px;
-  width: 19px;
-  height: 19px;
-  background: var(--cc-surface);
-  border-radius: 50%;
-  box-shadow: 0 1px 3px #0002;
-}
-
-.cc-auto-switch input:checked {
-  background: var(--cc-accent);
-}
-
-.cc-auto-switch input:checked::before {
-  left: 20px;
-}
-
-.cc-auto-switch input:focus-visible {
-  outline: 2px solid var(--cc-accent);
-  outline-offset: 4px;
+  color: var(--muted);
+  font-size: var(--text-xs);
 }
 
 .cc-proposal-example-button {
@@ -54,8 +18,8 @@
 .cc-proposal-example blockquote {
   margin: 16px 0;
   padding-left: 12px;
-  border-left: 2px solid var(--cc-border);
-  font-size: 13px;
+  border-left: 2px solid var(--border);
+  font-size: var(--text-sm);
   line-height: 1.7;
 }
 
@@ -72,22 +36,22 @@
 
 .cc-settings-fold > summary {
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 600;
   padding: 6px 0;
 }
 
 .cc-settings-fold h4 {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 500;
   margin: 18px 0 8px;
 }
 
 .cc-hook-command {
-  font-size: 11px;
+  font-size: var(--text-xs);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   padding: 12px;
-  background: var(--cc-soft);
-  border-radius: 8px;
+  background: var(--accent-subtle);
+  border-radius: var(--radius-md);
 }

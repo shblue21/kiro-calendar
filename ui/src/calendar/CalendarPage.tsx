@@ -1,3 +1,4 @@
+import { Input } from "@kirocrew/app-sdk/ui";
 import type { EventSeed } from "./creation";
 import { useElementWidth } from "./useElementWidth";
 import { VIEW_LAYOUT } from "./layout";
@@ -204,8 +205,7 @@ export function CalendarPage({
         />
         {searchOpen && (
           <div className="cc-search-row">
-            <input
-              className="cc-control"
+            <Input
               autoFocus
               aria-label={t("common.search")}
               placeholder={t("calendar.searchPlaceholder", {

@@ -1,3 +1,4 @@
+import { NativeSelect } from "../platform/kiro/NativeControls";
 import { locationLabel } from "./location.ts";
 import { t } from "../i18n/index.ts";
 import type { Connection, Destination } from "./types";
@@ -39,8 +40,7 @@ export function DestinationSelect({
   return (
     <label className="cc-field">
       {label}
-      <select
-        className="cc-control"
+      <NativeSelect
         disabled={disabled}
         value={destinationKey(value)}
         onChange={(e) => {
@@ -61,7 +61,7 @@ export function DestinationSelect({
             {c.label}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </label>
   );
 }

@@ -126,7 +126,7 @@ function ConnectionCard({
                   }
                 />
                 <span>
-                  <span className="cc-calendar-dot" aria-hidden="true" style={{ background: calendarColor(cal.color) ?? "var(--cc-accent)" }} />
+                  <span className="cc-calendar-dot" aria-hidden="true" style={{ background: calendarColor(cal.color) ?? "var(--accent)" }} />
                   {cal.sourceTitle} · {cal.title}
                   {!cal.writable && <small>{t("common.readOnly")}</small>}
                 </span>

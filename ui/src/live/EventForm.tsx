@@ -1,5 +1,7 @@
-import type {EventTimes} from "../calendar/creation";
-import { Btn } from "@kirocrew/app-sdk/ui";
+import { NativeTextarea } from "../platform/kiro/NativeControls";
+import { Input } from "@kirocrew/app-sdk/ui";
+import type { EventTimes } from "../calendar/creation";
+import { Btn, Badge } from "@kirocrew/app-sdk/ui";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { dateKey } from "../calendar/dates";
@@ -25,7 +27,7 @@ export type EventFields = {
 };
 type Props = {
   item?: CalendarItem;
-  initialTimes?:EventTimes;
+  initialTimes?: EventTimes;
   date: CivilDate;
   timezone: string;
   refreshTimezone: () => Promise<string>;
@@ -61,7 +63,9 @@ export function EventForm({
     title: item?.title || "",
     start: item
       ? timeSelection(item.start, timezone)
-      : initialTimes ? timeSelection(initialTimes.start,timezone) : editTime(`${dateKey(date)}T10:00`, timezone),
+      : initialTimes
+        ? timeSelection(initialTimes.start, timezone)
+        : editTime(`${dateKey(date)}T10:00`, timezone),
     end: item?.end
       ? timeSelection(item.end, timezone)
       : item
@@ -69,7 +73,9 @@ export function EventForm({
             new Date(+new Date(item.start) + 3600000).toISOString(),
             timezone,
           )
-        : initialTimes ? timeSelection(initialTimes.end,timezone) : editTime(`${dateKey(date)}T11:00`, timezone),
+        : initialTimes
+          ? timeSelection(initialTimes.end, timezone)
+          : editTime(`${dateKey(date)}T11:00`, timezone),
     notes: item?.notes || "",
   });
   const [session, setSession] = useState(() => {
@@ -155,7 +161,7 @@ export function EventForm({
       >
         <header className="cc-editor-header">
           <div>
-            <span className="cc-label">{label}</span>
+            <Badge variant="muted">{label}</Badge>
             <h2 id="cc-event-editor-title">{heading}</h2>
           </div>
           <Btn
@@ -171,8 +177,7 @@ export function EventForm({
           <fieldset disabled={busy} className="cc-editor-fields">
             <label className="cc-field">
               {t("common.title")}
-              <input
-                className="cc-control"
+              <Input
                 autoFocus
                 required
                 maxLength={120}
@@ -199,8 +204,7 @@ export function EventForm({
             </p>
             <label className="cc-field">
               {t("common.description")}
-              <textarea
-                className="cc-control"
+              <NativeTextarea
                 rows={3}
                 maxLength={2000}
                 value={values.notes}

@@ -1,7 +1,8 @@
+import { NativeSelect } from "../platform/kiro/NativeControls";
 import { DateJump } from "./DateJump";
 import type { CivilDate } from "./dates";
-import { Btn } from "@kirocrew/app-sdk/ui";
-import { useEffect, useRef, useState } from "react";
+import { Btn, SegmentedControl } from "@kirocrew/app-sdk/ui";
+import { useEffect, useId, useRef, useState } from "react";
 import { t } from "../i18n/index.ts";
 import {
   ChevronDown,
@@ -51,6 +52,7 @@ export function CalendarToolbar({
   searchOpen,
   onSearch,
 }: Props) {
+  const layoutId = useId();
   const [open, setOpen] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -72,7 +74,7 @@ export function CalendarToolbar({
     };
   }, [open]);
   return (
-    <div className="cc-toolbar cc-compact-toolbar">
+    <div className="cc-toolbar">
       <div className="cc-date-nav">
         <Btn
           aria-label={t("common.previous", {
@@ -115,8 +117,8 @@ export function CalendarToolbar({
         >
           <Search size={15} />
         </Btn>
-        <select
-          className="cc-view-select"
+        <NativeSelect
+          style={{ width: "auto" }}
           aria-label={t("common.displayPeriod")}
           value={view}
           onChange={(e) => onView(e.target.value as CalendarView)}
@@ -125,26 +127,22 @@ export function CalendarToolbar({
           <option value="week">{t("common.viewWeek")}</option>
           <option value="month">{t("common.viewMonth")}</option>
           <option value="year">{t("common.viewYear")}</option>
-        </select>
-        <div
-          className="cc-view-switch"
-          role="group"
-          aria-label={t("common.displayLayout")}
-        >
-          <Btn
-            aria-pressed={layout === "calendar"}
-            disabled={narrow && view === "week"}
-            onClick={() => onLayout("calendar")}
-          >
-            {t("common.calendarGrid")}
-          </Btn>
-          <Btn
-            aria-pressed={layout === "list"}
-            onClick={() => onLayout("list")}
-          >
-            {t("common.list")}
-          </Btn>
-        </div>
+        </NativeSelect>
+        <SegmentedControl<CalendarLayout>
+          ariaLabel={t("common.displayLayout")}
+          layoutId={layoutId}
+          collapse={false}
+          value={layout}
+          onChange={onLayout}
+          segments={[
+            {
+              key: "calendar",
+              label: t("common.calendarGrid"),
+              disabled: narrow && view === "week",
+            },
+            { key: "list", label: t("common.list") },
+          ]}
+        />
         <div className="cc-display-menu" ref={menu}>
           <Btn
             aria-expanded={open}

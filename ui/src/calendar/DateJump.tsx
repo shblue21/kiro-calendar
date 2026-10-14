@@ -1,3 +1,4 @@
+import { Input } from "@kirocrew/app-sdk/ui";
 import { useEffect, useRef, useState } from "react";
 import { Btn } from "@kirocrew/app-sdk/ui";
 import { civilDate, dateKey } from "./dates";
@@ -38,8 +39,7 @@ export function DateJump({
       >
         <label className="cc-field">
           {t("calendar.chooseDate")}
-          <input
-            className="cc-control"
+          <Input
             type="date"
             min="0001-01-01"
             max="9999-12-31"

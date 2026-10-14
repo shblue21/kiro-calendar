@@ -168,7 +168,7 @@ export function DetailPanel({
                 : t("common.originalSchedule")}
           </h3>
           <Btn
-            className="cc-related-link"
+            className="w-full justify-between"
             onClick={() => onSelect(relatedItem)}
           >
             <Activity size={15} />
@@ -184,6 +184,7 @@ export function DetailPanel({
         <div className="cc-result">
           <h3>{t("common.output")}</h3>
           <Btn
+            className="w-full justify-between"
             onClick={() => setResultOpen((x) => !x)}
             aria-expanded={resultOpen}
           >

@@ -5,25 +5,25 @@
   gap: 16px;
   flex-wrap: wrap;
   padding: 14px 0;
-  border-top: 1px solid var(--cc-border);
+  border-top: 1px solid var(--border);
 }
 
 .cc-draft-row > div:first-child {
   display: grid;
   gap: 4px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .cc-draft-row strong {
   min-width: 0;
   overflow-wrap: anywhere;
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
 .cc-draft-row small {
-  color: var(--cc-muted);
-  font-size: 11px;
+  color: var(--muted);
+  font-size: var(--text-xs);
   overflow-wrap: anywhere;
 }

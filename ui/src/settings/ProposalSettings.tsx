@@ -1,5 +1,6 @@
+import { NativeSelect } from "../platform/kiro/NativeControls";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
-import { Btn } from "@kirocrew/app-sdk/ui";
+import { Btn, Toggle } from "@kirocrew/app-sdk/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "../i18n/index.ts";
 import type { Notice } from "../i18n/notice.ts";
@@ -91,7 +92,7 @@ export function ProposalSettings() {
             {t("suggestions.reviewHint")}
           </p>
         </div>
-        <label className="cc-auto-switch">
+        <div className="cc-proposal-toggle">
           <span>
             {!data
               ? t("common.checking")
@@ -101,21 +102,15 @@ export function ProposalSettings() {
                   ? "ON"
                   : "OFF"}
           </span>
-          <input
-            type="checkbox"
-            role="switch"
-            aria-label={t("common.eventSuggestionsInConversations")}
+          <Toggle
             checked={enabled ?? false}
+            label={t("common.eventSuggestionsInConversations")}
             disabled={busy || !data || (!enabled && !canEnable)}
-            onChange={(e) =>
-              void save({ suggestionsEnabled: e.target.checked })
-            }
+            onChange={(suggestionsEnabled) => void save({ suggestionsEnabled })}
           />
-        </label>
+        </div>
       </div>
-      <p className="cc-page-section-note">
-        {t("suggestions.activationHint")}
-      </p>
+      <p className="cc-page-section-note">{t("suggestions.activationHint")}</p>
       {error && (
         <p role="alert" className="cc-page-section-note">
           {renderNotice(error)}
@@ -168,8 +163,7 @@ export function ProposalSettings() {
           </div>
         ))}
         <div className="cc-proposal-actions">
-          <select
-            className="cc-view-select"
+          <NativeSelect
             aria-label={t("common.conversationForSuggestions")}
             value={chosen}
             disabled={busy || !data}
@@ -183,7 +177,7 @@ export function ProposalSettings() {
                   {c.title}
                 </option>
               ))}
-          </select>
+          </NativeSelect>
           <Btn
             disabled={busy || !chosen}
             onClick={() => void save({ sessionKeys: [...keys, chosen] })}

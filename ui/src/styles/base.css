@@ -3,8 +3,9 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  color: var(--cc-ink);
-  font-size: 14px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   container-type: inline-size;
   container-name: calendar;
 }
@@ -13,36 +14,16 @@
   box-sizing: border-box;
 }
 
-.cc-calendar :is(button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: var(--cc-focus-width) solid var(--cc-accent);
-  outline-offset: 3px;
-}
-
 .cc-calendar svg {
   flex-shrink: 0;
 }
 
 .cc-calendar [hidden] {
-  display: none !important;
-}
-
-.cc-label {
-  font-size: 10px;
-  color: var(--cc-muted);
-  background: var(--cc-soft);
-  padding: 3px 6px;
-  border-radius: 4px;
+  display: none;
 }
 
 .cc-inline-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cc-calendar * {
-    transition: none !important;
-    scroll-behavior: auto !important;
-  }
 }

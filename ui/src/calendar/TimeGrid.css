@@ -3,11 +3,11 @@
   top: 0;
   z-index: 6;
   height: 60px;
-  background: var(--cc-surface);
+  background: var(--bg);
   display: grid;
-  grid-template-columns: 54px repeat(var(--cc-day-columns, 7), minmax(0, 1fr));
-  border-top: 1px solid var(--cc-border);
-  border-bottom: 1px solid var(--cc-border);
+  grid-template-columns: 54px repeat(var(--cc-day-columns), minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   padding-right: 0;
 }
 
@@ -15,18 +15,18 @@
   position: sticky;
   top: 60px;
   z-index: 6;
-  background: var(--cc-surface);
+  background: var(--bg);
   display: grid;
-  grid-template-columns: 54px repeat(var(--cc-day-columns, 7), minmax(0, 1fr));
-  border-bottom: 1px solid var(--cc-border);
+  grid-template-columns: 54px repeat(var(--cc-day-columns), minmax(0, 1fr));
+  border-bottom: 1px solid var(--border);
   min-height: 29px;
   padding-right: 0;
 }
 
 .cc-grid-corner {
   align-self: end;
-  font-size: 10px;
-  color: var(--cc-muted);
+  font-size: var(--text-xs);
+  color: var(--muted);
   padding: 0 0 12px 8px;
 }
 
@@ -40,32 +40,31 @@
   flex-direction: column;
   align-items: center;
   padding: 6px 3px;
-  color: var(--cc-muted);
-  font-size: 12px;
+  color: var(--muted);
+  font-size: var(--text-xs);
   height: 58px;
 }
 
 .cc-date-number {
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 500;
-  color: var(--cc-ink);
-  --cc-date-foreground: var(--accent-fg, #fff);
+  color: var(--text);
 }
 
 .cc-all-day > span {
   align-self: center;
   padding-left: 8px;
-  font-size: 10px;
-  color: var(--cc-muted);
+  font-size: var(--text-xs);
+  color: var(--muted);
 }
 
 .cc-all-day > div {
   padding: 3px 4px;
-  border-left: 1px solid var(--cc-border);
+  border-left: 1px solid var(--border);
 }
 
 .cc-all-day-event {
-  font-size: 12px;
+  font-size: var(--text-xs);
   display: block;
   width: 100%;
   overflow: hidden;
@@ -74,8 +73,8 @@
   padding: 4px 6px;
   background: color-mix(
     in srgb,
-    var(--cc-calendar-color, var(--cc-accent)) 9%,
-    var(--cc-surface)
+    var(--cc-calendar-color) 9%,
+    var(--bg)
   );
   border: 0;
   text-align: left;
@@ -85,7 +84,7 @@
   overflow-y: scroll;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--cc-border) transparent;
+  scrollbar-color: var(--border) transparent;
   min-height: 160px;
   max-height: none;
   flex: 1;
@@ -94,7 +93,7 @@
 
 .cc-time-grid {
   display: grid;
-  grid-template-columns: 54px repeat(var(--cc-day-columns, 7), minmax(0, 1fr));
+  grid-template-columns: 54px repeat(var(--cc-day-columns), minmax(0, 1fr));
   height: var(--cc-day-height);
 }
 
@@ -106,9 +105,9 @@
   position: absolute;
   right: 10px;
   transform: translateY(-50%);
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
-  color: var(--cc-muted);
+  color: var(--muted);
 }
 
 .cc-hour-labels > span:first-child {
@@ -117,18 +116,18 @@
 
 .cc-day-column {
   position: relative;
-  border-left: 1px solid var(--cc-border);
+  border-left: 1px solid var(--border);
   background: repeating-linear-gradient(
     to bottom,
     transparent 0,
     transparent calc(var(--cc-hour-height) - 1px),
-    var(--cc-border) calc(var(--cc-hour-height) - 1px),
-    var(--cc-border) var(--cc-hour-height)
+    var(--border) calc(var(--cc-hour-height) - 1px),
+    var(--border) var(--cc-hour-height)
   );
 }
 
 .cc-weekend {
-  background-color: color-mix(in srgb, var(--cc-muted) 3%, var(--cc-surface));
+  background-color: color-mix(in srgb, var(--muted) 3%, var(--bg));
 }
 
 .cc-item {
@@ -140,19 +139,16 @@
   white-space: normal;
   align-items: stretch;
   border-radius: 5px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.35;
   padding: 6px 7px;
-  color: var(--cc-ink);
+  color: var(--text);
   min-width: 0;
   z-index: 2;
   appearance: none;
   font-family: inherit;
   font-weight: 400;
   cursor: pointer;
-  transition:
-    background-color 0.15s,
-    outline-color 0.15s;
 }
 
 .cc-item-title {
@@ -176,9 +172,9 @@
 
 .cc-item-time {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-xs);
   margin-top: 3px;
-  color: var(--cc-muted);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -187,25 +183,25 @@
 
 .cc-item-event {
   border: 0;
-  border-left: 3px solid var(--cc-calendar-color, var(--cc-accent));
+  border-left: 3px solid var(--cc-calendar-color);
   background: color-mix(
     in srgb,
-    var(--cc-calendar-color, var(--cc-accent)) 9%,
-    var(--cc-surface)
+    var(--cc-calendar-color) 9%,
+    var(--bg)
   );
   overflow: hidden;
 }
 
 .cc-item-trigger {
   border: 0;
-  background: var(--cc-surface);
+  background: var(--bg);
   padding: 3px 5px;
 }
 
 .cc-item-event-short {
   padding: 4px 7px;
   border-left: 0;
-  background: var(--cc-surface);
+  background: var(--bg);
 }
 
 .cc-item-event-short::before {
@@ -215,17 +211,17 @@
   left: 0;
   width: 3px;
   height: var(--cc-span);
-  border-radius: 3px;
-  background: var(--cc-calendar-color, var(--cc-accent));
+  border-radius: var(--radius-sm);
+  background: var(--cc-calendar-color);
 }
 
 .cc-item-trigger svg {
-  color: var(--cc-accent);
-  fill: color-mix(in srgb, var(--cc-accent) 15%, transparent);
+  color: var(--accent);
+  fill: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .cc-item-run {
-  background: var(--cc-surface);
+  background: var(--bg);
   border: 0;
   border-radius: 0;
   padding: 3px 5px 3px 9px;
@@ -237,8 +233,8 @@
   left: 0;
   width: 3px;
   height: var(--cc-span);
-  background: var(--cc-calendar-color, var(--cc-accent));
-  border-radius: 3px;
+  background: var(--cc-calendar-color);
+  border-radius: var(--radius-sm);
 }
 
 .cc-run-rail::after {
@@ -253,30 +249,30 @@
 }
 
 .cc-status-success .cc-run-rail {
-  background: var(--cc-green);
+  background: var(--ok);
 }
 
 .cc-status-failed .cc-run-rail {
-  background: var(--cc-red);
+  background: var(--danger);
 }
 
 .cc-item-status {
-  font-size: 10px;
-  color: var(--cc-muted);
+  font-size: var(--text-xs);
+  color: var(--muted);
   display: block;
   margin-top: 2px;
 }
 
 .cc-status-running .cc-item-status {
-  color: var(--cc-accent);
+  color: var(--accent);
 }
 
 .cc-status-success .cc-item-status {
-  color: var(--cc-green);
+  color: var(--ok);
 }
 
 .cc-status-failed .cc-item-status {
-  color: var(--cc-red);
+  color: var(--danger);
 }
 
 .cc-now-line {
@@ -284,7 +280,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--cc-calendar-color, var(--cc-accent));
+  background: var(--accent);
   z-index: 3;
   pointer-events: none;
 }
@@ -296,7 +292,7 @@
   top: -3px;
   width: 7px;
   height: 7px;
-  background: var(--cc-calendar-color, var(--cc-accent));
+  background: var(--accent);
   border-radius: 50%;
 }
 
@@ -304,16 +300,16 @@
   position: absolute;
   right: 2px;
   top: 1px;
-  font-size: 10px;
-  background: var(--cc-surface);
-  color: var(--cc-accent);
+  font-size: var(--text-xs);
+  background: var(--bg);
+  color: var(--accent);
   padding: 0 2px;
 }
 
 .cc-time-axis-note {
   margin: 6px 0;
-  color: var(--cc-muted);
-  font-size: 11px;
+  color: var(--muted);
+  font-size: var(--text-xs);
 }
 
 .cc-day-clock {
@@ -322,9 +318,9 @@
   text-align: right;
   right: 3px;
   transform: translateY(-100%);
-  font-size: 9px;
+  font-size: var(--text-xs);
   line-height: 12px;
-  color: var(--cc-muted);
+  color: var(--muted);
   pointer-events: none;
 }
 

@@ -4,7 +4,11 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 17px;
+  min-height: 44px;
+  margin-bottom: 8px;
+  padding: 2px 0;
+  position: relative;
+  z-index: 10;
 }
 
 .cc-date-nav {
@@ -12,34 +16,6 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-}
-
-.cc-date-jump summary {
-  margin: 0 0 0 10px;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: var(--cc-radius-control);
-}
-
-.cc-view-switch {
-  display: flex;
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid var(--cc-border);
-  border-radius: 9px;
-}
-
-.cc-view-switch button {
-  border-color: transparent;
-}
-
-.cc-view-switch button[aria-pressed="true"] {
-  color: var(--cc-accent);
-  background: var(--cc-soft);
-  border-color: var(--cc-border);
 }
 
 .cc-toolbar-actions {
@@ -56,15 +32,15 @@
   padding: 18px;
   width: 225px;
   max-width: calc(100vw - 40px);
-  background: var(--cc-panel);
-  border: 1px solid var(--cc-border);
-  border-radius: 9px;
-  box-shadow: 0 10px 30px #0002;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: 25;
 }
 
 .cc-display-popover h3 {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   margin: 0 0 10px;
 }
@@ -78,81 +54,19 @@
   align-items: center;
   gap: 9px;
   padding: 10px 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   cursor: pointer;
 }
 
 .cc-display-popover input {
-  accent-color: var(--cc-accent);
-}
-
-.cc-compact-toolbar {
-  min-height: 44px;
-  margin-bottom: 8px;
-  padding: 2px 0;
-  position: relative;
-  z-index: 10;
-}
-
-.cc-compact-toolbar .cc-date-jump summary {
-  font-size: 18px;
-  margin-left: 7px;
-}
-
-.cc-compact-toolbar .cc-view-switch {
-  padding: 2px;
-}
-
-.cc-view-select {
-  font: inherit;
-  font-size: 12px;
-  color: var(--cc-ink);
-  background: var(--cc-surface);
-  border: 1px solid var(--cc-border);
-  border-radius: 7px;
-  padding: 6px 26px 6px 10px;
-  min-height: 32px;
+  accent-color: var(--accent);
 }
 
 @container calendar (max-width: 760px) {
   .cc-toolbar {
-    gap: 10px;
-  }
-
-  .cc-date-jump summary {
-    font-size: 14px;
-    margin: 7px 0 0;
-    width: 100%;
-  }
-
-  .cc-compact-toolbar {
     gap: 9px;
   }
-
-  .cc-compact-toolbar .cc-date-jump summary {
-    font-size: 13px;
-    margin: 5px 0 0;
-  }
-
-  .cc-compact-toolbar .cc-toolbar-actions {
+  .cc-toolbar-actions {
     margin-left: auto;
   }
-}
-
-.cc-date-jump {
-  position: relative;
-}
-.cc-date-jump form {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 30;
-  width: min(300px, calc(100vw - 40px));
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  background: var(--cc-panel);
-  border: 1px solid var(--cc-control-border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px #0002;
 }

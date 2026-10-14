@@ -1,3 +1,5 @@
+import { NativeSelect } from "../platform/kiro/NativeControls";
+import { Input } from "@kirocrew/app-sdk/ui";
 import type { TimeSelection } from "../calendar/time";
 import { editTime, selectedOffset, timeChoices } from "../calendar/time";
 import { t } from "../i18n/index.ts";
@@ -17,8 +19,7 @@ export function TimeField({
     <div className="cc-field">
       <label>
         {label}
-        <input
-          className="cc-control"
+        <Input
           type="datetime-local"
           required
           value={value.wall}
@@ -28,8 +29,7 @@ export function TimeField({
       {choices.length > 1 && (
         <label className="cc-time-choice">
           {t("common.thisTimeOccursTwice")}
-          <select
-            className="cc-control"
+          <NativeSelect
             aria-label={t("time.offsetLabel", { field: label })}
             required
             value={selectedOffset(value, zone)}
@@ -51,7 +51,7 @@ export function TimeField({
                 })}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
       )}
     </div>

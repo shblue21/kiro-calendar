@@ -105,8 +105,8 @@ Crew의 기본 제거는 앱 데이터를 보존합니다. 실제 Apple Calendar
 
 `ui/src/styles.css`는 `@import`만 모으는 진입점입니다. Vite의 `?inline`으로 한 번만 JS 번들에 포함하므로, 컴포넌트에서 일반 CSS import를 추가해 별도 CSS 파일 로딩에 의존하지 않습니다.
 
-- `styles/theme.css`, `base.css`: 호스트 테마 매핑, 앱 범위의 숨김·포커스·모션 규칙.
-- `styles/forms.css`: 실제 편집창·연결 설정에서 공유하는 필드와 `cc-control` 입력 스타일.
+- `styles/theme.css`, `base.css`: 캘린더 크기·배치 변수와 앱 범위의 기본 규칙. 색상·폰트·포커스는 호스트 테마를 직접 사용합니다.
+- `styles/forms.css`: 편집창·연결 설정의 필드 배치. 입력 외형은 SDK `Input`과 `platform/kiro/NativeControls`가 담당합니다.
 - `App.css`, `calendar/*.css`, `live/*.css`, `settings/*.css`: 각 화면과 컴포넌트의 배치·상태·반응형 규칙. 다른 컴포넌트의 스타일을 파일 끝에서 덮어쓰지 않습니다.
 - `calendar/DateBadge.tsx`: 숫자·오늘 원형만 표시하는 span. 클릭과 키보드 동작은 기존 날짜/월 버튼이 담당합니다.
 - `live/DraftList.tsx`: 목록 표시와 전달받은 콜백만 담당합니다. API 호출과 전체 새로고침은 App에서 관리합니다.
@@ -165,3 +165,17 @@ Calendar, proposals and activity are separate workspaces. Proposals expose a cou
 Day and week views share `TimeGrid`. Date navigation supports direct date selection; clicking an empty time slot seeds the editor with that date and elapsed-time position, preserving repeated DST hours. Month cells offer date-specific creation. Editor fields reflow into one column when space is limited. Provider calendar colors decorate events while calendar labels and delivery states remain textual.
 
 All selectable calendar items use `EventButton`: `aria-pressed` drives a shared inset selection border, hover only changes the background, and keyboard focus retains its separate outline. `CalendarPage` owns the selected item ID and a registry of currently mounted event buttons. Callback refs register and remove buttons as views change, so closing details focuses the matching button in the current view rather than retaining the original opener DOM node.
+
+
+## Host UI and theme contract
+
+The app uses the installed Kiro Crew public UI entry point (`@kirocrew/app-sdk/ui`) for `PageHeader`, `Btn`, `Badge`, `Input`, `Toggle` and `SegmentedControl`. Host components own common control styling, keyboard behavior and theme transitions; calendar CSS does not override their button appearance. The declaration subset in `platform/kiro/sdk.d.ts` matches the exports and props inspected in Kiro Crew 0.10.0-nightly.20261013t091113.
+
+Calendar styles consume the host semantic tokens directly: `--bg`, `--bg-elevated`, `--card`, `--text`, `--muted`, `--border`, `--accent`, `--accent-subtle`, status colors, `--font-body`, the `--text-*`/`--radius-*` scales and `--shadow-lg`. Local variables describe calendar geometry or provider event colors, not a parallel theme. Fixed hex colors, CSS token fallbacks and `!important` overrides are not used in the app styles.
+
+The public SDK does not expose a standalone native select or textarea with all required form attributes. `NativeSelect` and `NativeTextarea` retain native validation, disabled options and controlled values while sharing the verified host control tokens and `focus-ring`. The existing native dialog retains the editor's focus isolation, busy guard and unsaved-change flow; its surface, backdrop and shadow use host theme tokens. Time-grid geometry, overlap lanes, date cells and responsive layout remain calendar-owned.
+
+Host verification covered Kiro light/dark, Emerald light, 550px editor layout, SDK focus styling, and unsaved-input cancellation without creating events. The user's original theme/mode is restored after checks.
+
+
+Style ownership stays local: `CalendarToolbar.css` defines one toolbar layout, `DateJump.css` owns the date disclosure and popup, and `styles/forms.css` owns field layout only. SDK inputs keep their default typography at every viewport width; native select/textarea appearance is shared in `platform/kiro/NativeControls.css`. Responsive rules change layout rather than redefining host control typography. Agenda title/metadata and month item typography each have a single base definition.

@@ -15,6 +15,6 @@
 }
 
 .cc-date-badge.cc-date-badge-today {
-  background: var(--cc-accent);
-  color: var(--cc-date-foreground, white);
+  background: var(--accent);
+  color: var(--accent-fg);
 }
