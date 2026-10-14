@@ -3,10 +3,12 @@
 @import './styles/base.css';
 @import './styles/forms.css';
 @import './App.css';
-@import './settings/SettingsLayout.css';
+@import './layout/WorkspacePage.css';
+@import './styles/preferences.css';
 @import './calendar/CalendarPage.css';
 @import './calendar/CalendarToolbar.css';
-@import './calendar/WeekView.css';
+@import './calendar/EventButton.css';
+@import './calendar/TimeGrid.css';
 @import './calendar/MonthView.css';
 @import './calendar/YearView.css';
 @import './calendar/AgendaView.css';

@@ -51,7 +51,7 @@ class CalendarService:
                     {
                         "id": binding.id,
                         "provider": binding.provider_key,
-                        "title": binding.title,
+                        "displayName": binding.display_name(),
                         "state": "unavailable",
                         "message": (
                             exc.message
@@ -162,7 +162,7 @@ class CalendarService:
                         **raw,
                         "connectionId": binding.id,
                         "provider": binding.provider_key,
-                        "connectionTitle": binding.title,
+                        "connectionName": binding.display_name(),
                     }
                     owner = links.get(
                         (binding.id, event["calendarId"], event["eventId"])
@@ -174,6 +174,7 @@ class CalendarService:
                 errors.append(
                     {
                         "connectionId": binding.id,
+                        "code": exc.code if isinstance(exc, CalendarError) else "provider_error",
                         "message": (
                             exc.message
                             if isinstance(exc, CalendarError)
@@ -235,8 +236,9 @@ class CalendarService:
                 "origin": item["origin"],
                 "target": target,
                 "provider": binding.provider_key,
-                "connectionTitle": binding.title,
+                "connectionName": binding.display_name(),
                 "calendarTitle": chosen["title"],
+                "calendarColor": chosen.get("color", ""),
                 "sourceTitle": chosen["sourceTitle"],
                 "confirmation": state["confirmation"],
                 "canReconcile": state["capabilities"].get("reconcile", False),

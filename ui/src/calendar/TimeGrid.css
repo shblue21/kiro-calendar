@@ -1,14 +1,23 @@
 .cc-grid-head {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  height: 60px;
+  background: var(--cc-surface);
   display: grid;
-  grid-template-columns: 54px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 54px repeat(var(--cc-day-columns, 7), minmax(0, 1fr));
   border-top: 1px solid var(--cc-border);
   border-bottom: 1px solid var(--cc-border);
   padding-right: 0;
 }
 
 .cc-all-day {
+  position: sticky;
+  top: 60px;
+  z-index: 6;
+  background: var(--cc-surface);
   display: grid;
-  grid-template-columns: 54px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 54px repeat(var(--cc-day-columns, 7), minmax(0, 1fr));
   border-bottom: 1px solid var(--cc-border);
   min-height: 29px;
   padding-right: 0;
@@ -22,6 +31,10 @@
 }
 
 .cc-day-heading {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
   display: flex;
   gap: 2px;
   flex-direction: column;
@@ -52,15 +65,19 @@
 }
 
 .cc-all-day-event {
-  font-size: 11px !important;
-  display: block !important;
+  font-size: 12px;
+  display: block;
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 3px 6px !important;
-  background: var(--cc-event) !important;
-  border: 0 !important;
+  padding: 4px 6px;
+  background: color-mix(
+    in srgb,
+    var(--cc-calendar-color, var(--cc-accent)) 9%,
+    var(--cc-surface)
+  );
+  border: 0;
   text-align: left;
 }
 
@@ -77,7 +94,7 @@
 
 .cc-time-grid {
   display: grid;
-  grid-template-columns: 54px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 54px repeat(var(--cc-day-columns, 7), minmax(0, 1fr));
   height: var(--cc-day-height);
 }
 
@@ -116,13 +133,15 @@
 
 .cc-item {
   position: absolute;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   text-align: left;
   white-space: normal;
-  align-items: initial;
+  align-items: stretch;
   border-radius: 5px;
-  font-size: 11px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.35;
   padding: 6px 7px;
   color: var(--cc-ink);
   min-width: 0;
@@ -131,7 +150,9 @@
   font-family: inherit;
   font-weight: 400;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    background-color 0.15s,
+    outline-color 0.15s;
 }
 
 .cc-item-title {
@@ -155,7 +176,7 @@
 
 .cc-item-time {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   margin-top: 3px;
   color: var(--cc-muted);
   font-variant-numeric: tabular-nums;
@@ -166,9 +187,12 @@
 
 .cc-item-event {
   border: 0;
-  border-left: 3px solid
-    color-mix(in srgb, var(--cc-accent) 65%, var(--cc-border));
-  background: var(--cc-event);
+  border-left: 3px solid var(--cc-calendar-color, var(--cc-accent));
+  background: color-mix(
+    in srgb,
+    var(--cc-calendar-color, var(--cc-accent)) 9%,
+    var(--cc-surface)
+  );
   overflow: hidden;
 }
 
@@ -192,7 +216,7 @@
   width: 3px;
   height: var(--cc-span);
   border-radius: 3px;
-  background: var(--cc-accent);
+  background: var(--cc-calendar-color, var(--cc-accent));
 }
 
 .cc-item-trigger svg {
@@ -213,7 +237,7 @@
   left: 0;
   width: 3px;
   height: var(--cc-span);
-  background: var(--cc-accent);
+  background: var(--cc-calendar-color, var(--cc-accent));
   border-radius: 3px;
 }
 
@@ -255,22 +279,12 @@
   color: var(--cc-red);
 }
 
-.cc-item:hover {
-  outline: 1px solid var(--cc-accent);
-  outline-offset: 1px;
-}
-
-.cc-item-selected {
-  outline: 1px solid var(--cc-accent);
-  outline-offset: 1px;
-}
-
 .cc-now-line {
   position: absolute;
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--cc-accent);
+  background: var(--cc-calendar-color, var(--cc-accent));
   z-index: 3;
   pointer-events: none;
 }
@@ -282,7 +296,7 @@
   top: -3px;
   width: 7px;
   height: 7px;
-  background: var(--cc-accent);
+  background: var(--cc-calendar-color, var(--cc-accent));
   border-radius: 50%;
 }
 

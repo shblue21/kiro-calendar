@@ -1,21 +1,23 @@
-import type { CivilDate } from "./dates.ts";
-import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import { calendarStyle } from "./color";
+import { deliveryLabel } from "./format";
 import { Badge, Btn } from "@kirocrew/app-sdk/ui";
+import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import { formatDate } from "../i18n/format.ts";
+import { t } from "../i18n/index.ts";
 import {
-  X,
-  CalendarDays,
-  Clock3,
   Activity,
+  CalendarDays,
   ChevronRight,
+  Clock3,
   FileText,
+  X,
 } from "../platform/kiro/icons";
-import type { CalendarViewItem } from "./types";
-import { DAYS } from "./dates";
+import type { CivilDate } from "./dates.ts";
 import { KIND_LABEL, STATUS_LABEL, timeLabel } from "./format";
 import { spanEnd } from "./layout";
 import { TypeMark } from "./TypeMark";
-
+import type { CalendarViewItem } from "./types";
 type Props = {
   item: CalendarViewItem;
   items: readonly CalendarViewItem[];
@@ -25,9 +27,8 @@ type Props = {
   /** Event-only primary action area (conversation, result, prep status). */
   actions?: ReactNode;
   onEdit: () => void;
-  onSelect: (item: CalendarViewItem, button: HTMLButtonElement) => void;
+  onSelect: (item: CalendarViewItem) => void;
 };
-
 export function DetailPanel({
   item,
   items,
@@ -46,13 +47,19 @@ export function DetailPanel({
     setResultOpen(false);
   }, [item.id]);
   return (
-    <aside className="cc-detail" aria-label="선택한 일정 상세">
+    <aside
+      style={calendarStyle(item.calendarColor)}
+      className="cc-detail"
+      aria-label={t("common.selectedEventDetails")}
+    >
       <div className="cc-detail-top">
         <span className={`cc-kind-label cc-${item.kind}`}>
           <TypeMark item={item} />
-          {item.storage === "draft" ? "검토용 초안" : KIND_LABEL[item.kind]}
+          {item.storage === "draft"
+            ? t("common.draftForReview")
+            : KIND_LABEL[item.kind]}
         </span>
-        <Btn aria-label="상세 닫기" onClick={onClose}>
+        <Btn aria-label={t("common.closeDetails")} onClick={onClose}>
           <X size={17} />
         </Btn>
       </div>
@@ -74,45 +81,78 @@ export function DetailPanel({
           {STATUS_LABEL[item.status]}
         </Badge>
       )}
-      {item.kind !== "run" && !item.storage && item.editable !== false && <Btn onClick={onEdit}>{item.storage ? "초안 검토·수정" : "편집"}</Btn>}
-      <p className="cc-description">{item.description}</p>
+      {item.kind !== "run" && !item.storage && item.editable !== false && (
+        <Btn onClick={onEdit}>
+          {item.storage
+            ? t("common.reviewAndEditDraft")
+            : t("common.editEvent")}
+        </Btn>
+      )}
+      {item.description && <p className="cc-description">{item.description}</p>}
       <dl>
         <dt>
           <CalendarDays size={14} />
-          날짜
+          {t("common.date")}
         </dt>
         <dd>
-          {dates[item.day].month}월 {dates[item.day].day}일 (
-          {DAYS[dates[item.day].dayOfWeek - 1]})
+          {formatDate(dates[item.day], {
+            month: "short",
+            day: "numeric",
+            weekday: "short",
+          })}
         </dd>
         <dt>
           <Clock3 size={14} />
-          {item.kind === "trigger" ? "예약 시각" : "시간"}
+          {item.kind === "trigger"
+            ? t("common.scheduledTime")
+            : t("common.time")}
         </dt>
         <dd>{timeLabel(item)}</dd>
-        <dt>{item.kind === "event" ? "캘린더" : "담당 에이전트"}</dt>
-        <dd>{item.source}</dd>
-        {item.kind === "event" && (
+        {(item.kind !== "event" || item.calendarLocation || item.source) && (
           <>
-            <dt>저장</dt>
-            <dd>{item.storage === "local" ? "Crew Calendar에 저장됨" : item.storage === "pending" ? item.source : item.storage === "external" ? "연결된 캘린더에서 조회" : item.storage === "draft" ? "로컬 초안 · 외부 저장 전" : "외부 저장 정보 없음"}</dd>
+            <dt>
+              {t(
+                item.kind === "event"
+                  ? item.calendarLocation
+                    ? "common.calendar"
+                    : "common.source"
+                  : "common.assignedAgent",
+              )}
+            </dt>
+            <dd>
+              {item.kind === "event"
+                ? item.calendarLocation || item.source
+                : item.source}
+            </dd>
+          </>
+        )}
+        {deliveryLabel(item.deliveryState) && (
+          <>
+            <dt>{t("delivery.statusLabel")}</dt>
+            <dd>{deliveryLabel(item.deliveryState)}</dd>
           </>
         )}
         {item.kind === "trigger" && (
           <>
-            <dt>반복</dt>
+            <dt>{t("common.repeat")}</dt>
             <dd>
               {item.recurrence ??
-                (item.flexible ? "평일 · 유연한 시작" : "일회성 예약")}
+                (item.flexible
+                  ? t("common.weekdaysFlexibleStart")
+                  : t("common.oneTimeSchedule"))}
             </dd>
           </>
         )}
         {item.kind === "run" && (
           <>
-            <dt>실행 시간</dt>
+            <dt>{t("common.runDuration")}</dt>
             <dd>
-              {spanEnd(item, referenceMinute) - item.start}분
-              {item.status === "running" ? " 경과" : ""}
+              {t(
+                item.status === "running"
+                  ? "details.elapsed"
+                  : "details.duration",
+                { minutes: spanEnd(item, referenceMinute) - item.start },
+              )}
             </dd>
           </>
         )}
@@ -122,14 +162,14 @@ export function DetailPanel({
         <div className="cc-related">
           <h3>
             {relatedItem.kind === "event"
-              ? "연결된 일정"
+              ? t("common.linkedEvent")
               : item.kind === "trigger"
-                ? "연결된 실행"
-                : "원래 예약"}
+                ? t("common.linkedRun")
+                : t("common.originalSchedule")}
           </h3>
           <Btn
             className="cc-related-link"
-            onClick={(e) => onSelect(relatedItem, e.currentTarget)}
+            onClick={() => onSelect(relatedItem)}
           >
             <Activity size={15} />
             {timeLabel(relatedItem)} ·{" "}
@@ -142,7 +182,7 @@ export function DetailPanel({
       )}
       {item.artifact && (
         <div className="cc-result">
-          <h3>결과물</h3>
+          <h3>{t("common.output")}</h3>
           <Btn
             onClick={() => setResultOpen((x) => !x)}
             aria-expanded={resultOpen}
@@ -153,7 +193,7 @@ export function DetailPanel({
           </Btn>
           {resultOpen && item.artifactPreview && (
             <div className="cc-result-preview">
-              <Badge variant="muted">결과 미리보기</Badge>
+              <Badge variant="muted">{t("common.previewOutput")}</Badge>
               <h4>{item.artifactPreview.title}</h4>
               <p>{item.artifactPreview.summary}</p>
               <ul>
@@ -165,13 +205,20 @@ export function DetailPanel({
           )}
         </div>
       )}
-      <p className="cc-detail-bottom">
-        {item.kind === "event"
-          ? item.storage === "local" ? "Crew Calendar에서 수정하고 삭제할 수 있습니다." : item.storage === "pending" ? "외부 저장 상태를 확인하세요. Crew Calendar에는 저장되지 않았습니다." : item.storage === "external" ? "기존 일정의 수정·삭제는 원본 캘린더에서 해주세요." : item.storage === "draft" ? "검토 후 저장할 캘린더를 선택하세요." : "원본 캘린더 열기는 아직 지원하지 않습니다."
-          : item.kind === "trigger"
-            ? "Schedule에서 열기는 아직 지원하지 않습니다."
-            : "세션 열기는 아직 지원하지 않습니다."}
-      </p>
+      {!(
+        item.kind === "event" &&
+        ["local", "pending", "draft"].includes(item.storage ?? "")
+      ) && (
+        <p className="cc-detail-bottom">
+          {item.kind === "event"
+            ? item.storage === "external"
+              ? t("details.externalEditHint")
+              : t("details.externalOpenUnsupported")
+            : item.kind === "trigger"
+              ? t("details.scheduleOpenUnsupported")
+              : t("details.sessionOpenUnsupported")}
+        </p>
+      )}
     </aside>
   );
 }

@@ -25,6 +25,8 @@ declare module "@kirocrew/app-sdk" {
     post<T = unknown>(path: string, body?: unknown, init?: RequestInit): Promise<T>;
   }
   export function useAppApi(): AppApi;
+  export function activeLocale(): string;
+  export function useLanguageGeneration(): number;
   export function useAppInfo(): { name: string; version: string };
   export function useChatLauncher(): {
     openChat: (opts?: { agent?: string; message?: string; slotKey?: string; autoSend?: boolean }) => void;

@@ -1,27 +1,32 @@
-import type { CivilDate } from "./dates.ts";
-import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { EventSeed } from "./creation";
+import { useElementWidth } from "./useElementWidth";
+import { VIEW_LAYOUT } from "./layout";
+import { sourceLabel, deliveryLabel } from "./format";
 import { Btn } from "@kirocrew/app-sdk/ui";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { formatDate, weekdays } from "../i18n/format.ts";
+import { t } from "../i18n/index.ts";
 import { ArrowUpRight, CalendarDays } from "../platform/kiro/icons";
-import type {
-  CalendarViewItem,
-  CalendarLayers,
-  CalendarReferenceTime,
-  CalendarView,
-  CalendarLayout,
-  Kind,
-} from "./types";
+import { AgendaView } from "./AgendaView";
+import { CalendarToolbar } from "./CalendarToolbar";
+import { dateKey, dayOffset, shift } from "./dates";
+import type { CivilDate } from "./dates.ts";
+import { DetailPanel } from "./DetailPanel";
 import { STATUS_LABEL } from "./format";
 import { MonthView } from "./MonthView";
-import { YearView } from "./YearView";
 import { calendarRange, movePeriod } from "./period";
 import { dayBounds, elapsedMinute } from "./time";
-import { DAYS, shift, dateKey } from "./dates";
-import { CalendarToolbar } from "./CalendarToolbar";
-import { WeekView } from "./WeekView";
-import { AgendaView } from "./AgendaView";
-import { DetailPanel } from "./DetailPanel";
-
+import type {
+  CalendarLayers,
+  CalendarLayout,
+  CalendarReferenceTime,
+  CalendarView,
+  CalendarViewItem,
+  Kind,
+} from "./types";
+import { TimeGrid } from "./TimeGrid";
+import { YearView } from "./YearView";
 type Props = {
   timezone: string;
   items: readonly CalendarViewItem[];
@@ -37,13 +42,14 @@ type Props = {
   focusDate: CivilDate;
   onFocusDate: (date: CivilDate) => void;
   offset: number;
-  onOffset: (offset: number) => void;
-  jump?: { id: string; serial: number };
+  jump?: {
+    id: string;
+    serial: number;
+  };
   status: "loading" | "error" | "ready";
-  onAdd: () => void;
+  onAdd: (seed?: EventSeed) => void;
   onEdit: (item: CalendarViewItem) => void;
 };
-
 export function CalendarPage({
   timezone,
   items: suppliedItems,
@@ -59,7 +65,6 @@ export function CalendarPage({
   focusDate,
   onFocusDate,
   offset,
-  onOffset,
   jump,
   status,
   onAdd,
@@ -67,35 +72,79 @@ export function CalendarPage({
 }: Props) {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const setOffset = onOffset;
-  const [narrow, setNarrow] = useState(
-    () => window.matchMedia("(max-width: 760px)").matches,
-  );
+  const { ref: contentRef, width: contentWidth } =
+    useElementWidth<HTMLDivElement>();
+  const narrow = contentWidth > 0 && contentWidth < VIEW_LAYOUT.listBelowPx;
   const [layers, setLayers] = useState<CalendarLayers>({
     event: true,
     trigger: true,
     run: true,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const sourceButton = useRef<HTMLButtonElement | null>(null);
-  const dates = DAYS.map((_, day) => shift(weekStart, offset * 7 + day));
+  const eventButtons = useRef(new Map<string, HTMLButtonElement>());
+  const registerButton = useCallback(
+    (id: string, button: HTMLButtonElement | null) => {
+      if (button) eventButtons.current.set(id, button);
+      else eventButtons.current.delete(id);
+    },
+    [],
+  );
+  const dates =
+    view === "day"
+      ? [focusDate]
+      : weekdays().map((_, day) => shift(weekStart, offset * 7 + day));
+  const gridFirst = dayOffset(dateKey(dates[0]), weekStart);
   const effectiveView = view;
   const effectiveLayout = narrow && view === "week" ? "list" : layout;
-  const isCurrentWeek = offset === Math.floor(referenceTime.day / 7);
-  const range = calendarRange(focusDate, effectiveView, weekStart, effectiveLayout);
-  const periodItems = suppliedItems.filter((item) => item.day >= range.first && item.day < range.end);
-  const matches = (item: CalendarViewItem) => layers[item.kind] &&
-    (!query.trim() || `${item.title} ${item.description} ${item.source} ${item.status ? STATUS_LABEL[item.status] : ""} ${item.artifact ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const isCurrentPeriod =
+    referenceTime.day >= gridFirst &&
+    referenceTime.day < gridFirst + dates.length;
+  const range = calendarRange(
+    focusDate,
+    effectiveView,
+    weekStart,
+    effectiveLayout,
+  );
+  const periodItems = suppliedItems.filter(
+    (item) => item.day >= range.first && item.day < range.end,
+  );
+  const matches = (item: CalendarViewItem) =>
+    layers[item.kind] &&
+    (!query.trim() ||
+      `${item.title} ${item.description} ${sourceLabel(item)} ${deliveryLabel(item.deliveryState)} ${item.status ? STATUS_LABEL[item.status] : ""} ${item.artifact ?? ""}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()));
   const canonicalItems = periodItems.filter(matches);
-  const items = canonicalItems.map((item) => ({ ...item, day: item.day - offset * 7 }));
-  const selectedCanonical = canonicalItems.find((item) => item.id === selectedId);
-  const selectedWeek = selectedCanonical ? Math.floor(selectedCanonical.day / 7) : offset;
-  const detailDates = DAYS.map((_, day) => shift(weekStart, selectedWeek * 7 + day));
-  const selected = selectedCanonical ? { ...selectedCanonical, day: selectedCanonical.day - selectedWeek * 7 } : undefined;
+  const items = canonicalItems.map((item) => ({
+    ...item,
+    day: item.day - gridFirst,
+  }));
+  const selectedCanonical = canonicalItems.find(
+    (item) => item.id === selectedId,
+  );
+  const selectedWeek = selectedCanonical
+    ? Math.floor(selectedCanonical.day / 7)
+    : offset;
+  const detailDates = weekdays().map((_, day) =>
+    shift(weekStart, selectedWeek * 7 + day),
+  );
+  const selected = selectedCanonical
+    ? { ...selectedCanonical, day: selectedCanonical.day - selectedWeek * 7 }
+    : undefined;
   const filteredOut = periodItems.length > 0 && items.length === 0;
-  const rangeLabel = effectiveView === "year" ? `${focusDate.year}년`
-    : effectiveView === "month" ? `${focusDate.year}년 ${focusDate.month}월`
-    : `${dates[0].year}년 ${dates[0].month}월 ${dates[0].day}일–${dates[6].year !== dates[0].year ? `${dates[6].year}년 ` : ""}${dates[6].month}월 ${dates[6].day}일`;
+  const rangeLabel =
+    effectiveView === "day"
+      ? formatDate(focusDate, {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          weekday: "short",
+        })
+      : effectiveView === "year"
+        ? formatDate(focusDate, { year: "numeric" })
+        : effectiveView === "month"
+          ? formatDate(focusDate, { year: "numeric", month: "long" })
+          : `${formatDate(dates[0])} – ${formatDate(dates[6])}`;
   useEffect(() => {
     if (jump) {
       setSelectedId(jump.id);
@@ -105,13 +154,14 @@ export function CalendarPage({
   }, [jump]);
   const closeDetail = () => {
     setSelectedId(null);
-    if (sourceButton.current?.isConnected) sourceButton.current.focus();
+    if (selectedId) eventButtons.current.get(selectedId)?.focus();
   };
-  function select(item: CalendarViewItem, button: HTMLButtonElement) {
-    // Keep the grid/list opener when following links inside the drawer.
-    if (!button.closest(".cc-detail")) sourceButton.current = button;
+  function select(item: CalendarViewItem) {
     const canonical = suppliedItems.find((i) => i.id === item.id);
-    if (canonical && (canonical.day < range.first || canonical.day >= range.end))
+    if (
+      canonical &&
+      (canonical.day < range.first || canonical.day >= range.end)
+    )
       onFocusDate(shift(weekStart, canonical.day));
     setSelectedId(item.id);
   }
@@ -124,25 +174,21 @@ export function CalendarPage({
     if (selected?.kind === kind) closeDetail();
   }
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 760px)");
-    const listener = () => setNarrow(media.matches);
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
-  }, []);
-  useEffect(() => {
     if (!selected) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !document.querySelector("dialog[open]")) closeDetail();
+      if (event.key === "Escape" && !document.querySelector("dialog[open]"))
+        closeDetail();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [selected]);
-
   return (
     <>
-      <div className="cc-content">
+      <div className="cc-content" ref={contentRef}>
         <CalendarToolbar
           range={rangeLabel}
+          date={focusDate}
+          onDate={moveDate}
           onPrevious={() => moveDate(movePeriod(focusDate, effectiveView, -1))}
           onNext={() => moveDate(movePeriod(focusDate, effectiveView, 1))}
           onReset={() => moveDate(shift(weekStart, referenceTime.day))}
@@ -161,68 +207,99 @@ export function CalendarPage({
             <input
               className="cc-control"
               autoFocus
-              aria-label="검색어"
-              placeholder={`${effectiveView === "year" ? "이 해" : effectiveView === "month" ? "표시된 달력" : "이 주"}의 제목·설명·출처·상태 검색`}
+              aria-label={t("common.search")}
+              placeholder={t("calendar.searchPlaceholder", {
+                period:
+                  effectiveView === "day"
+                    ? t("common.thisDay")
+                    : effectiveView === "year"
+                      ? t("common.thisYear")
+                      : effectiveView === "month"
+                        ? t("common.theDisplayedCalendar")
+                        : t("common.thisWeek"),
+              })}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <span>{items.length}건</span>
+            <span>{t("calendar.eventCount", { count: items.length })}</span>
             <Btn
               onClick={() => {
                 setQuery("");
                 setSearchOpen(false);
               }}
             >
-              닫기
+              {t("common.close")}
             </Btn>
           </div>
         )}
         {notice}
-        <div className={`cc-workspace ${selected ? "cc-has-detail" : ""}`}>
-          <section className="cc-main" aria-label="달력">
+        <div
+          className={`cc-workspace ${selected ? "cc-has-detail" : ""} ${contentWidth >= VIEW_LAYOUT.dockDetailAbovePx ? "cc-detail-docked" : "cc-detail-overlay"}`}
+        >
+          <section className="cc-main" aria-label={t("common.calendarGrid")}>
             {status === "loading" || status === "error" ? (
               <div className="cc-state-panel" role="status">
                 <h3>
                   {status === "loading"
-                    ? "일정을 불러오고 있습니다"
-                    : "일정을 불러오지 못했습니다"}
+                    ? t("common.loadingEvents")
+                    : t("common.eventsLoadErrorHeading")}
                 </h3>
                 <p>
                   {status === "loading"
-                    ? "선택한 캘린더에서 일정을 읽고 있습니다."
-                    : "연결 상태를 확인한 뒤 다시 시도하세요."}
+                    ? t("calendar.loadingDescription")
+                    : t("calendar.connectionRetry")}
                 </p>
                 <Btn onClick={onReload} disabled={status === "loading"}>
                   {status === "loading"
-                    ? "불러오는 중"
-                    : "다시 시도"}
+                    ? t("common.loading")
+                    : t("common.tryAgain")}
                 </Btn>
               </div>
             ) : effectiveLayout === "calendar" && effectiveView === "month" ? (
-              <MonthView date={focusDate} base={weekStart} today={shift(weekStart, referenceTime.day)}
-                items={canonicalItems} selectedId={selectedId ?? undefined} onSelect={select}
-                onDay={(day) => { moveDate(day); onView("week"); }} />
+              <MonthView
+                date={focusDate}
+                base={weekStart}
+                today={shift(weekStart, referenceTime.day)}
+                items={canonicalItems}
+                registerButton={registerButton}
+                selectedId={selectedId ?? undefined}
+                onSelect={select}
+                onAdd={(date) => onAdd({ date })}
+                onDay={(day) => {
+                  moveDate(day);
+                  onView("day");
+                }}
+              />
             ) : effectiveLayout === "calendar" && effectiveView === "year" ? (
-              <YearView date={focusDate} base={weekStart} today={shift(weekStart, referenceTime.day)}
-                items={canonicalItems} onMonth={(month) => { moveDate(month); onView("month"); }} />
-            ) : items.length === 0 ? (
+              <YearView
+                date={focusDate}
+                base={weekStart}
+                today={shift(weekStart, referenceTime.day)}
+                items={canonicalItems}
+                onMonth={(month) => {
+                  moveDate(month);
+                  onView("month");
+                }}
+              />
+            ) : items.length === 0 &&
+              (effectiveLayout === "list" || filteredOut) ? (
               <div className="cc-empty">
                 <div className="cc-empty-icon">
                   <CalendarDays size={32} />
                 </div>
                 <h3>
                   {filteredOut
-                    ? "검색·표시 조건에 맞는 항목이 없습니다"
+                    ? t("calendar.noMatches")
                     : suppliedItems.length === 0
-                      ? "아직 표시할 일정이 없습니다"
-                      : "이 기간에는 일정이 없습니다"}
+                      ? t("calendar.empty")
+                      : t("calendar.periodEmpty")}
                 </h3>
                 <p>
                   {filteredOut
-                    ? "검색어와 표시 조건을 확인하세요."
+                    ? t("calendar.filtersHint")
                     : suppliedItems.length === 0
-                      ? "대화에서 받은 초안과 선택한 캘린더의 일정이 표시됩니다."
-                      : "다른 기간으로 이동하거나 새 초안을 추가하세요."}
+                      ? t("calendar.emptyDescription")
+                      : t("calendar.periodEmptyDescription")}
                 </p>
                 <Btn
                   primary
@@ -230,34 +307,42 @@ export function CalendarPage({
                     setQuery("");
                     setLayers({ event: true, trigger: true, run: true });
                     if (!filteredOut) {
-                      setOffset(0);
-                      onReload();
+                      onAdd({ date: focusDate });
                     }
                   }}
                 >
-                  {filteredOut ? "검색·필터 초기화" : "다시 불러오기"}
+                  {filteredOut
+                    ? t("common.resetSearchAndFilters")
+                    : t("common.addEvent")}
                   <ArrowUpRight size={14} />
                 </Btn>
-                <Btn onClick={onAdd}>
-                  <CalendarDays size={14} />
-                  일정 추가
-                </Btn>
+                <Btn onClick={onReload}>{t("common.reload")}</Btn>
               </div>
             ) : effectiveLayout === "calendar" ? (
-              <WeekView
+              <TimeGrid
                 timezone={timezone}
-                      items={items}
+                items={items}
                 dates={dates}
-                referenceTime={referenceTime}
-                isCurrentWeek={isCurrentWeek}
+                referenceTime={{
+                  ...referenceTime,
+                  day: referenceTime.day - gridFirst,
+                }}
+                isCurrentPeriod={isCurrentPeriod}
+                onAdd={onAdd}
+                onDay={(date) => {
+                  moveDate(date);
+                  onView("day");
+                }}
+                registerButton={registerButton}
                 selectedId={selected?.id}
                 onSelect={select}
               />
             ) : (
               <AgendaView
-                      items={canonicalItems}
+                items={canonicalItems}
                 base={weekStart}
                 today={shift(weekStart, referenceTime.day)}
+                registerButton={registerButton}
                 selectedId={selected?.id}
                 onSelect={select}
               />
@@ -268,8 +353,15 @@ export function CalendarPage({
               item={selected}
               items={suppliedItems}
               dates={detailDates}
-              referenceMinute={elapsedMinute(referenceTime.instant, dayBounds(dateKey(detailDates[selected.day]),timezone))}
-              actions={selected.kind === "event" ? eventActions(selected.id) : undefined}
+              referenceMinute={elapsedMinute(
+                referenceTime.instant,
+                dayBounds(dateKey(detailDates[selected.day]), timezone),
+              )}
+              actions={
+                selected.kind === "event"
+                  ? eventActions(selected.id)
+                  : undefined
+              }
               onEdit={() =>
                 onEdit(suppliedItems.find((item) => item.id === selected.id)!)
               }

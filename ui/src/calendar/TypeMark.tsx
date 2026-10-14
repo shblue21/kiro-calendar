@@ -1,9 +1,9 @@
 import {
-  CalendarDays,
-  Diamond,
-  Activity,
-  Check,
-  AlertCircle,
+Activity,
+AlertCircle,
+CalendarDays,
+Check,
+Diamond,
 } from "../platform/kiro/icons";
 import type { CalendarViewItem as Item } from "./types";
 
@@ -20,5 +20,5 @@ export function TypeMark({ item }: { item: Item }) {
       : item.kind === "run" && item.status === "failed"
         ? AlertCircle
         : KIND_ICON[item.kind];
-  return <Icon size={13} aria-hidden="true" />;
+  return <Icon style={item.kind === "event" ? { color: "var(--cc-calendar-color, var(--cc-accent))" } : undefined} size={13} aria-hidden="true" />;
 }

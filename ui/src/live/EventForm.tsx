@@ -1,13 +1,21 @@
-import type { CivilDate } from "../calendar/dates.ts";
-import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type {EventTimes} from "../calendar/creation";
 import { Btn } from "@kirocrew/app-sdk/ui";
-import { editTime, timeSelection, resolveTime, rezoneTime } from "../calendar/time";
-import { TimeField } from "./TimeField";
+import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { dateKey } from "../calendar/dates";
+import type { CivilDate } from "../calendar/dates.ts";
+import {
+  editTime,
+  resolveTime,
+  rezoneTime,
+  timeSelection,
+} from "../calendar/time";
+import { t } from "../i18n/index.ts";
+import type { Notice } from "../i18n/notice.ts";
+import { notice, NoticeError, renderNotice } from "../i18n/notice.ts";
+import { errorNotice } from "./api";
+import { TimeField } from "./TimeField";
 import type { CalendarItem } from "./types";
-import { message } from "./api";
-
 export type EventFields = {
   title: string;
   start: string;
@@ -17,6 +25,7 @@ export type EventFields = {
 };
 type Props = {
   item?: CalendarItem;
+  initialTimes?:EventTimes;
   date: CivilDate;
   timezone: string;
   refreshTimezone: () => Promise<string>;
@@ -26,13 +35,16 @@ type Props = {
   onClose: () => void;
   onSubmit: (fields: EventFields) => Promise<void>;
   children?: ReactNode;
-  secondary?: { label: string; action: (fields: EventFields) => Promise<void> };
+  secondary?: {
+    label: string;
+    action: (fields: EventFields) => Promise<void>;
+  };
   targetChanged?: boolean;
 };
-
 /** Shared fields and dialog behavior only; each workflow owns its persistence action. */
 export function EventForm({
   item,
+  initialTimes,
   date,
   timezone,
   refreshTimezone,
@@ -49,7 +61,7 @@ export function EventForm({
     title: item?.title || "",
     start: item
       ? timeSelection(item.start, timezone)
-      : editTime(`${dateKey(date)}T10:00`, timezone),
+      : initialTimes ? timeSelection(initialTimes.start,timezone) : editTime(`${dateKey(date)}T10:00`, timezone),
     end: item?.end
       ? timeSelection(item.end, timezone)
       : item
@@ -57,7 +69,7 @@ export function EventForm({
             new Date(+new Date(item.start) + 3600000).toISOString(),
             timezone,
           )
-        : editTime(`${dateKey(date)}T11:00`, timezone),
+        : initialTimes ? timeSelection(initialTimes.end,timezone) : editTime(`${dateKey(date)}T11:00`, timezone),
     notes: item?.notes || "",
   });
   const [session, setSession] = useState(() => {
@@ -65,17 +77,24 @@ export function EventForm({
     return { zone: timezone, initial, values: initial };
   });
   const rezone = (fields: typeof session.values) => ({
-    ...fields, start: rezoneTime(fields.start, timezone), end: rezoneTime(fields.end, timezone),
+    ...fields,
+    start: rezoneTime(fields.start, timezone),
+    end: rezoneTime(fields.end, timezone),
   });
-  const current = session.zone === timezone ? session : {
-    zone: timezone, initial: rezone(session.initial), values: rezone(session.values),
-  };
+  const current =
+    session.zone === timezone
+      ? session
+      : {
+          zone: timezone,
+          initial: rezone(session.initial),
+          values: rezone(session.values),
+        };
   if (current !== session) setSession(current);
   const { initial, values } = current;
   const setValues = (update: (fields: typeof values) => typeof values) =>
     setSession((s) => ({ ...s, values: update(s.values) }));
   const [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
+    [error, setError] = useState<Notice | null>(null),
     [leave, setLeave] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const dirty =
@@ -95,11 +114,11 @@ export function EventForm({
   async function perform(action: (fields: EventFields) => Promise<void>) {
     if (busy) return;
     setBusy(true);
-    setError("");
+    setError(null);
     try {
       const latestZone = await refreshTimezone();
       if (latestZone !== timezone)
-        throw new Error("시스템 시간대가 변경되어 입력 시각을 갱신했습니다. 내용을 확인한 뒤 다시 저장하세요.");
+        throw new NoticeError(notice("editor.timezoneChanged"));
       const fields = {
         ...values,
         timezone,
@@ -110,10 +129,10 @@ export function EventForm({
         !fields.title.trim() ||
         Date.parse(fields.end) <= Date.parse(fields.start)
       )
-        throw new Error("제목과 시작·종료 시간을 확인하세요.");
+        throw new NoticeError(notice("editor.invalidFields"));
       await action(fields);
     } catch (e) {
-      setError(message(e));
+      setError(errorNotice(e));
     } finally {
       setBusy(false);
     }
@@ -142,7 +161,7 @@ export function EventForm({
           <Btn
             disabled={busy}
             type="button"
-            aria-label="작성 패널 닫기"
+            aria-label={t("common.closeEditor")}
             onClick={close}
           >
             ×
@@ -151,7 +170,7 @@ export function EventForm({
         <div className="cc-editor-body">
           <fieldset disabled={busy} className="cc-editor-fields">
             <label className="cc-field">
-              제목
+              {t("common.title")}
               <input
                 className="cc-control"
                 autoFocus
@@ -163,24 +182,23 @@ export function EventForm({
             </label>
             <div className="cc-field-pair">
               <TimeField
-                label="시작"
+                label={t("common.start")}
                 value={values.start}
                 zone={timezone}
                 onChange={(start) => setValues((v) => ({ ...v, start }))}
               />
               <TimeField
-                label="종료"
+                label={t("common.end")}
                 value={values.end}
                 zone={timezone}
                 onChange={(end) => setValues((v) => ({ ...v, end }))}
               />
             </div>
-            <p className="cc-settings-section-note">
-              표시·입력 시간대: {timezone}. 단일 일정만 저장하며 반복·초대는
-              추가하지 않습니다.
+            <p className="cc-page-section-note">
+              {t("editor.timezoneHint", { zone: timezone })}
             </p>
             <label className="cc-field">
-              설명
+              {t("common.description")}
               <textarea
                 className="cc-control"
                 rows={3}
@@ -193,24 +211,24 @@ export function EventForm({
           </fieldset>
           {leave && (
             <div className="cc-editor-confirm" role="alert">
-              <p>저장하지 않은 변경 내용을 버릴까요?</p>
+              <p>{t("common.discardYourUnsavedChanges")}</p>
               <Btn type="button" onClick={() => setLeave(false)}>
-                계속 작성
+                {t("common.keepEditing")}
               </Btn>
               <Btn type="button" danger onClick={onClose}>
-                버리고 닫기
+                {t("common.discardAndClose")}
               </Btn>
             </div>
           )}
           {error && (
             <p role="alert" className="cc-form-error">
-              {error}
+              {renderNotice(error)}
             </p>
           )}
         </div>
         <footer className="cc-editor-footer">
           <Btn type="button" disabled={busy} onClick={close}>
-            취소
+            {t("common.cancel")}
           </Btn>
           <div>
             {secondary && (
@@ -223,7 +241,7 @@ export function EventForm({
               </Btn>
             )}
             <Btn primary type="submit" disabled={busy}>
-              {busy ? "저장 중…" : submitLabel}
+              {busy ? t("common.saving") : submitLabel}
             </Btn>
           </div>
         </footer>

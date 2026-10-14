@@ -1,24 +1,20 @@
 import { Temporal } from "@js-temporal/polyfill";
-
-const MINUTE_MS = 60_000;
+import { notice, NoticeError } from "../i18n/notice.ts";
+const MINUTE_MS = 60000;
 const HOUR_MS = 60 * MINUTE_MS;
-
 /** Human-entered local time: ambiguity must never silently pick an occurrence. */
 export function zonedISO(value: string, zone: string): string {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))
-    throw new Error("날짜와 시간을 확인하세요.");
+    throw new NoticeError(notice("common.checkTheDateAndTime"));
   try {
     const local = Temporal.PlainDateTime.from(value, { overflow: "reject" });
     return local
       .toZonedDateTime(zone, { disambiguation: "reject" })
       .toString({ timeZoneName: "never", calendarName: "never" });
   } catch {
-    throw new Error(
-      "존재하지 않거나 시간 변경으로 두 번 존재하는 시각입니다. 다른 시각을 선택하세요.",
-    );
+    throw new NoticeError(notice("time.ambiguousOrMissing"));
   }
 }
-
 function zoned(value: string | Date, zone: string) {
   return Temporal.Instant.from(
     value instanceof Date ? value.toISOString() : value,
@@ -29,10 +25,12 @@ export function zonedInput(value: string | Date, zone: string): string {
     .toPlainDateTime()
     .toString({ smallestUnit: "minute" });
 }
-export function zonedDay(value: string | Date, zone: string): Temporal.PlainDate {
+export function zonedDay(
+  value: string | Date,
+  zone: string,
+): Temporal.PlainDate {
   return zoned(value, zone).toPlainDate();
 }
-
 export type DayBounds = Readonly<{
   date: string;
   zone: string;
@@ -42,7 +40,6 @@ export type DayBounds = Readonly<{
   clockChanges: boolean;
 }>;
 const dayCache = new Map<string, DayBounds>();
-
 /** Half-open local date interval. Repeated midnight starts at its first occurrence;
  * a missing midnight starts at the first actual time, and a skipped date is empty. */
 export function dayBounds(date: string, zone: string): DayBounds {
@@ -69,20 +66,18 @@ export function dayBounds(date: string, zone: string): DayBounds {
   dayCache.set(key, result);
   return result;
 }
-
 export function dateRangeInstants(
   firstDate: string,
   exclusiveEndDate: string,
   zone: string,
 ) {
   if (Temporal.PlainDate.compare(firstDate, exclusiveEndDate) >= 0)
-    throw new Error("조회 날짜 범위를 확인하세요.");
+    throw new NoticeError(notice("common.checkTheDateRange"));
   return {
     start: new Date(dayBounds(firstDate, zone).startMs).toISOString(),
     end: new Date(dayBounds(exclusiveEndDate, zone).startMs).toISOString(),
   };
 }
-
 export function elapsedMinute(
   instant: string | number,
   day: DayBounds,
@@ -96,7 +91,6 @@ export function elapsedMinute(
     Math.min(day.durationMinutes, (ms - day.startMs) / MINUTE_MS),
   );
 }
-
 export function dayTimeline(date: string, zone: string) {
   const day = dayBounds(date, zone);
   const ticks = [];
@@ -118,7 +112,6 @@ export function dayTimeline(date: string, zone: string) {
     })),
   };
 }
-
 /** Labels retain wall-clock meaning; geometry uses elapsed time independently. */
 export function intervalLabels(startMs: number, endMs: number, day: DayBounds) {
   const start = zoned(new Date(startMs), day.zone),
@@ -135,11 +128,15 @@ export function intervalLabels(startMs: number, endMs: number, day: DayBounds) {
         : label(end),
   };
 }
-
 /** Editor state retains a known instant, including offset/seconds, independently of its wall label. */
-export type TimeSelection = { wall: string; instant: string | null };
+export type TimeSelection = {
+  wall: string;
+  instant: string | null;
+};
 export function timeSelection(instant: string, zone: string): TimeSelection {
-  const canonical = Temporal.Instant.from(instant).round({ smallestUnit: "second", roundingMode: "floor" }).toString();
+  const canonical = Temporal.Instant.from(instant)
+    .round({ smallestUnit: "second", roundingMode: "floor" })
+    .toString();
   return { wall: zonedInput(canonical, zone), instant: canonical };
 }
 /** Known instants move with the display zone; unresolved input remains a user choice. */
@@ -149,7 +146,10 @@ export function rezoneTime(value: TimeSelection, zone: string): TimeSelection {
 export function timeChoices(
   wall: string,
   zone: string,
-): { instant: string; offset: string }[] {
+): {
+  instant: string;
+  offset: string;
+}[] {
   try {
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(wall)) return [];
     const local = Temporal.PlainDateTime.from(wall, { overflow: "reject" });
@@ -191,9 +191,7 @@ export function resolveTime(value: TimeSelection, zone: string): string {
     });
   const choices = timeChoices(value.wall, zone);
   if (choices.length === 1) return choices[0].instant;
-  throw new Error(
-    choices.length > 1
-      ? "반복되는 시각의 UTC 오프셋을 선택하세요."
-      : "존재하지 않는 날짜·시각입니다. 다른 시각을 선택하세요.",
+  throw new NoticeError(
+    notice(choices.length > 1 ? "time.offsetRequired" : "time.invalid"),
   );
 }

@@ -114,9 +114,14 @@ final class Bridge: NSObject, NSApplicationDelegate {
             throw BridgeError(code: "authorization_required", message: "macOS 설정에서 Crew Calendar 연결의 캘린더 전체 접근을 허용하세요.")
         }
     }
+    func calendarColor(_ c: EKCalendar) -> String {
+        guard let color = NSColor(cgColor: c.cgColor)?.usingColorSpace(.sRGB) else { return "" }
+        return String(format: "#%02X%02X%02X", Int((color.redComponent * 255).rounded()),
+                      Int((color.greenComponent * 255).rounded()), Int((color.blueComponent * 255).rounded()))
+    }
     func calendarView(_ c: EKCalendar) -> Object {
         ["id": c.calendarIdentifier, "title": c.title, "sourceId": c.source.sourceIdentifier,
-         "sourceTitle": c.source.title, "writable": c.allowsContentModifications]
+         "sourceTitle": c.source.title, "writable": c.allowsContentModifications, "color": calendarColor(c)]
     }
     func dayString(_ d: Date, _ zone: TimeZone) -> String {
         let f = DateFormatter(); f.calendar = Calendar(identifier: .gregorian); f.locale = Locale(identifier: "en_US_POSIX")
@@ -127,7 +132,7 @@ final class Bridge: NSObject, NSApplicationDelegate {
         return ["eventId": e.eventIdentifier ?? e.calendarItemIdentifier, "calendarId": e.calendar.calendarIdentifier,
                 "title": e.title ?? "(제목 없음)", "start": iso(e.startDate), "end": iso(e.endDate),
                 "allDay": e.isAllDay, "startDate": dayString(e.startDate, zone), "endDate": dayString(e.endDate, zone),
-                "timezone": zone.identifier, "calendarTitle": e.calendar.title, "sourceTitle": e.calendar.source.title,
+                "timezone": zone.identifier, "calendarColor": calendarColor(e.calendar), "calendarTitle": e.calendar.title, "sourceTitle": e.calendar.source.title,
                 "notes": e.notes ?? "", "lastModified": e.lastModifiedDate.map(iso) ?? "",
                 "recurring": e.hasRecurrenceRules, "writable": e.calendar.allowsContentModifications]
     }
@@ -138,10 +143,11 @@ final class Bridge: NSObject, NSApplicationDelegate {
               let ids = request["calendarIds"] as? [String], ids.count <= 30 else {
             throw BridgeError(code: "invalid_range", message: "조회 범위를 확인하세요.")
         }
+        let eventLimit = 5000
         var rows: [Object] = [], errors: [Object] = [], seen = Set<String>()
         for id in ids {
             guard let c = store.calendar(withIdentifier: id) else {
-                errors.append(["calendarId": id, "message": "캘린더에 접근할 수 없습니다. 선택을 다시 확인하세요."]); continue
+                errors.append(["calendarId": id, "code": "calendar_missing", "message": "캘린더에 접근할 수 없습니다. 선택을 다시 확인하세요."]); continue
             }
             var cursor = first
             while cursor < last {
@@ -149,8 +155,8 @@ final class Bridge: NSObject, NSApplicationDelegate {
                 for event in store.events(matching: store.predicateForEvents(withStart: cursor, end: end, calendars: [c])) {
                     let key = "\(id)|\(event.eventIdentifier ?? event.calendarItemIdentifier)|\(event.startDate.timeIntervalSince1970)"
                     if seen.insert(key).inserted { rows.append(eventView(event)) }
-                    if rows.count >= 5000 {
-                        return ["events": rows, "errors": errors + [["calendarId": id, "message": "일정이 많아 5,000개까지만 표시합니다. 조회 기간을 줄이세요."]], "truncated": true]
+                    if rows.count >= eventLimit {
+                        return ["events": rows, "errors": errors + [["calendarId": id, "code": "events_truncated", "limit": eventLimit, "message": "일정이 많아 5,000개까지만 표시합니다. 조회 기간을 줄이세요."]], "truncated": true]
                     }
                 }
                 cursor = end

@@ -4,15 +4,17 @@
   flex-direction: column;
   min-height: 0;
   color: var(--cc-ink);
-  font-size: 13px;
+  font-size: 14px;
+  container-type: inline-size;
+  container-name: calendar;
 }
 
 .cc-calendar * {
   box-sizing: border-box;
 }
 
-.cc-calendar button:focus-visible {
-  outline: 2px solid var(--cc-accent);
+.cc-calendar :is(button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: var(--cc-focus-width) solid var(--cc-accent);
   outline-offset: 3px;
 }
 

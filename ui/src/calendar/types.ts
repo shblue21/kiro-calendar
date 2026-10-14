@@ -11,9 +11,14 @@ export type CalendarViewItem = {
   start: number;
   end?: number;
   /** Human-readable local times, separate from the elapsed-time axis. */
-  timeLabels?: {start:string;end:string};
+  timeLabels?: { start: string; end: string };
   status?: "running" | "success" | "failed" | "scheduled";
+  /** Origin/agent label only. Never a delivery status. */
   source: string;
+  calendarLocation?: string;
+  calendarColor?: string;
+  deliveryState?:
+    import("../live/types").Operation["state"] | "unavailable" | "unsubmitted";
   description: string;
   flexible?: boolean;
   automatic?: boolean;
@@ -30,6 +35,6 @@ export type CalendarViewItem = {
 };
 
 export type CalendarReferenceTime = { day: number; instant: string };
-export type CalendarView = "week" | "month" | "year";
+export type CalendarView = "day" | "week" | "month" | "year";
 export type CalendarLayout = "calendar" | "list";
 export type CalendarLayers = Record<Kind, boolean>;

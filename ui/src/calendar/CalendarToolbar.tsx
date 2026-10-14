@@ -1,17 +1,26 @@
-import { useEffect, useRef, useState } from "react";
+import { DateJump } from "./DateJump";
+import type { CivilDate } from "./dates";
 import { Btn } from "@kirocrew/app-sdk/ui";
+import { useEffect, useRef, useState } from "react";
+import { t } from "../i18n/index.ts";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  SlidersHorizontal,
   Search,
+  SlidersHorizontal,
 } from "../platform/kiro/icons";
 import { KIND_ICON } from "./TypeMark";
-import type { CalendarLayers, CalendarView, CalendarLayout, Kind } from "./types";
-
+import type {
+  CalendarLayers,
+  CalendarLayout,
+  CalendarView,
+  Kind,
+} from "./types";
 type Props = {
   range: string;
+  date: CivilDate;
+  onDate: (date: CivilDate) => void;
   onPrevious: () => void;
   onNext: () => void;
   onReset: () => void;
@@ -27,6 +36,8 @@ type Props = {
 };
 export function CalendarToolbar({
   range,
+  date,
+  onDate,
   onPrevious,
   onNext,
   onReset,
@@ -42,7 +53,6 @@ export function CalendarToolbar({
 }: Props) {
   const [open, setOpen] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!open) return;
     const outside = (event: PointerEvent) => {
@@ -64,33 +74,76 @@ export function CalendarToolbar({
   return (
     <div className="cc-toolbar cc-compact-toolbar">
       <div className="cc-date-nav">
-        <Btn aria-label={`이전 ${view === "month" ? "달" : view === "year" ? "해" : "주"}`} onClick={onPrevious}>
+        <Btn
+          aria-label={t("common.previous", {
+            period:
+              view === "day"
+                ? t("common.day")
+                : view === "month"
+                  ? t("common.periodMonth")
+                  : view === "year"
+                    ? t("common.periodYear")
+                    : t("common.week"),
+          })}
+          onClick={onPrevious}
+        >
           <ChevronLeft size={16} />
         </Btn>
-        <Btn aria-label={`다음 ${view === "month" ? "달" : view === "year" ? "해" : "주"}`} onClick={onNext}>
+        <Btn
+          aria-label={t("common.next", {
+            period:
+              view === "day"
+                ? t("common.day")
+                : view === "month"
+                  ? t("common.periodMonth")
+                  : view === "year"
+                    ? t("common.periodYear")
+                    : t("common.week"),
+          })}
+          onClick={onNext}
+        >
           <ChevronRight size={16} />
         </Btn>
-        <Btn onClick={onReset}>오늘</Btn>
-        <h2>{range}</h2>
+        <Btn onClick={onReset}>{t("common.today")}</Btn>
+        <DateJump date={date} label={range} onChange={onDate} />
       </div>
       <div className="cc-toolbar-actions">
         <Btn
-          aria-label="일정 검색"
+          aria-label={t("common.searchEvents")}
           aria-expanded={searchOpen}
           onClick={onSearch}
         >
           <Search size={15} />
         </Btn>
-        <select className="cc-view-select" aria-label="표시 기간" value={view}
-          onChange={(e) => onView(e.target.value as CalendarView)}>
-          <option value="week">주간</option>
-          <option value="month">월간</option>
-          <option value="year">연간</option>
-          
+        <select
+          className="cc-view-select"
+          aria-label={t("common.displayPeriod")}
+          value={view}
+          onChange={(e) => onView(e.target.value as CalendarView)}
+        >
+          <option value="day">{t("common.viewDay")}</option>
+          <option value="week">{t("common.viewWeek")}</option>
+          <option value="month">{t("common.viewMonth")}</option>
+          <option value="year">{t("common.viewYear")}</option>
         </select>
-        <div className="cc-view-switch" role="group" aria-label="표시 방식">
-          <Btn aria-pressed={layout === "calendar"} disabled={narrow && view === "week"} onClick={() => onLayout("calendar")}>달력</Btn>
-          <Btn aria-pressed={layout === "list"} onClick={() => onLayout("list")}>목록</Btn>
+        <div
+          className="cc-view-switch"
+          role="group"
+          aria-label={t("common.displayLayout")}
+        >
+          <Btn
+            aria-pressed={layout === "calendar"}
+            disabled={narrow && view === "week"}
+            onClick={() => onLayout("calendar")}
+          >
+            {t("common.calendarGrid")}
+          </Btn>
+          <Btn
+            aria-pressed={layout === "list"}
+            onClick={() => onLayout("list")}
+          >
+            {t("common.list")}
+          </Btn>
         </div>
         <div className="cc-display-menu" ref={menu}>
           <Btn
@@ -99,12 +152,12 @@ export function CalendarToolbar({
             onClick={() => setOpen((value) => !value)}
           >
             <SlidersHorizontal size={14} />
-            표시
+            {t("common.show")}
             <ChevronDown size={13} />
           </Btn>
           {open && (
             <div id="cc-display-options" className="cc-display-popover">
-              <h3>표시할 항목</h3>
+              <h3>{t("common.itemsToDisplay")}</h3>
               {(["event"] as Kind[]).map((kind) => {
                 const Icon = KIND_ICON[kind];
                 return (
@@ -115,7 +168,7 @@ export function CalendarToolbar({
                       onChange={() => onToggle(kind)}
                     />
                     <Icon size={14} />
-                    일정·초안
+                    {t("common.eventsAndDrafts")}
                   </label>
                 );
               })}

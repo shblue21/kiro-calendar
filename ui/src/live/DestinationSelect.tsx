@@ -1,3 +1,5 @@
+import { locationLabel } from "./location.ts";
+import { t } from "../i18n/index.ts";
 import type { Connection, Destination } from "./types";
 export const CREW_DESTINATION: Destination = {
   connectionId: "crew",
@@ -5,13 +7,12 @@ export const CREW_DESTINATION: Destination = {
 };
 export const destinationKey = (target: Destination) =>
   JSON.stringify([target.connectionId, target.calendarId]);
-
 export function DestinationSelect({
   connections,
   value,
   onChange,
   disabled = false,
-  label = "저장할 캘린더",
+  label = t("common.saveToCalendar"),
 }: {
   connections: Connection[];
   value: Destination;
@@ -28,7 +29,7 @@ export function DestinationSelect({
           .filter((cal) => cal.writable)
           .map((cal) => ({
             target: { connectionId: c.id, calendarId: cal.id },
-            label: `${c.title} · ${cal.sourceTitle} · ${cal.title}`,
+            label: locationLabel(c.displayName, cal),
           })),
       ),
   ];
@@ -49,7 +50,7 @@ export function DestinationSelect({
       >
         {!available && (
           <option value={destinationKey(value)} disabled>
-            기존 저장 위치에 접근할 수 없습니다. 다른 캘린더를 선택하세요.
+            {t("editor.destinationUnavailable")}
           </option>
         )}
         {choices.map((c) => (

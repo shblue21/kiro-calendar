@@ -1,6 +1,6 @@
-import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {dayTimeline,dateRangeInstants,zonedISO,elapsedMinute,timeSelection,resolveTime,editTime,timeChoices,rezoneTime} from './time.ts';
+import { test } from 'node:test';
+import { dateRangeInstants,dayTimeline,editTime,elapsedMinute,resolveTime,rezoneTime,timeChoices,timeSelection,zonedISO } from './time.ts';
 
 test('query date boundaries accept repeated midnight without weakening user input validation',()=>{
  const range=dateRangeInstants('2026-11-01','2026-12-01','America/Havana');
@@ -27,4 +27,16 @@ test('repeated hour ticks and instants remain distinct',()=>{
  const choices=timeChoices(edited.wall,'America/New_York');assert.equal(choices.length,2);
  assert.equal(resolveTime({...edited,instant:choices[1].instant},'America/New_York'),'2026-11-01T01:30:00-05:00');
  assert.equal(timeChoices('2026-03-08T02:30','America/New_York').length,0);
+});
+
+test("blank-grid creation preserves the clicked occurrence across DST and midnight", async () => {
+  const {seedAtMinute} = await import("./creation.ts");
+  const {civilDate} = await import("./dates.ts");
+  const fall = seedAtMinute(civilDate("2026-11-01"), "America/New_York", 150).times!;
+  assert.equal(fall.start, "2026-11-01T06:30:00.000Z");
+  const spring = seedAtMinute(civilDate("2026-03-08"), "America/New_York", 120).times!;
+  assert.equal(spring.start, "2026-03-08T07:00:00.000Z");
+  const late = seedAtMinute(civilDate("2026-10-14"), "Asia/Seoul", 1439).times!;
+  assert.equal(late.start, "2026-10-14T14:45:00.000Z");
+  assert.equal(late.end, "2026-10-14T15:45:00.000Z");
 });

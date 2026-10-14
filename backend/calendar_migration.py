@@ -138,7 +138,7 @@ def migrate(repository):
                     elif op["state"] != "prepared":
                         if op["target"]["connectionId"] == "apple-local":
                             op.setdefault("provider", "apple")
-                            op.setdefault("connectionTitle", "Apple Calendar · 이 Mac")
+                            op.setdefault("connectionName", {"kind": "system", "key": "appleLocal"})
                             op.setdefault("canReconcile", True)
                         item["delivery"] = op
                         item["delivery"] = delivery(item)

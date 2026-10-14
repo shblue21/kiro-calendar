@@ -1,0 +1,8 @@
+.cc-event-button:hover {
+  background: var(--cc-soft);
+}
+
+/* Inset selection stays visible at scroll edges and leaves the focus outline independent. */
+.cc-event-button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--cc-accent);
+}

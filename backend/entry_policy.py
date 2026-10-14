@@ -15,6 +15,15 @@ def _strings(value, *names):
     )
 
 
+def _connection_name(value):
+    if value is None:
+        return True
+    return isinstance(value, dict) and (
+        (value.get("kind") == "system" and isinstance(value.get("key"), str))
+        or (value.get("kind") == "custom" and isinstance(value.get("text"), str))
+    )
+
+
 def delivery(item):
     value = item.get("delivery")
     if value is None and not item.get("externalRef"):
@@ -31,7 +40,8 @@ def delivery(item):
             isinstance(value["payload"].get(k), str)
             for k in ("title", "start", "end", "timezone", "notes")
         )
-        and _strings(value, "connectionTitle", "calendarTitle", "sourceTitle")
+        and _connection_name(value.get("connectionName"))
+        and _strings(value, "calendarTitle", "sourceTitle")
         and _strings(value.get("error", {}), "code", "message")
         and _strings(
             value.get("confirmation", {}), "mode", "actionLabel", "pendingMessage"

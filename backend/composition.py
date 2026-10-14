@@ -22,6 +22,6 @@ class Services:
         from .calendar_connections import CalendarConnection, CalendarConnections
         root = self.repository.data_dir
         connections = CalendarConnections([
-            CalendarConnection('apple-local', 'apple', 'Apple Calendar · 이 Mac', AppleCalendarProvider(root.parent, root)),
+            CalendarConnection('apple-local', 'apple', 'Apple Calendar', AppleCalendarProvider(root.parent, root), system_name='appleLocal'),
         ])
         return CalendarService(self.drafts, CalendarStorage(root, legacy_connection_id='apple-local'), connections)

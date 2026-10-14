@@ -1,3 +1,5 @@
+export type ConnectionName =
+  { kind: "system"; key: string } | { kind: "custom"; text: string };
 export type Destination = { connectionId: string; calendarId: string };
 export type CalendarPreferences = {
   defaultDestination: Destination;
@@ -33,6 +35,7 @@ export type CalendarItem = {
 };
 export type Draft = CalendarItem;
 export type Calendar = {
+  color?: string;
   id: string;
   title: string;
   sourceId: string;
@@ -41,22 +44,15 @@ export type Calendar = {
 };
 export type Confirmation = {
   mode: "provider" | "app";
-  actionLabel: string;
-  pendingMessage: string;
 };
 export type Connection = {
   id: string;
   provider: string;
-  title: string;
+  displayName: ConnectionName;
   state:
-    | "ready"
-    | "needs_authorization"
-    | "denied"
-    | "unsupported"
-    | "unavailable";
+    "ready" | "needs_authorization" | "denied" | "unsupported" | "unavailable";
   capabilities: { read: boolean; create: boolean; reconcile: boolean };
   message?: string;
-  authorizationLabel?: string;
   confirmation?: Confirmation;
   calendars: Calendar[];
   selectedCalendarIds: string[];
@@ -64,7 +60,7 @@ export type Connection = {
 };
 export type CalendarEvent = {
   connectionId?: string;
-  connectionTitle?: string;
+  connectionName?: ConnectionName;
   provider?: string;
   eventId: string;
   calendarId: string;
@@ -75,6 +71,7 @@ export type CalendarEvent = {
   startDate: string;
   endDate: string;
   timezone: string;
+  calendarColor?: string;
   calendarTitle: string;
   sourceTitle: string;
   notes: string;
@@ -95,9 +92,10 @@ export type Operation = {
     | "unknown";
   canReconcile?: boolean;
   confirmation?: Confirmation;
-  connectionTitle?: string;
+  connectionName?: ConnectionName;
   provider?: string;
   target: { connectionId: string; calendarId: string };
+  calendarColor?: string;
   calendarTitle: string;
   sourceTitle: string;
   payload: {
@@ -109,7 +107,7 @@ export type Operation = {
   };
   event?: CalendarEvent;
   error?: { code: string; message: string };
-  verification?: { state: string; error?: { message: string } };
+  verification?: { state: string; error?: { code?: string; message: string } };
 };
 
 export type Delivery =

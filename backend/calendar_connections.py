@@ -1,4 +1,5 @@
 """Connection identities and provider bindings; no platform or provider-specific policy."""
+from __future__ import annotations
 from dataclasses import dataclass
 from .calendar_domain import CalendarProvider, CalendarError
 
@@ -8,6 +9,11 @@ class CalendarConnection:
     provider_key: str
     title: str
     adapter: CalendarProvider
+    system_name: str | None = None
+
+    def display_name(self) -> dict:
+        return ({'kind': 'system', 'key': self.system_name} if self.system_name
+                else {'kind': 'custom', 'text': self.title})
 
     def status(self, *, authorize: bool = False) -> dict:
         state = self.adapter.authorize() if authorize else self.adapter.status()
@@ -16,7 +22,7 @@ class CalendarConnection:
         confirmation = state.get('confirmation', {})
         if confirmation.get('mode') not in {'provider', 'app'}:
             raise CalendarError('provider_contract', '이 연결의 저장 확인 방식을 알 수 없습니다.')
-        return {**state, 'id': self.id, 'provider': self.provider_key, 'title': self.title}
+        return {**state, 'id': self.id, 'provider': self.provider_key, 'displayName': self.display_name()}
 
     def require(self, capability: str) -> dict:
         state = self.status()

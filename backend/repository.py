@@ -186,6 +186,7 @@ class JsonRepository:
                 errors.append(
                     {
                         "itemId": path.stem,
+                        "code": "item_unavailable",
                         "message": f"일정 {path.stem}의 기록을 읽지 못했습니다. 원본은 보존되어 있습니다.",
                     }
                 )

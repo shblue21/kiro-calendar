@@ -23,9 +23,11 @@ export const WEEK_LAYOUT: WeekLayoutMetrics = Object.freeze({
 // Both painting and lane allocation consume the same quantized endpoints.
 const UNITS_PER_PIXEL = 64;
 function minuteUnit(minute: number, metrics: WeekLayoutMetrics) {
-  return Math.round(minute * metrics.hourHeightPx * UNITS_PER_PIXEL / 60);
+  return Math.round((minute * metrics.hourHeightPx * UNITS_PER_PIXEL) / 60);
 }
-function pixelUnit(px: number) { return Math.round(px * UNITS_PER_PIXEL); }
+function pixelUnit(px: number) {
+  return Math.round(px * UNITS_PER_PIXEL);
+}
 export function minuteOffset(minute: number, metrics = WEEK_LAYOUT) {
   return minuteUnit(minute, metrics) / UNITS_PER_PIXEL;
 }
@@ -34,32 +36,59 @@ export function spanEnd(item: Item, referenceMinute: number) {
   return item.end ?? (item.status === "running" ? referenceMinute : item.start);
 }
 
-export function itemGeometry(item: Item, referenceMinute: number, metrics = WEEK_LAYOUT) {
+export function itemGeometry(
+  item: Item,
+  referenceMinute: number,
+  metrics = WEEK_LAYOUT,
+) {
   const topUnit = minuteUnit(item.start, metrics);
-  const durationEndUnit = Math.max(topUnit, minuteUnit(spanEnd(item, referenceMinute), metrics));
+  const durationEndUnit = Math.max(
+    topUnit,
+    minuteUnit(spanEnd(item, referenceMinute), metrics),
+  );
   const durationUnits = durationEndUnit - topUnit;
-  const heightUnits = item.kind === "event"
-    ? Math.max(durationUnits, pixelUnit(metrics.minimumEventHeightPx))
-    : pixelUnit(item.kind === "run" ? metrics.runLabelHeightPx : metrics.triggerLabelHeightPx);
-  const markUnits = Math.max(durationUnits, pixelUnit(metrics.minimumDurationMarkPx));
+  const heightUnits =
+    item.kind === "event"
+      ? Math.max(durationUnits, pixelUnit(metrics.minimumEventHeightPx))
+      : pixelUnit(
+          item.kind === "run"
+            ? metrics.runLabelHeightPx
+            : metrics.triggerLabelHeightPx,
+        );
+  const markUnits = Math.max(
+    durationUnits,
+    pixelUnit(metrics.minimumDurationMarkPx),
+  );
   const occupiedEndUnit = topUnit + Math.max(heightUnits, markUnits);
   return {
-    topUnit, occupiedEndUnit,
+    topUnit,
+    occupiedEndUnit,
     topPx: topUnit / UNITS_PER_PIXEL,
     heightPx: heightUnits / UNITS_PER_PIXEL,
     durationHeightPx: durationUnits / UNITS_PER_PIXEL,
     durationMarkHeightPx: markUnits / UNITS_PER_PIXEL,
     occupiedHeightPx: (occupiedEndUnit - topUnit) / UNITS_PER_PIXEL,
-    compact: item.kind === "event" && durationUnits < pixelUnit(metrics.compactEventThresholdPx),
+    compact:
+      item.kind === "event" &&
+      durationUnits < pixelUnit(metrics.compactEventThresholdPx),
   };
 }
 
 // Use the very same pixel geometry for painting and collision placement.
-export function place(items: readonly Item[], referenceMinute: number, metrics = WEEK_LAYOUT) {
+export function place(
+  items: readonly Item[],
+  referenceMinute: number,
+  metrics = WEEK_LAYOUT,
+) {
   const sorted = [...items]
     .filter((i) => !i.allDay)
     .sort((a, b) => a.start - b.start);
-  const result: { item: Item; lane: number; lanes: number; geometry: ReturnType<typeof itemGeometry> }[] = [];
+  const result: {
+    item: Item;
+    lane: number;
+    lanes: number;
+    geometry: ReturnType<typeof itemGeometry>;
+  }[] = [];
   let active: { end: number; lane: number }[] = [];
   let cluster: typeof result = [];
   let clusterEnd = -1;
@@ -87,3 +116,8 @@ export function place(items: readonly Item[], referenceMinute: number, metrics =
   finish();
   return result;
 }
+
+export const VIEW_LAYOUT = Object.freeze({
+  listBelowPx: 760,
+  dockDetailAbovePx: 1440,
+});

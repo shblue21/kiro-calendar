@@ -63,6 +63,14 @@ class CalendarTest(unittest.TestCase):
         linked=self.service.events('2030-01-01T00:00:00Z','2030-01-04T00:00:00Z')['events'][0]
         self.assertEqual(linked['itemId'],self.item['id'])
         self.assertEqual(linked['origin'],self.item['origin'])
+        self.assertEqual(linked['connectionName'],{'kind':'custom','text':'Test account'})
+        warnings=[{'calendarId':'a','code':'events_truncated','limit':5000}, {'calendarId':'b','code':'calendar_missing'}]
+        self.provider.events=lambda *_:{'events':[result['event']],'errors':warnings,'truncated':True}
+        partial=self.service.events('2030-01-01T00:00:00Z','2030-01-04T00:00:00Z')
+        self.assertEqual(len(partial['events']),1)
+        self.assertEqual(partial['errors'],[{**w,'connectionId':'primary'} for w in warnings])
+        self.assertEqual(self.services.calendar().connections.get('apple-local').display_name(),{'kind':'system','key':'appleLocal'})
+
         # A read started before completion cannot undo terminal cancellation/failure.
         from threading import Event
         for terminal in ['cancelled','failed']:

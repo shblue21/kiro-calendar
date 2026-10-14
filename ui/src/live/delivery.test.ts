@@ -1,7 +1,7 @@
-import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DeliverySession} from './delivery.ts';
-import type {CalendarItem,DeliveryResponse,Operation} from './types.ts';
+import { test } from 'node:test';
+import { DeliverySession } from './delivery.ts';
+import type { CalendarItem,DeliveryResponse,Operation } from './types.ts';
 
 function harness(mode:'app'|'provider'='provider') {
   const operation=(id:string,state:Operation['state']='prepared')=>({id,state,confirmation:{mode}} as Operation);

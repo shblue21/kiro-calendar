@@ -1,9 +1,9 @@
 .cc-detail {
-  width: 300px;
-  flex: 0 0 300px;
+  width: var(--cc-detail-width);
+  flex: 0 0 var(--cc-detail-width);
   background: var(--cc-panel);
   border-left: 1px solid var(--cc-border);
-  padding: 0 0 15px 20px;
+  padding: 18px 20px;
   overflow-y: auto;
   max-height: none;
 }
@@ -29,11 +29,11 @@
 }
 
 .cc-detail h2 {
-  font-size: 21px;
+  font-size: 20px;
   letter-spacing: -0.03em;
   line-height: 1.4;
   font-weight: 600;
-  margin: 16px 0 10px;
+  margin: 12px 0 18px;
   overflow-wrap: anywhere;
 }
 
@@ -50,10 +50,10 @@
 
 .cc-detail dl {
   display: grid;
-  grid-template-columns: 98px minmax(0, 1fr);
-  gap: 15px 10px;
-  font-size: 12px;
-  padding: 20px 0;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px 12px;
+  font-size: 13px;
+  padding: 16px 0;
   border-top: 1px solid var(--cc-border);
   border-bottom: 1px solid var(--cc-border);
   margin: 0;
@@ -114,28 +114,22 @@
   list-style: disc;
 }
 
-@media (max-width: 1250px) {
-  .cc-detail {
-    position: absolute;
-    z-index: 8;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 320px;
-    max-height: none;
-    padding: 16px 20px;
-    border: 1px solid var(--cc-border);
-    border-radius: 10px;
-    box-shadow: -12px 10px 40px #0002;
+.cc-detail-overlay .cc-detail {
+  position: absolute;
+  z-index: 8;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(var(--cc-detail-width), 100%);
+  border: 1px solid var(--cc-border);
+  border-radius: 10px;
+  box-shadow: -12px 10px 40px #0002;
+}
+@container calendar (max-width: 760px) {
+  .cc-detail-overlay .cc-detail {
+    width: 100%;
   }
 }
-
-@media (max-width: 760px) {
-  .cc-detail {
-    position: absolute;
-    width: 100%;
-    padding: 18px;
-    max-height: calc(100dvh - 190px);
-    overflow: auto;
-  }
+.cc-detail .cc-inline-actions {
+  margin-top: 18px;
 }

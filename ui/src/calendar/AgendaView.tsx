@@ -1,28 +1,36 @@
-import type { CivilDate } from "./dates.ts";
+import type { RegisterEventButton } from "./EventButton";
+import { EventButton } from "./EventButton";
+import { calendarStyle } from "./color";
+import { sourceLabel, deliveryLabel } from "./format";
+import { Badge } from "@kirocrew/app-sdk/ui";
 import { Fragment } from "react";
-import { Badge, Btn } from "@kirocrew/app-sdk/ui";
+import { formatDate } from "../i18n/format.ts";
+import { t } from "../i18n/index.ts";
 import { ChevronRight } from "../platform/kiro/icons";
-import type { CalendarViewItem } from "./types";
-import { DAYS, shift, dateKey } from "./dates";
+import { dateKey, shift } from "./dates";
+import type { CivilDate } from "./dates.ts";
 import { STATUS_LABEL, timeLabel } from "./format";
 import { TypeMark } from "./TypeMark";
-
+import type { CalendarViewItem } from "./types";
 type Props = {
   items: readonly CalendarViewItem[];
   base: CivilDate;
   today: CivilDate;
+  registerButton: RegisterEventButton;
   selectedId?: string;
-  onSelect: (item: CalendarViewItem, button: HTMLButtonElement) => void;
+  onSelect: (item: CalendarViewItem) => void;
 };
-
 export function AgendaView({
   items,
   base,
   today,
+  registerButton,
   selectedId,
   onSelect,
 }: Props) {
-  const days = [...new Set(items.map((item) => item.day))].sort((a, b) => a - b);
+  const days = [...new Set(items.map((item) => item.day))].sort(
+    (a, b) => a - b,
+  );
   const monthOf = (day: number) => {
     const date = shift(base, day);
     return `${date.year}-${date.month}`;
@@ -33,53 +41,72 @@ export function AgendaView({
     <div className="cc-agenda">
       {days.map((day, index) => {
         const date = shift(base, day);
-        const monthHeading = multiMonth && (index === 0 || monthOf(days[index - 1]) !== monthOf(day));
+        const monthHeading =
+          multiMonth &&
+          (index === 0 || monthOf(days[index - 1]) !== monthOf(day));
         const list = items
           .filter((x) => x.day === day)
           .sort((a, b) => a.start - b.start);
         if (!list.length) return null;
         return (
           <Fragment key={day}>
-          {monthHeading && <h2 className="cc-agenda-month">{date.year}년 {date.month}월</h2>}
-          <section>
-            <h3>
-              {date.month}월 {date.day}일{" "}
-              <span>{DAYS[date.dayOfWeek - 1]}요일</span>
-              {dateKey(date) === dateKey(today) && (
-                <Badge variant="aim">오늘</Badge>
-              )}
-            </h3>
-            {list.map((item) => (
-              <Btn
-                key={item.id}
-                className={`cc-agenda-item cc-${item.kind} ${selectedId === item.id ? "cc-agenda-selected" : ""}`}
-                onClick={(e) => onSelect(item, e.currentTarget)}
-              >
-                <span className="cc-agenda-time">{timeLabel(item)}</span>
-                <span className="cc-agenda-title">
-                  <TypeMark item={item} />
-                  {item.title}
-                </span>
-                <span className="cc-agenda-source">{item.source}</span>
-                {item.status && (
-                  <Badge
-                    variant={
-                      item.status === "failed"
-                        ? "err"
-                        : item.status === "success"
-                          ? "ok"
-                          : item.status === "running"
-                            ? "aim"
-                            : "muted"
-                    }
-                  >
-                    {STATUS_LABEL[item.status]}
-                  </Badge>
+            {monthHeading && (
+              <h2 className="cc-agenda-month">
+                {formatDate(date, { year: "numeric", month: "long" })}
+              </h2>
+            )}
+            <section>
+              <h3>
+                {formatDate(date, {
+                  month: "short",
+                  day: "numeric",
+                  weekday: "short",
+                })}
+                {dateKey(date) === dateKey(today) && (
+                  <Badge variant="aim">{t("common.today")}</Badge>
                 )}
-                <ChevronRight size={14} />
-              </Btn>
-            ))}
-          </section>
+              </h3>
+              {list.map((item) => (
+                <EventButton
+                  eventId={item.id}
+                  registerButton={registerButton}
+                  selected={selectedId === item.id}
+
+                  key={item.id}
+                  style={calendarStyle(item.calendarColor)}
+                  className={`cc-agenda-item cc-${item.kind}`}
+                  onClick={() => onSelect(item)}
+                >
+                  <span className="cc-agenda-time">{timeLabel(item)}</span>
+                  <span className="cc-agenda-title">
+                    <TypeMark item={item} />
+                    {item.title}
+                  </span>
+                  <span className="cc-agenda-source">{sourceLabel(item)}</span>
+                  {item.deliveryState && (
+                    <span className="cc-agenda-delivery">
+                      {deliveryLabel(item.deliveryState)}
+                    </span>
+                  )}
+                  {item.status && (
+                    <Badge
+                      variant={
+                        item.status === "failed"
+                          ? "err"
+                          : item.status === "success"
+                            ? "ok"
+                            : item.status === "running"
+                              ? "aim"
+                              : "muted"
+                      }
+                    >
+                      {STATUS_LABEL[item.status]}
+                    </Badge>
+                  )}
+                  <ChevronRight size={14} />
+                </EventButton>
+              ))}
+            </section>
           </Fragment>
         );
       })}

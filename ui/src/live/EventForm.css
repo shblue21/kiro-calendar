@@ -76,12 +76,15 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
   background: var(--cc-panel);
   flex-shrink: 0;
 }
 
 .cc-editor-footer > div {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 

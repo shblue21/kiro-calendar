@@ -1,9 +1,9 @@
-import { civilDate } from "./dates.ts";
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countMonthlyItems } from './count.ts';
+import { test } from 'node:test';
 import { eventItems } from '../live/projection.ts';
 import type { CalendarEvent } from '../live/types.ts';
+import { countMonthlyItems } from './count.ts';
+import { civilDate } from "./dates.ts";
 
 const base = civilDate("2026-01-01");
 const range = {first: -7, end: 740};

@@ -1,9 +1,11 @@
-import { useState } from "react";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
-import type { CalendarPreferences as Preferences, Connection } from "./types";
+import { useState } from "react";
+import { t } from "../i18n/index.ts";
+import type { Notice } from "../i18n/notice.ts";
+import { renderNotice } from "../i18n/notice.ts";
 import { DestinationSelect } from "./DestinationSelect";
-import { message } from "./api";
-
+import { errorNotice } from "./api";
+import type { Connection, CalendarPreferences as Preferences } from "./types";
 export function CalendarPreferences({
   value,
   connections,
@@ -16,28 +18,29 @@ export function CalendarPreferences({
   const api = useAppApi(),
     { name } = useAppInfo(),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState<Notice | null>(null);
   async function update(change: Partial<Preferences>) {
     setBusy(true);
-    setError("");
+    setError(null);
     try {
       await api.put(`/api/apps/${name}/calendar/preferences`, change);
       await onRefresh();
     } catch (e) {
-      setError(message(e));
+      setError(errorNotice(e));
     } finally {
       setBusy(false);
     }
   }
   return (
-    <section className="cc-settings-section" aria-label="기본 캘린더">
-      <h3>기본 캘린더</h3>
-      <p>
-        Crew Calendar는 이 Crew의 저장소에 보관됩니다. 외부 계정 연결 없이
-        사용할 수 있습니다.
-      </p>
+    <section
+      className="cc-page-section"
+      aria-label={t("common.defaultCalendar")}
+    >
+      <h3>{t("common.defaultCalendar")}</h3>
+      <p>{t("settings.localStorageDescription")}</p>
+      <div className="cc-preferences-fields">
       <DestinationSelect
-        label="기본 저장 캘린더"
+        label={t("common.defaultSaveCalendar")}
         disabled={busy}
         connections={connections}
         value={value.defaultDestination}
@@ -50,9 +53,10 @@ export function CalendarPreferences({
           checked={value.showCrew}
           onChange={(e) => void update({ showCrew: e.target.checked })}
         />
-        Crew Calendar 표시
+        {t("common.showCrewCalendar")}
       </label>
-      {error && <p role="alert">{error}</p>}
+      </div>
+      {error && <p role="alert">{renderNotice(error)}</p>}
     </section>
   );
 }

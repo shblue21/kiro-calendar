@@ -1,6 +1,6 @@
-import { editTime, selectedOffset, timeChoices } from "../calendar/time";
 import type { TimeSelection } from "../calendar/time";
-
+import { editTime, selectedOffset, timeChoices } from "../calendar/time";
+import { t } from "../i18n/index.ts";
 export function TimeField({
   label,
   value,
@@ -27,10 +27,10 @@ export function TimeField({
       </label>
       {choices.length > 1 && (
         <label className="cc-time-choice">
-          이 시각은 두 번 발생합니다.
+          {t("common.thisTimeOccursTwice")}
           <select
             className="cc-control"
-            aria-label={`${label} UTC 오프셋`}
+            aria-label={t("time.offsetLabel", { field: label })}
             required
             value={selectedOffset(value, zone)}
             onChange={(e) =>
@@ -42,10 +42,13 @@ export function TimeField({
               })
             }
           >
-            <option value="">어느 시각인지 선택하세요</option>
+            <option value="">{t("common.chooseWhichOccurrence")}</option>
             {choices.map((choice, index) => (
               <option key={choice.offset} value={choice.offset}>
-                {index + 1}번째 · UTC{choice.offset}
+                {t("time.occurrenceOffset", {
+                  occurrence: index + 1,
+                  offset: choice.offset,
+                })}
               </option>
             ))}
           </select>

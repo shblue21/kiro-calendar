@@ -1,60 +1,69 @@
-import { zonedDay, zonedInput, dateRangeInstants } from "./calendar/time";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { WorkspacePage } from "./layout/WorkspacePage";
+import type { EventSeed } from "./calendar/creation";
 import { useAppApi, useAppInfo, useChatLauncher } from "@kirocrew/app-sdk";
 import { Btn } from "@kirocrew/app-sdk/ui";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarPage } from "./calendar/CalendarPage";
-import { monday, dateKey, shift } from "./calendar/dates";
-import { dayOffset } from "./calendar/dates";
+import { dateKey, dayOffset, monday, shift } from "./calendar/dates";
 import { calendarRange } from "./calendar/period";
+import { dateRangeInstants, zonedDay, zonedInput } from "./calendar/time";
 import type {
-  CalendarView,
   CalendarLayout,
+  CalendarView,
   CalendarViewItem,
 } from "./calendar/types";
+import { t } from "./i18n/index.ts";
+import type { Notice } from "./i18n/notice.ts";
+import { notice, NoticeError, renderNotice } from "./i18n/notice.ts";
+import { useLocale } from "./i18n/useLocale";
+import { collectionNotice, errorNotice } from "./live/api";
+import { CalendarConnections } from "./live/CalendarConnections";
+import { CalendarPreferences } from "./live/CalendarPreferences";
+import { CREW_DESTINATION } from "./live/DestinationSelect";
+import { DraftList } from "./live/DraftList";
+import {
+  ConfirmedEventEditor,
+  NewEventEditor,
+  ProposalEditor,
+} from "./live/EventEditors";
+import { EventTrash } from "./live/EventTrash";
+import { ExternalSavePanel } from "./live/ExternalSavePanel";
+import { calendarItems, eventItems } from "./live/projection";
 import type {
-  CalendarItem,
   CalendarEvent,
+  CalendarItem,
   Connection,
   CalendarPreferences as Preferences,
 } from "./live/types";
-import { calendarItems, eventItems } from "./live/projection";
-import {
-  NewEventEditor,
-  ProposalEditor,
-  ConfirmedEventEditor,
-} from "./live/EventEditors";
-import { ExternalSavePanel } from "./live/ExternalSavePanel";
-import { CalendarPreferences } from "./live/CalendarPreferences";
-import { EventTrash } from "./live/EventTrash";
-import { CREW_DESTINATION } from "./live/DestinationSelect";
-import { CalendarConnections } from "./live/CalendarConnections";
-import { DraftList } from "./live/DraftList";
-import { ProposalSettings } from "./settings/ProposalSettings";
-import { Settings2, Plus, ArrowLeft, RotateCcw } from "./platform/kiro/icons";
-import { message } from "./live/api";
 import { can } from "./live/types";
+import { AlertCircle, Plus, RotateCcw, Settings2 } from "./platform/kiro/icons";
+import { ProposalSettings } from "./settings/ProposalSettings";
 import styles from "./styles.css?inline";
-
 export default function CalendarApp() {
+  useLocale();
   const api = useRef(useAppApi()),
     { name } = useAppInfo();
   const [zone, setZone] = useState(""),
-    [error, setError] = useState("");
+    [error, setError] = useState<Notice | null>(null);
   const load = useCallback(async () => {
     try {
-      const body = await api.current.get<{ settings: { timezone: string } }>(
-        `/api/apps/${name}/settings`,
-      );
+      const body = await api.current.get<{
+        settings: {
+          timezone: string;
+        };
+      }>(`/api/apps/${name}/settings`);
       setZone(body.settings.timezone);
-      setError("");
+      setError(null);
       return body.settings.timezone;
     } catch {
-      setError("OS 시스템 시간대를 확인하지 못했습니다.");
-      throw new Error("OS 시스템 시간대를 확인하지 못했습니다.");
+      setError(notice("timezone.loadError"));
+      throw new NoticeError(notice("timezone.loadError"));
     }
   }, [name]);
   useEffect(() => {
-    const refreshZone = () => { void load().catch(() => {}); };
+    const refreshZone = () => {
+      void load().catch(() => {});
+    };
     refreshZone();
     window.addEventListener("focus", refreshZone);
     return () => window.removeEventListener("focus", refreshZone);
@@ -63,13 +72,26 @@ export default function CalendarApp() {
     return (
       <div className="cc-calendar">
         <style>{styles}</style>
-        <p role="status">{error || "캘린더를 불러오고 있습니다."}</p>
-        {error && <Btn onClick={() => void load().catch(() => {})}>다시 확인</Btn>}
+        <p role="status">
+          {renderNotice(error) || t("common.loadingCalendar")}
+        </p>
+        {error && (
+          <Btn onClick={() => void load().catch(() => {})}>
+            {t("common.checkAgain")}
+          </Btn>
+        )}
       </div>
     );
   return <CalendarWorkspace timezone={zone} refreshTimezone={load} />;
 }
-function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; refreshTimezone: () => Promise<string> }) {
+function CalendarWorkspace({
+  timezone,
+  refreshTimezone,
+}: {
+  timezone: string;
+  refreshTimezone: () => Promise<string>;
+}) {
+  const language = useLocale();
   const api = useRef(useAppApi()),
     { name } = useAppInfo(),
     { openChat } = useChatLauncher();
@@ -81,17 +103,19 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     ),
     [view, setView] = useState<CalendarView>("week"),
     [layout, setLayout] = useState<CalendarLayout>("calendar");
-  const [page, setPage] = useState<"calendar" | "settings">(() =>
+  const [page, setPage] = useState<
+    "calendar" | "proposals" | "activity" | "settings"
+  >(() =>
     new URLSearchParams(window.location.search).get("view") === "drafts"
-      ? "settings"
+      ? "proposals"
       : "calendar",
   );
   const [records, setRecords] = useState<CalendarItem[]>([]),
     [events, setEvents] = useState<CalendarEvent[]>([]),
     [connections, setConnections] = useState<Connection[]>([]);
-  const [recordError, setRecordError] = useState(""),
-    [eventError, setEventError] = useState(""),
-    [connectionError, setConnectionError] = useState("");
+  const [recordError, setRecordError] = useState<Notice | null>(null),
+    [eventError, setEventError] = useState<Notice | null>(null),
+    [connectionError, setConnectionError] = useState<Notice | null>(null);
   const [loading, setLoading] = useState(true),
     [refreshing, setRefreshing] = useState(false);
   const [preferences, setPreferences] = useState<Preferences>({
@@ -104,10 +128,20 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     item: CalendarItem | null;
     mode: "content" | "delivery";
     startImmediately?: boolean;
+    seed?: EventSeed;
   } | null>(null);
   const [undo, setUndo] = useState<CalendarItem | null>(null);
-  const [jump, setJump] = useState<{ id: string; serial: number }>();
-  const [feedback, setFeedback] = useState("");
+  const [jump, setJump] = useState<{
+    id: string;
+    serial: number;
+  }>();
+  const [feedback, setFeedbackState] = useState<{
+    notice: Notice;
+    tone: "info" | "error";
+  } | null>(null);
+  function setFeedback(value: Notice | null, tone: "info" | "error" = "info") {
+    setFeedbackState(value ? { notice: value, tone } : null);
+  }
   const recordSequence = useRef(0),
     eventSequence = useRef(0),
     connectionSequence = useRef(0),
@@ -128,15 +162,19 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     try {
       const body = await api.current.get<{
         items: CalendarItem[];
-        errors: { message: string }[];
+        errors: {
+          message: string;
+        }[];
       }>(`${base}/calendar/items`);
       if (seq === recordSequence.current) {
         setRecords(body.items);
-        setRecordError(body.errors.map((e) => e.message).join(" "));
+        setRecordError(collectionNotice(body.errors));
       }
     } catch (error) {
       if (seq === recordSequence.current)
-        setRecordError(`일정을 불러오지 못했습니다. ${message(error)}`);
+        setRecordError(
+          notice("calendar.loadError", { error: errorNotice(error) }),
+        );
     } finally {
       if (seq === recordSequence.current) setLoading(false);
     }
@@ -149,11 +187,11 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
       }>(`${base}/calendar/connection`);
       if (seq === connectionSequence.current) {
         setConnections(body.connections);
-        setConnectionError("");
+        setConnectionError(null);
       }
     } catch (error) {
       if (seq === connectionSequence.current) {
-        setConnectionError(message(error));
+        setConnectionError(errorNotice(error));
         setConnections([]);
       }
     }
@@ -161,9 +199,9 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
   const loadPreferences = useCallback(async () => {
     const seq = ++preferenceSequence.current;
     try {
-      const body = await api.current.get<{ preferences: Preferences }>(
-        `${base}/calendar/preferences`,
-      );
+      const body = await api.current.get<{
+        preferences: Preferences;
+      }>(`${base}/calendar/preferences`);
       if (seq === preferenceSequence.current) {
         setPreferences(body.preferences);
         setPreferencesReady(true);
@@ -171,7 +209,8 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     } catch (error) {
       if (seq === preferenceSequence.current)
         setFeedback(
-          `기본 캘린더 설정을 불러오지 못했습니다. ${message(error)}`,
+          notice("settings.loadError", { error: errorNotice(error) }),
+          "error",
         );
     }
   }, [base]);
@@ -179,24 +218,28 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     const seq = ++eventSequence.current;
     if (!connections.some((c) => c.selectedCalendarIds.length)) {
       setEvents([]);
-      setEventError("");
+      setEventError(null);
       return;
     }
     try {
       const body = await api.current.get<{
         events: CalendarEvent[];
-        errors: { message: string }[];
+        errors: {
+          message: string;
+        }[];
       }>(
         `${base}/calendar/events?start=${encodeURIComponent(rangeStart)}&end=${encodeURIComponent(rangeEnd)}`,
       );
       if (seq === eventSequence.current) {
         setEvents(body.events);
-        setEventError(body.errors.map((e) => e.message).join(" "));
+        setEventError(collectionNotice(body.errors));
       }
     } catch (error) {
       if (seq === eventSequence.current) {
         setEvents([]);
-        setEventError(`일정 조회 실패. ${message(error)}`);
+        setEventError(
+          notice("calendar.lookupError", { error: errorNotice(error) }),
+        );
       }
     }
   }, [base, rangeStart, rangeEnd, selected]);
@@ -220,10 +263,14 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     setRefreshing(true);
     try {
       await Promise.all([
-        refreshTimezone(), loadRecords(), loadConnection(), loadPreferences(), loadEvents(),
+        refreshTimezone(),
+        loadRecords(),
+        loadConnection(),
+        loadPreferences(),
+        loadEvents(),
       ]);
     } catch (error) {
-      setFeedback(message(error));
+      setFeedback(errorNotice(error), "error");
     } finally {
       setRefreshing(false);
     }
@@ -236,6 +283,7 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
         range,
         timezone,
         preferences.showCrew,
+        connections,
       ),
       ...events.flatMap((e) => eventItems(e, weekStart, range, timezone)),
     ],
@@ -247,6 +295,8 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
       range.end,
       timezone,
       preferences.showCrew,
+      connections,
+      language,
     ],
   );
   const offset = Math.floor(dayOffset(dateKey(focusDate), weekStart) / 7);
@@ -255,16 +305,16 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     day: dayOffset(wallClock.slice(0, 10), weekStart),
     instant: clock.toISOString(),
   };
-  function edit(draft: CalendarItem | null) {
+  function edit(draft: CalendarItem | null, seed?: EventSeed) {
     if (draft && !can(draft, "edit")) {
       openDelivery(draft);
       return;
     }
     if ((!draft || draft.status === "proposed") && !preferencesReady) {
-      setFeedback("기본 저장 위치를 불러온 뒤 다시 시도하세요.");
+      setFeedback(notice("editor.destinationLoading"));
       return;
     }
-    setEditor({ key: crypto.randomUUID(), item: draft, mode: "content" });
+    setEditor({ key: crypto.randomUUID(), item: draft, mode: "content", seed });
   }
   function openDelivery(item: CalendarItem, startImmediately = false) {
     setEditor({
@@ -293,12 +343,11 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     await changed();
   }
   async function remove(item: CalendarItem) {
-    const result = await api.current.post<{ item: CalendarItem }>(
-      `${base}/calendar/items/${item.id}/delete`,
-      { revision: item.revision },
-    );
+    const result = await api.current.post<{
+      item: CalendarItem;
+    }>(`${base}/calendar/items/${item.id}/delete`, { revision: item.revision });
     setUndo(result.item);
-    setFeedback("일정을 삭제했습니다.");
+    setFeedback(notice("common.eventDeleted"));
     setEditor(null);
     await changed();
   }
@@ -307,7 +356,7 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
       revision: item.revision,
     });
     setUndo(null);
-    setFeedback("일정을 복원했습니다.");
+    setFeedback(notice("common.eventRestored"));
     await changed();
   }
   function origin(key?: string) {
@@ -321,7 +370,7 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
       });
       await loadRecords();
     } catch (error) {
-      setFeedback(message(error));
+      setFeedback(errorNotice(error), "error");
     }
   }
   function actions(id: string) {
@@ -333,25 +382,33 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
     return (
       <div className="cc-inline-actions">
         {session?.startsWith("dashboard:") && (
-          <Btn onClick={() => origin(session)}>원래 대화로 돌아가기</Btn>
+          <Btn onClick={() => origin(session)}>
+            {t("common.returnToConversation")}
+          </Btn>
         )}
         {draft && can(draft, "edit") && (
           <Btn onClick={() => edit(draft)}>
-            {draft.status === "proposed" ? "검토·저장" : "수정"}
+            {draft.status === "proposed"
+              ? t("common.reviewAndSave")
+              : t("common.edit")}
           </Btn>
         )}
         {draft?.status === "confirmed" &&
           draft.destination.connectionId !== "crew" && (
-            <Btn onClick={() => openDelivery(draft)}>외부 저장 상태</Btn>
+            <Btn onClick={() => openDelivery(draft)}>
+              {t("common.externalSaveStatus")}
+            </Btn>
           )}
         {draft && can(draft, "delete") && (
           <Btn
             danger
             onClick={() =>
-              void remove(draft).catch((e) => setFeedback(message(e)))
+              void remove(draft).catch((e) =>
+                setFeedback(errorNotice(e), "error"),
+              )
             }
           >
-            삭제
+            {t("common.delete")}
           </Btn>
         )}
       </div>
@@ -369,14 +426,8 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
           <span className="cc-label">{timezone}</span>
         </div>
         <div className="cc-header-actions">
-          {page !== "calendar" && (
-            <Btn onClick={() => setPage("calendar")}>
-              <ArrowLeft size={14} />
-              캘린더
-            </Btn>
-          )}
           <Btn
-            aria-label="일정 새로고침"
+            aria-label={t("common.refreshEvents")}
             disabled={refreshing}
             onClick={() => void refresh()}
           >
@@ -384,10 +435,10 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
           </Btn>
           <Btn disabled={!preferencesReady} onClick={() => edit(null)}>
             <Plus size={15} />
-            일정 추가
+            {t("common.addEvent")}
           </Btn>
           <Btn
-            aria-label="캘린더 설정"
+            aria-label={t("common.calendarSettings")}
             aria-pressed={page === "settings"}
             onClick={() =>
               setPage(page === "settings" ? "calendar" : "settings")
@@ -397,19 +448,59 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
           </Btn>
         </div>
       </header>
+      <nav className="cc-work-nav" aria-label={t("navigation.label")}>
+        <button
+          type="button"
+          aria-current={page === "calendar" ? "page" : undefined}
+          onClick={() => setPage("calendar")}
+        >
+          {t("common.calendar")}
+        </button>
+        <button
+          type="button"
+          aria-current={page === "proposals" ? "page" : undefined}
+          aria-label={t("navigation.proposalCount", {
+            count: visibleDrafts.length,
+          })}
+          onClick={() => setPage("proposals")}
+        >
+          {t("navigation.proposals")}
+          {visibleDrafts.length > 0 && (
+            <span className="cc-count">{visibleDrafts.length}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          aria-current={page === "activity" ? "page" : undefined}
+          onClick={() => setPage("activity")}
+        >
+          {t("navigation.activity")}
+        </button>
+      </nav>
       {feedback && (
-        <div className="cc-feedback" role="status">
-          {feedback}
+        <div
+          className={`cc-feedback ${feedback.tone === "error" ? "cc-feedback--error" : ""}`}
+          role={feedback.tone === "error" ? "alert" : "status"}
+        >
+          {feedback.tone === "error" && (
+            <AlertCircle size={16} aria-hidden="true" />
+          )}
+          {renderNotice(feedback.notice)}
           {undo && (
             <Btn
               onClick={() =>
-                void restore(undo).catch((e) => setFeedback(message(e)))
+                void restore(undo).catch((e) =>
+                  setFeedback(errorNotice(e), "error"),
+                )
               }
             >
-              실행 취소
+              {t("common.undo")}
             </Btn>
           )}
-          <Btn aria-label="안내 닫기" onClick={() => setFeedback("")}>
+          <Btn
+            aria-label={t("common.dismissMessage")}
+            onClick={() => setFeedback(null)}
+          >
             ×
           </Btn>
         </div>
@@ -418,7 +509,7 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
         className="cc-route-panel"
         hidden={page !== "calendar"}
         role="region"
-        aria-label="캘린더"
+        aria-label={t("common.calendar")}
       >
         <CalendarPage
           timezone={timezone}
@@ -432,11 +523,10 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
           focusDate={focusDate}
           onFocusDate={setFocusDate}
           offset={offset}
-          onOffset={(n) => setFocusDate(shift(weekStart, n * 7))}
           jump={jump}
           status={loading ? "loading" : "ready"}
           onReload={() => void refresh()}
-          onAdd={() => edit(null)}
+          onAdd={(seed) => edit(null, seed)}
           onEdit={(item: CalendarViewItem) => {
             const d = records.find((d) => d.id === item.itemId);
             if (d) edit(d);
@@ -445,38 +535,42 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
           notice={
             <>
               {(recordError || eventError) && (
-                <div className="cc-feedback" role="alert">
-                  {[recordError, eventError].filter(Boolean).join(" ")}
-                  <Btn onClick={() => void refresh()}>다시 확인</Btn>
+                <div className="cc-feedback cc-feedback--error" role="alert">
+                  <AlertCircle size={16} aria-hidden="true" />
+                  {[recordError, eventError]
+                    .map(renderNotice)
+                    .filter(Boolean)
+                    .join(" ")}
+                  <Btn onClick={() => void refresh()}>
+                    {t("common.checkAgain")}
+                  </Btn>
                 </div>
               )}
             </>
           }
         />
       </div>
-      <div
-        className="cc-route-panel"
+      <WorkspacePage
+        label={t("common.settings")}
+        title={t("common.settings")}
         hidden={page !== "settings"}
-        role="region"
-        aria-label="설정"
       >
-        <div className="cc-settings-page">
-          <div className="cc-settings-heading">
-            <h2>설정</h2>
-          </div>
-          {preferencesReady && (
-            <CalendarPreferences
-              value={preferences}
-              connections={connections}
-              onRefresh={loadPreferences}
-            />
-          )}
-          <CalendarConnections
+        {preferencesReady && (
+          <CalendarPreferences
+            value={preferences}
             connections={connections}
-            error={connectionError}
-            onRefresh={loadConnection}
+            onRefresh={loadPreferences}
           />
-          <ProposalSettings />
+        )}
+        <CalendarConnections
+          connections={connections}
+          error={connectionError}
+          onRefresh={loadConnection}
+        />
+        {page === "settings" && <ProposalSettings />}
+      </WorkspacePage>
+      {page === "proposals" && (
+        <WorkspacePage label={t("navigation.proposals")}>
           <DraftList
             drafts={visibleDrafts}
             timezone={timezone}
@@ -485,9 +579,19 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
             onSelect={selectDraft}
             onDismiss={(d) => void dismiss(d)}
             onOrigin={origin}
+            onConfigure={() => setPage("settings")}
           />
-          <section className="cc-settings-section">
-            <h3>외부 저장 기록</h3>
+        </WorkspacePage>
+      )}
+      {page === "activity" && (
+        <WorkspacePage label={t("navigation.activity")}>
+          {recordError && (
+            <p role="alert" className="cc-form-error">
+              {renderNotice(recordError)}
+            </p>
+          )}
+          <section className="cc-page-section">
+            <h3>{t("common.externalSaveHistory")}</h3>
             {records
               .filter(
                 (d) =>
@@ -498,7 +602,9 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
               .map((d) => (
                 <div className="cc-draft-row" key={d.id}>
                   <strong>{d.title}</strong>
-                  <Btn onClick={() => openDelivery(d)}>저장 상태</Btn>
+                  <Btn onClick={() => openDelivery(d)}>
+                    {t("common.saveStatus")}
+                  </Btn>
                 </div>
               ))}
           </section>
@@ -506,14 +612,15 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
             items={records.filter((d) => !!d.deletedAt)}
             onRestore={restore}
           />
-        </div>
-      </div>
+        </WorkspacePage>
+      )}
       {editor &&
         (!editor.item ? (
           <NewEventEditor
             refreshTimezone={refreshTimezone}
             key={editor.key}
-            date={focusDate}
+            date={editor.seed?.date ?? focusDate}
+            initialTimes={editor.seed?.times}
             timezone={timezone}
             connections={connections}
             defaultDestination={preferences.defaultDestination}
@@ -522,6 +629,7 @@ function CalendarWorkspace({ timezone, refreshTimezone }: { timezone: string; re
           />
         ) : editor.mode === "delivery" ? (
           <ExternalSavePanel
+            connections={connections}
             refreshTimezone={refreshTimezone}
             key={editor.key}
             item={editor.item}

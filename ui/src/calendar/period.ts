@@ -1,21 +1,33 @@
-import { dateKey, monday, shift } from "./dates.ts";
-import { dayOffset } from "./dates.ts";
 import type { CivilDate } from "./dates.ts";
+import { dateKey, dayOffset, monday, shift } from "./dates.ts";
 import type { CalendarView } from "./types.ts";
 
 export function monthDates(date: CivilDate) {
   const start = monday(date.with({ day: 1 }));
   return Array.from({ length: 42 }, (_, day) => shift(start, day));
 }
-export function movePeriod(date: CivilDate, view: CalendarView, direction: number) {
+export function movePeriod(
+  date: CivilDate,
+  view: CalendarView,
+  direction: number,
+) {
+  if (view === "day") return shift(date, direction);
   if (view === "month") return date.with({ day: 1 }).add({ months: direction });
   if (view === "year") return date.with({ day: 1 }).add({ years: direction });
   return shift(date, direction * 7);
 }
-export function calendarRange(date: CivilDate, view: CalendarView, base: CivilDate, layout: "calendar" | "list" = "calendar") {
+export function calendarRange(
+  date: CivilDate,
+  view: CalendarView,
+  base: CivilDate,
+  layout: "calendar" | "list" = "calendar",
+) {
   let first: CivilDate;
   let end: CivilDate;
-  if (view === "year") {
+  if (view === "day") {
+    first = date;
+    end = shift(date, 1);
+  } else if (view === "year") {
     first = date.with({ month: 1, day: 1 });
     end = first.add({ years: 1 });
   } else if (view === "month") {
@@ -25,5 +37,8 @@ export function calendarRange(date: CivilDate, view: CalendarView, base: CivilDa
     first = monday(date);
     end = shift(first, 7);
   }
-  return { first: dayOffset(dateKey(first), base), end: dayOffset(dateKey(end), base) };
+  return {
+    first: dayOffset(dateKey(first), base),
+    end: dayOffset(dateKey(end), base),
+  };
 }
