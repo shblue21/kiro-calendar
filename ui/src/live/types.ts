@@ -58,7 +58,6 @@ export type Connection = {
   confirmation?: Confirmation;
   calendars: Calendar[];
   selectedCalendarIds: string[];
-  defaultCalendarId: string;
 };
 export type CalendarEvent = {
   connectionId?: string;
@@ -92,7 +91,7 @@ export type Operation = {
     | "cancelled"
     | "failed"
     | "unknown";
-  canReconcile?: boolean;
+  canReconcile: boolean;
   confirmation?: Confirmation;
   connectionName?: ConnectionName;
   provider?: string;

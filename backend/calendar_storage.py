@@ -23,22 +23,26 @@ class CalendarStorage:
             raise StorageUnavailable("Calendar state unavailable") from exc
 
     def _connections(self) -> dict:
-        data = self._read(self.root / "connections.json", {"connections": {}})
-        if not isinstance(data.get("connections"), dict):
+        data = self._read(
+            self.root / "connections.json", {"schemaVersion": 1, "connections": {}}
+        )
+        if (
+            type(data.get("schemaVersion")) is not int
+            or data["schemaVersion"] != 1
+            or not isinstance(data.get("connections"), dict)
+        ):
             raise StorageUnavailable("Connection settings unavailable")
         return data["connections"]
 
     def connection(self, connection_id: str) -> dict:
         value = self._connections().get(connection_id)
         if value is None:
-            return {"selectedCalendarIds": [], "defaultCalendarId": ""}
-        if (
-            not isinstance(value, dict)
-            or not isinstance(value.get("selectedCalendarIds"), list)
-            or not isinstance(value.get("defaultCalendarId"), str)
+            return {"selectedCalendarIds": []}
+        if not isinstance(value, dict) or not isinstance(
+            value.get("selectedCalendarIds"), list
         ):
             raise StorageUnavailable("Connection settings invalid")
-        return value
+        return {"selectedCalendarIds": value["selectedCalendarIds"]}
 
     def save_connection(self, connection_id: str, value: dict) -> None:
         connections = self._connections()

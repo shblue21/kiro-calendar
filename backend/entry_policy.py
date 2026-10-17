@@ -49,7 +49,7 @@ def delivery(item):
         )
         and _strings(value.get("verification", {}), "state")
         and _strings(value.get("verification", {}).get("error", {}), "code", "message")
-        and type(value.get("canReconcile", True)) is bool
+        and type(value.get("canReconcile")) is bool
         and isinstance(value.get("target"), dict)
         and type(value.get("itemRevision")) is int
         and value.get("itemId") == item["id"]
@@ -81,7 +81,7 @@ def actions(item):
     if state == "unavailable":
         return []
     if state in PENDING or state == "confirmed":
-        return ["reconcile"] if op.get("canReconcile", True) else []
+        return ["reconcile"] if op["canReconcile"] else []
     if item.get("deletedAt"):
         return ["restore"]
     if item["status"] == "proposed":
@@ -103,7 +103,7 @@ def require_action(item, action):
 
 
 def require_revision(item, revision):
-    if type(revision) is not int or revision != item.get("revision", 1):
+    if type(revision) is not int or revision != item["revision"]:
         raise CalendarError(
             "stale_event", "다른 곳에서 변경된 일정입니다. 닫고 다시 불러오세요."
         )

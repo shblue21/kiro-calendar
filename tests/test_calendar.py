@@ -1,6 +1,7 @@
 """External save flows with real persistence and a fake calendar boundary."""
 
 from __future__ import annotations
+import json
 import tempfile
 import unittest
 import uuid
@@ -38,6 +39,35 @@ class CalendarTest(unittest.TestCase):
 
     def prepare(self):
         return self.service.prepare(self.item["id"], self.item["revision"])
+
+    def test_connection_selection_persistence_and_schema_boundary(self):
+        self.assertEqual(
+            self.service.storage.connection("primary"), {"selectedCalendarIds": []}
+        )
+        target = {"connectionId": "primary", "calendarId": "a"}
+        self.service.preferences({"defaultDestination": target})
+        self.service.select({"connectionId": "primary", "selectedCalendarIds": ["a"]})
+        storage = CalendarStorage(self.tmp.name)
+        self.assertEqual(storage.connection("primary"), {"selectedCalendarIds": ["a"]})
+        self.assertEqual(storage.preferences()["defaultDestination"], target)
+        path = Path(self.tmp.name) / "calendar/connections.json"
+        expected = {
+            "schemaVersion": 1,
+            "connections": {"primary": {"selectedCalendarIds": ["a"]}},
+        }
+        self.assertEqual(json.loads(path.read_text()), expected)
+        for version in [None, 2, True, "1"]:
+            with self.subTest(version=version):
+                value = {**expected, "schemaVersion": version}
+                if version is None:
+                    del value["schemaVersion"]
+                original = json.dumps(value)
+                path.write_text(original)
+                with self.assertRaises(load("domain").StorageUnavailable):
+                    storage.connection("primary")
+                with self.assertRaises(load("domain").StorageUnavailable):
+                    storage.save_connection("primary", {"selectedCalendarIds": []})
+                self.assertEqual(path.read_text(), original)
 
     def test_concurrent_claims_only_one_executes(self):
         op = self.prepare()

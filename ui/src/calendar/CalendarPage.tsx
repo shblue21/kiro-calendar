@@ -45,7 +45,7 @@ type Props = {
     id: string;
     serial: number;
   };
-  status: "loading" | "error" | "ready";
+  status: "loading" | "ready";
   onAdd: (seed?: EventSeed) => void;
 };
 export function CalendarPage({
@@ -206,21 +206,11 @@ export function CalendarPage({
           className={`cc-workspace ${selected ? "cc-has-detail" : ""} ${contentWidth >= VIEW_LAYOUT.dockDetailAbovePx ? "cc-detail-docked" : "cc-detail-overlay"}`}
         >
           <section className="cc-main" aria-label={t("common.calendarGrid")}>
-            {status === "loading" || status === "error" ? (
+            {status === "loading" ? (
               <div className="cc-state-panel" role="status">
-                <h3>
-                  {status === "loading"
-                    ? t("common.loadingEvents")
-                    : t("common.eventsLoadErrorHeading")}
-                </h3>
-                <p>
-                  {status === "loading"
-                    ? t("calendar.loadingDescription")
-                    : t("calendar.connectionRetry")}
-                </p>
-                <Btn onClick={onReload} disabled={status === "loading"}>
-                  {status === "loading" ? t("common.loading") : t("common.tryAgain")}
-                </Btn>
+                <h3>{t("common.loadingEvents")}</h3>
+                <p>{t("calendar.loadingDescription")}</p>
+                <Btn disabled>{t("common.loading")}</Btn>
               </div>
             ) : effectiveLayout === "calendar" && view === "month" ? (
               <MonthView

@@ -127,10 +127,7 @@ class CalendarService:
         with self.repository.transaction():
             self.storage.save_connection(
                 binding.id,
-                {
-                    "selectedCalendarIds": list(dict.fromkeys(ids)),
-                    "defaultCalendarId": "",
-                },
+                {"selectedCalendarIds": list(dict.fromkeys(ids))},
             )
         return self.storage.connection(binding.id)
 

@@ -66,12 +66,11 @@ function ConnectionCard({
       setBusy(false);
     }
   }
-  function select(ids: string[], target: string) {
+  function select(ids: string[]) {
     void run(() =>
       api.put(`${base}/connection`, {
         connectionId: c.id,
         selectedCalendarIds: ids,
-        defaultCalendarId: target,
       }),
     );
   }
@@ -114,7 +113,6 @@ function ConnectionCard({
                       e.target.checked
                         ? [...c.selectedCalendarIds, cal.id]
                         : c.selectedCalendarIds.filter((id) => id !== cal.id),
-                      c.defaultCalendarId,
                     )
                   }
                 />
