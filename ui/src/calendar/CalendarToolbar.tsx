@@ -49,6 +49,14 @@ export function CalendarToolbar({
   onSearch,
 }: Props) {
   const layoutId = useId();
+  const period =
+    view === "day"
+      ? t("common.day")
+      : view === "month"
+        ? t("common.periodMonth")
+        : view === "year"
+          ? t("common.periodYear")
+          : t("common.week");
   const [open, setOpen] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -73,36 +81,12 @@ export function CalendarToolbar({
     <div className="cc-toolbar">
       <div className="cc-date-nav">
         <ControlCell>
-          <Btn
-            aria-label={t("common.previous", {
-              period:
-                view === "day"
-                  ? t("common.day")
-                  : view === "month"
-                    ? t("common.periodMonth")
-                    : view === "year"
-                      ? t("common.periodYear")
-                      : t("common.week"),
-            })}
-            onClick={onPrevious}
-          >
+          <Btn aria-label={t("common.previous", { period })} onClick={onPrevious}>
             <ChevronLeft size={16} />
           </Btn>
         </ControlCell>
         <ControlCell>
-          <Btn
-            aria-label={t("common.next", {
-              period:
-                view === "day"
-                  ? t("common.day")
-                  : view === "month"
-                    ? t("common.periodMonth")
-                    : view === "year"
-                      ? t("common.periodYear")
-                      : t("common.week"),
-            })}
-            onClick={onNext}
-          >
+          <Btn aria-label={t("common.next", { period })} onClick={onNext}>
             <ChevronRight size={16} />
           </Btn>
         </ControlCell>

@@ -1,10 +1,9 @@
 import { NativeTextarea } from "../platform/kiro/NativeControls";
 import { Input } from "@kirocrew/app-sdk/ui";
-import type { EventTimes } from "../calendar/creation";
+import { defaultEventWallTimes, type EventTimes } from "../calendar/creation";
 import { Btn, Badge } from "@kirocrew/app-sdk/ui";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { dateKey } from "../calendar/dates";
 import type { CivilDate } from "../calendar/dates.ts";
 import { editTime, resolveTime, rezoneTime, timeSelection } from "../calendar/time";
 import { t } from "../i18n/index.ts";
@@ -48,22 +47,25 @@ export function EventForm({
   secondary,
   targetChanged = false,
 }: Props) {
-  const initialFields = () => ({
-    title: item?.title || "",
-    start: item
-      ? timeSelection(item.start, timezone)
-      : initialTimes
-        ? timeSelection(initialTimes.start, timezone)
-        : editTime(`${dateKey(date)}T10:00`, timezone),
-    end: item?.end
-      ? timeSelection(item.end, timezone)
-      : item
-        ? timeSelection(eventEnd(item), timezone)
+  const initialFields = () => {
+    const defaults = defaultEventWallTimes(date);
+    return {
+      title: item?.title || "",
+      start: item
+        ? timeSelection(item.start, timezone)
         : initialTimes
-          ? timeSelection(initialTimes.end, timezone)
-          : editTime(`${dateKey(date)}T11:00`, timezone),
-    notes: item?.notes || "",
-  });
+          ? timeSelection(initialTimes.start, timezone)
+          : editTime(defaults.start, timezone),
+      end: item?.end
+        ? timeSelection(item.end, timezone)
+        : item
+          ? timeSelection(eventEnd(item), timezone)
+          : initialTimes
+            ? timeSelection(initialTimes.end, timezone)
+            : editTime(defaults.end, timezone),
+      notes: item?.notes || "",
+    };
+  };
   const [session, setSession] = useState(() => {
     const initial = initialFields();
     return { zone: timezone, initial, values: initial };

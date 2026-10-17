@@ -4,6 +4,17 @@ import { dateKey } from "./dates.ts";
 import { dayBounds } from "./time.ts";
 export type EventTimes = { start: string; end: string };
 export type EventSeed = { date: CivilDate; times?: EventTimes };
+
+/** Blank forms use wall times so ambiguous or missing local times remain editable. */
+export function defaultEventWallTimes(date: CivilDate) {
+  const start = date.toPlainDateTime({ hour: 10 });
+  const end = start.add({ milliseconds: DEFAULT_EVENT_DURATION_MS });
+  return {
+    start: start.toString({ smallestUnit: "minute" }),
+    end: end.toString({ smallestUnit: "minute" }),
+  };
+}
+
 /** Grid coordinates represent elapsed time, including repeated/missing DST hours. */
 export function seedAtMinute(date: CivilDate, zone: string, minute: number): EventSeed {
   const day = dayBounds(dateKey(date), zone);

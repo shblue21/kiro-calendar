@@ -83,11 +83,10 @@ export function CalendarPage({
       ? [focusDate]
       : weekdays().map((_, day) => shift(weekStart, offset * 7 + day));
   const gridFirst = dayOffset(dateKey(dates[0]), weekStart);
-  const effectiveView = view;
   const effectiveLayout = narrow && view === "week" ? "list" : layout;
   const isCurrentPeriod =
     referenceTime.day >= gridFirst && referenceTime.day < gridFirst + dates.length;
-  const range = calendarRange(focusDate, effectiveView, weekStart, effectiveLayout);
+  const range = calendarRange(focusDate, view, weekStart, effectiveLayout);
   const periodItems = suppliedItems.filter(
     (item) => item.day >= range.first && item.day < range.end,
   );
@@ -102,20 +101,19 @@ export function CalendarPage({
     ...item,
     day: item.day - gridFirst,
   }));
-  const selectedCanonical = canonicalItems.find((item) => item.id === selectedId);
-  const selected = selectedCanonical;
+  const selected = canonicalItems.find((item) => item.id === selectedId);
   const filteredOut = periodItems.length > 0 && items.length === 0;
   const rangeLabel =
-    effectiveView === "day"
+    view === "day"
       ? formatDate(focusDate, {
           year: "numeric",
           month: "long",
           day: "numeric",
           weekday: "short",
         })
-      : effectiveView === "year"
+      : view === "year"
         ? formatDate(focusDate, { year: "numeric" })
-        : effectiveView === "month"
+        : view === "month"
           ? formatDate(focusDate, { year: "numeric", month: "long" })
           : `${formatDate(dates[0])} – ${formatDate(dates[6])}`;
   useEffect(() => {
@@ -163,10 +161,10 @@ export function CalendarPage({
           range={rangeLabel}
           date={focusDate}
           onDate={moveDate}
-          onPrevious={() => moveDate(movePeriod(focusDate, effectiveView, -1))}
-          onNext={() => moveDate(movePeriod(focusDate, effectiveView, 1))}
+          onPrevious={() => moveDate(movePeriod(focusDate, view, -1))}
+          onNext={() => moveDate(movePeriod(focusDate, view, 1))}
           onReset={() => moveDate(shift(weekStart, referenceTime.day))}
-          view={effectiveView}
+          view={view}
           layout={effectiveLayout}
           onLayout={onLayout}
           narrow={narrow}
@@ -186,11 +184,11 @@ export function CalendarPage({
                   aria-label={t("common.search")}
                   placeholder={t("calendar.searchPlaceholder", {
                     period:
-                      effectiveView === "day"
+                      view === "day"
                         ? t("common.thisDay")
-                        : effectiveView === "year"
+                        : view === "year"
                           ? t("common.thisYear")
-                          : effectiveView === "month"
+                          : view === "month"
                             ? t("common.theDisplayedCalendar")
                             : t("common.thisWeek"),
                   })}
@@ -224,7 +222,7 @@ export function CalendarPage({
                   {status === "loading" ? t("common.loading") : t("common.tryAgain")}
                 </Btn>
               </div>
-            ) : effectiveLayout === "calendar" && effectiveView === "month" ? (
+            ) : effectiveLayout === "calendar" && view === "month" ? (
               <MonthView
                 date={focusDate}
                 base={weekStart}
@@ -239,7 +237,7 @@ export function CalendarPage({
                   onView("day");
                 }}
               />
-            ) : effectiveLayout === "calendar" && effectiveView === "year" ? (
+            ) : effectiveLayout === "calendar" && view === "year" ? (
               <YearView
                 date={focusDate}
                 base={weekStart}
