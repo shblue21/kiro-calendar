@@ -89,7 +89,7 @@ Crew의 기본 제거는 앱 데이터를 보존합니다. 실제 Apple Calendar
 - `backend/application.py`, `settings.py`, `hook_context.py`: 명시적 초안 보관·설정·대화 제안 지침.
 - `backend/conversation_schedule.py`: 등록 요청 ID 발급과 대화 등록 어댑터. 저장은 기존 `EventService`를 사용합니다.
 - `backend/repository.py`: JSON 저장 계약과 공통 프로세스 잠금. transaction은 배타 구간이며 여러 쓰기의 롤백을 보장하지 않습니다.
-- `backend/entry_policy.py`, `event_service.py`, `calendar_migration.py`: 단일 일정 레코드의 생명주기와 백업을 포함한 저장소 전환.
+- `backend/entry_policy.py`, `event_service.py`: 단일 일정 레코드의 생명주기와 저장 정책.
 - `backend/calendar_domain.py`, `calendar_service.py`, `calendar_storage.py`: 공급자 중립 대상·저장 준비·실행 상태·결과 기록. 외부 호출은 로컬 잠금 밖에서 수행합니다.
 - `backend/apple_provider.py`, `native/CrewCalendarBridge.swift`: 독립 EventKit 연결 앱. OS 접근 허용, 캘린더 조회, 네이티브 확인, 저장·재조회를 담당합니다.
 - `backend/host.py`, `routes.py`, `calendar_routes.py`, `mcp_server.py`, `proposal_hook.py`: Crew 어댑터와 입출력 경계. Calendar API는 호스트의 소유자 요청 검사를 사용합니다.
@@ -133,7 +133,7 @@ Crew의 기본 제거는 앱 데이터를 보존합니다. 실제 Apple Calendar
 
 `EventService`는 직접 생성·제안 수락·수정·삭제·복원을 담당합니다. 사용자 결정 상태(`proposed`, `confirmed`, `dismissed`)와 외부 저장 요청 상태는 별개입니다. 외부 저장 실패 시 Crew 일정으로 자동 전환하지 않습니다. 조회 시 외부 저장 완료 항목은 공급자 원본으로 표시하고, 대기·실패·불명 상태만 저장 상태가 있는 항목으로 표시합니다.
 
-`calendar_migration.py`는 기존 `drafts/` 또는 v2 `calendar/items/`와 외부 저장 기록을 백업한 후 v3 `calendar/entries/`를 원자적으로 게시합니다. ID·내용·대화 연결과 실제 외부 저장 식별자를 보존하며, 원본과 `calendar/migration-v3-backup/`을 남깁니다. 새 런타임은 이전 전역 `operations/` 파일을 읽거나 쓰지 않습니다. 일정의 현재 외부 저장 요청도 같은 JSON 레코드에 저장하므로 상태 전이가 한 번의 원자적 교체로 완료됩니다. 전환 중 읽을 수 없는 외부 저장 증거는 과거 취소·실패 기록과 독립적으로 평가합니다. 소유 일정을 알 수 있으면 해당 일정만, 알 수 없으면 외부 저장 가능성이 있는 기존 일정의 쓰기를 잠급니다.
+첫 공개 버전의 앱·UI·MCP·네이티브 연결 프로그램은 `0.1.0`, 일정 저장 형식은 `schemaVersion: 1`입니다. 초안과 확정 일정, 현재 외부 저장 요청은 `data/calendar/entries/`의 같은 레코드에 저장합니다. 연결 선택은 `calendar/connections.json`이 소유하고, 쓰기 잠금은 `calendar/.lock`을 사용합니다. 개발 중 사용한 이전 형식의 자동 변환·호환 읽기 코드는 배포하지 않습니다. 기존 개발 데이터는 내용·ID·수정 번호·외부 저장 식별자를 유지하여 한 번 전환하고, 옛 원본은 앱 데이터 폴더 밖의 백업에 보관합니다.
 
 `entry_policy.py`가 수정·수락·삭제·복원·제출·재조회의 가능 여부를 결정하고, API와 화면이 이 정책을 함께 사용합니다. 외부 저장의 준비·취소·확실한 실패 상태에서는 내용을 수정하거나 요청을 삭제하고, 필요하면 Crew Calendar로 바꿀 수 있습니다. 저장 중·결과 불명·외부 저장 완료 상태는 수정·삭제가 잠깁니다. 공급자의 `create`·`reconcile` 응답은 오류 설명과 저장 상태를 함께 전달합니다. 쓰기 호출 전 검사 실패는 `failed`, 호출 후 예외나 잘못된 응답은 `unknown`으로 기록하며, 오류 코드로 저장 여부를 추정하지 않습니다. 수정으로 폐기된 요청 ID는 다시 실행할 수 없습니다.
 

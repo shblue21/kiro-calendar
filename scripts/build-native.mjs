@@ -42,8 +42,8 @@ await writeFile(
 <key>CFBundleDisplayName</key><string>Crew Calendar 연결</string>
 <key>CFBundleExecutable</key><string>CrewCalendarBridge</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.2.0</string>
-<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>CFBundleVersion</key><string>1</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>
 <key>NSCalendarsFullAccessUsageDescription</key><string>선택한 캘린더의 일정을 표시하고 직접 확인한 새 일정을 저장합니다. 기존 일정 조회를 위해 macOS의 전체 접근 권한이 필요합니다.</string>

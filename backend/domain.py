@@ -7,7 +7,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import hashlib
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 1
 TITLE_LIMIT = 120
 NOTES_LIMIT = 2000
 DEFAULT_EVENT_DURATION = timedelta(hours=1)

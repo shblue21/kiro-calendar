@@ -8,7 +8,7 @@ import re
 import tempfile
 from pathlib import Path
 from typing import Any, ContextManager, Protocol, Iterator
-from .domain import DraftError, ItemNotFound, StorageUnavailable
+from .domain import SCHEMA_VERSION, DraftError, ItemNotFound, StorageUnavailable
 
 try:
     import fcntl
@@ -71,7 +71,7 @@ class JsonRepository:
     def __init__(self, data_dir: Path | str) -> None:
         self.data_dir = Path(data_dir)
         self.root = self.data_dir / "calendar" / "entries"
-        self.lock_root = self.data_dir / "drafts"
+        self.lock_root = self.root.parent
 
     @contextlib.contextmanager
     def transaction(self) -> Iterator[None]:
@@ -125,6 +125,7 @@ class JsonRepository:
             value = json.loads(path.read_text(encoding="utf-8"))
             if (
                 not isinstance(value, dict)
+                or value.get("schemaVersion") != SCHEMA_VERSION
                 or value.get("id") != draft_id
                 or value.get("status") not in {"proposed", "confirmed", "dismissed"}
                 or not isinstance(value.get("title"), str)

@@ -115,84 +115,14 @@ class EventTests(unittest.TestCase):
         self.assertEqual(self.services.repository.get_item(proposal["id"]), proposal)
         self.assertFalse(list(self.services.repository.root.glob(".tmp-*")))
 
-    def test_legacy_migration_preserves_proposal_and_uncertain_external_save(self):
-        legacy = self.root / "drafts"
-        operations = self.root / "calendar/operations"
-        legacy.mkdir()
-        operations.mkdir(parents=True)
-        item = {
-            **FIELDS,
-            "id": "1" * 16,
-            "origin": ORIGIN,
-            "status": "proposed",
-            "source": "manual",
-            "createdAt": "2026-01-01T00:00:00Z",
-        }
-        raw = json.dumps(item)
-        (legacy / f"{item['id']}.json").write_text(raw)
-        external = {**item, "id": "2" * 16}
-        (legacy / f"{external['id']}.json").write_text(json.dumps(external))
-        op = {
-            "id": "3" * 32,
-            "draftId": external["id"],
-            "state": "unknown",
-            "createdAt": item["createdAt"],
-            "target": {"connectionId": "apple-local", "calendarId": "a"},
-            "payload": {**FIELDS, "notes": ""},
-            "draftRevision": 1,
-        }
-        (operations / f"{op['id']}.json").write_text(json.dumps(op))
-        migrated = Services(self.root).calendar().list_items()["items"]
-        records = {i["id"]: i for i in migrated}
-        self.assertEqual(records[item["id"]]["status"], "proposed")
-        self.assertEqual(records[external["id"]]["delivery"]["state"], "unknown")
-        self.assertEqual(records[external["id"]]["destination"], op["target"])
-        for old in [item, external]:
-            self.assertTrue(
-                all(
-                    records[old["id"]][k] == old[k]
-                    for k in ["id", "title", "start", "end", "origin"]
-                )
-            )
-        self.assertEqual((legacy / f"{item['id']}.json").read_text(), raw)
-        self.assertEqual(
-            (
-                self.root / "calendar/migration-v3-backup/drafts" / f"{item['id']}.json"
-            ).read_text(),
-            raw,
-        )
-        self.assertEqual(Services(self.root).calendar().list_items()["items"], migrated)
-
-        # Older terminal evidence cannot resolve an unreadable later attempt.
-        for state in ["prepared", "cancelled", "failed"]:
-            with self.subTest(state=state), tempfile.TemporaryDirectory() as folder:
-                root = Path(folder)
-                source = root / "calendar/items"
-                source.mkdir(parents=True)
-                logs = root / "calendar/operations"
-                logs.mkdir()
-                local = {**item, "revision": 1, "destination": CREW}
-                pending = {
-                    **external,
-                    "revision": 1,
-                    "status": "confirmed",
-                    "destination": op["target"],
-                }
-                for row in [local, pending]:
-                    (source / f"{row['id']}.json").write_text(json.dumps(row))
-                (logs / f"{op['id']}.json").write_text(
-                    json.dumps({**op, "state": state})
-                )
-                (logs / "later.json").write_text("{broken")
-                records = {
-                    i["id"]: i for i in Services(root).calendar().list_items()["items"]
-                }
-                self.assertEqual(
-                    records[pending["id"]]["delivery"]["state"], "unavailable"
-                )
-                self.assertEqual(records[pending["id"]]["actions"], [])
-                self.assertIn("accept", records[local["id"]]["actions"])
-                self.assertEqual(
-                    Services(root).calendar().list_items()["items"],
-                    list(records.values()),
-                )
+    def test_initial_schema_round_trip_and_version_boundary(self):
+        draft = self.services.drafts.create(FIELDS, ORIGIN)[0]
+        event = self.service.items.create(self.fields())
+        restarted = Services(self.root)
+        for item in (draft, event):
+            self.assertEqual(item["schemaVersion"], 1)
+            self.assertEqual(restarted.repository.get_item(item["id"]), item)
+        path = self.services.repository.item_path(event["id"])
+        path.write_text(json.dumps({**event, "schemaVersion": 2}))
+        with self.assertRaises(StorageUnavailable):
+            restarted.repository.get_item(event["id"])

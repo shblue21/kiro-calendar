@@ -10,7 +10,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 from .calendar_domain import CalendarError, event_payload
-from .domain import DraftError, ItemNotFound
+from .domain import SCHEMA_VERSION, DraftError, ItemNotFound
 from .timezone import system_timezone
 from .entry_policy import require_action, require_revision
 
@@ -120,7 +120,7 @@ class EventService:
                     )
                 item = {
                     **value,
-                    "schemaVersion": 3,
+                    "schemaVersion": SCHEMA_VERSION,
                     "id": receipt,
                     "revision": 1,
                     "status": "confirmed",

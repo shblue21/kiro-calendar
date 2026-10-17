@@ -1,6 +1,6 @@
 {
   "name": "crew-calendar",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "displayName": "Calendar",
   "description": "Create and manage events in Crew Calendar. Discuss suggestions in chat and register after agreeing. Keep drafts only when requested. Apple Calendar saves require native confirmation on macOS.",
   "tags": [

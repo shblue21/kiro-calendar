@@ -249,7 +249,7 @@ def handle(store, message: dict[str, Any]) -> dict[str, Any] | None:
                 "experimental": CALLER_CAPABILITY,
             },
             # MCP reports the app release version, like the UI and native helper.
-            "serverInfo": {"name": "crew-calendar-drafts", "version": "0.2.0"},
+            "serverInfo": {"name": "crew-calendar-drafts", "version": "0.1.0"},
         }
     elif method == "tools/list":
         result = {"tools": [CONTEXT_TOOL, REGISTER_TOOL, TOOL]}

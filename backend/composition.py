@@ -11,9 +11,6 @@ from .hook_context import SuggestionContextService
 class Services:
     def __init__(self, data_dir: Path | str):
         self.repository = JsonRepository(data_dir)
-        from .calendar_migration import migrate
-
-        migrate(self.repository)
         self.settings = SettingsService(self.repository)
         self.drafts = DraftService(self.repository)
         self.contexts = SuggestionContextService(self.repository, self.settings)
@@ -38,7 +35,7 @@ class Services:
         )
         return CalendarService(
             self.repository,
-            CalendarStorage(root, legacy_connection_id="apple-local"),
+            CalendarStorage(root),
             connections,
         )
 

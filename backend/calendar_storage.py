@@ -8,9 +8,8 @@ from .domain import StorageUnavailable, CREW_DESTINATION
 
 
 class CalendarStorage:
-    def __init__(self, root: Path | str, *, legacy_connection_id: str | None = None):
+    def __init__(self, root: Path | str):
         self.root = Path(root) / "calendar"
-        self.legacy_connection_id = legacy_connection_id
 
     def _read(self, path: Path, default=None):
         try:
@@ -31,8 +30,6 @@ class CalendarStorage:
 
     def connection(self, connection_id: str) -> dict:
         value = self._connections().get(connection_id)
-        if value is None and connection_id == self.legacy_connection_id:
-            value = self._read(self.root / "connection.json")
         if value is None:
             return {"selectedCalendarIds": [], "defaultCalendarId": ""}
         if (

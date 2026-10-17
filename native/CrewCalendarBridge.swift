@@ -150,7 +150,7 @@ final class Bridge: NSObject, NSApplicationDelegate {
         case .writeOnly: value = "writeOnly"
         @unknown default: value = "unknown"
         }
-        return ["authorization": value, "host": "이 Mac", "helperVersion": "0.2.0"]
+        return ["authorization": value, "host": "이 Mac", "helperVersion": "0.1.0"]
     }
     func requireAccess() throws {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else {
