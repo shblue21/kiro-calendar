@@ -4,23 +4,24 @@
   min-height: 0;
   width: 100%;
   overflow-y: auto;
-  padding: 18px var(--cc-space-page) 24px;
+  padding: calc(var(--spacing) * 4) var(--cc-space-page)
+    calc(var(--spacing) * 6);
 }
 
 .cc-page-heading {
-  margin: 18px 0 30px;
+  margin: 0 0 calc(var(--spacing) * 4);
 }
 
 .cc-page-heading h2 {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: 600;
-  letter-spacing: -0.04em;
-  margin: 0 0 8px;
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
 }
 
 .cc-page-section {
-  margin-bottom: 30px;
-  padding-bottom: 22px;
+  margin-bottom: calc(var(--spacing) * 6);
+  padding-bottom: calc(var(--spacing) * 4);
   border-bottom: 1px solid var(--border);
 }
 
@@ -33,9 +34,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 600;
-  margin: 0 0 8px;
+  margin: 0 0 var(--spacing);
 }
 
 .cc-page-section-note {
@@ -47,14 +48,6 @@
 
 @container calendar (max-width: 760px) {
   .cc-workspace-page {
-    padding: 18px 16px 16px;
-  }
-}
-@container calendar (max-width: 620px) {
-  .cc-page-section {
-    margin-bottom: 22px;
-  }
-  .cc-page-heading {
-    margin-bottom: 22px;
+    padding-bottom: calc(var(--spacing) * 4);
   }
 }

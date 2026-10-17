@@ -1,3 +1,4 @@
+import { ControlRow } from "../layout/Controls";
 import { Input } from "@kirocrew/app-sdk/ui";
 import type { EventSeed } from "./creation";
 import { useElementWidth } from "./useElementWidth";
@@ -205,31 +206,38 @@ export function CalendarPage({
         />
         {searchOpen && (
           <div className="cc-search-row">
-            <Input
-              autoFocus
-              aria-label={t("common.search")}
-              placeholder={t("calendar.searchPlaceholder", {
-                period:
-                  effectiveView === "day"
-                    ? t("common.thisDay")
-                    : effectiveView === "year"
-                      ? t("common.thisYear")
-                      : effectiveView === "month"
-                        ? t("common.theDisplayedCalendar")
-                        : t("common.thisWeek"),
-              })}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+            <ControlRow
+              fieldMaxWidth={430}
+              field={
+                <Input
+                  autoFocus
+                  aria-label={t("common.search")}
+                  placeholder={t("calendar.searchPlaceholder", {
+                    period:
+                      effectiveView === "day"
+                        ? t("common.thisDay")
+                        : effectiveView === "year"
+                          ? t("common.thisYear")
+                          : effectiveView === "month"
+                            ? t("common.theDisplayedCalendar")
+                            : t("common.thisWeek"),
+                  })}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              }
+              meta={t("calendar.eventCount", { count: items.length })}
+              action={
+                <Btn
+                  onClick={() => {
+                    setQuery("");
+                    setSearchOpen(false);
+                  }}
+                >
+                  {t("common.close")}
+                </Btn>
+              }
             />
-            <span>{t("calendar.eventCount", { count: items.length })}</span>
-            <Btn
-              onClick={() => {
-                setQuery("");
-                setSearchOpen(false);
-              }}
-            >
-              {t("common.close")}
-            </Btn>
           </div>
         )}
         {notice}

@@ -1,3 +1,5 @@
+import { SettingsSection, SettingsRow } from "./SettingsLayout";
+import { ControlRow } from "../layout/Controls";
 import { NativeSelect } from "../platform/kiro/NativeControls";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
 import { Btn, Toggle } from "@kirocrew/app-sdk/ui";
@@ -77,21 +79,11 @@ export function ProposalSettings() {
   const canEnable = connected && keys.length > 0;
   const executionNotice = hookExecutionNotice(data?.hook.executionStatus);
   return (
-    <section
-      className="cc-page-section"
-      aria-labelledby="cc-settings-proposals"
+    <SettingsSection
+      title={t("common.eventSuggestionsInConversations")}
+      actions={<Btn disabled={busy} onClick={() => void load()}>{t("common.refreshSettings")}</Btn>}
     >
-      <div className="cc-preference-row">
-        <div>
-          <h3 id="cc-settings-proposals">
-            {t("common.eventSuggestionsInConversations")}
-          </h3>
-          <p>
-            {t("suggestions.description")}
-            <br />
-            {t("suggestions.reviewHint")}
-          </p>
-        </div>
+      <SettingsRow action={
         <div className="cc-proposal-toggle">
           <span>
             {!data
@@ -109,20 +101,17 @@ export function ProposalSettings() {
             onChange={(suggestionsEnabled) => void save({ suggestionsEnabled })}
           />
         </div>
-      </div>
+      }>
+        <p className="cc-page-section-note">
+          {t("suggestions.description")}<br />{t("suggestions.reviewHint")}
+        </p>
+      </SettingsRow>
       <p className="cc-page-section-note">{t("suggestions.activationHint")}</p>
       {error && (
         <p role="alert" className="cc-page-section-note">
           {renderNotice(error)}
         </p>
       )}
-      <Btn
-        className="cc-proposal-example-button"
-        disabled={busy}
-        onClick={() => void load()}
-      >
-        {t("common.refreshSettings")}
-      </Btn>
       {data && !connected && (
         <p role="status" className="cc-page-section-note">
           {data.hook.status === "blocked"
@@ -144,11 +133,7 @@ export function ProposalSettings() {
         </summary>
         <p className="cc-page-section-note">{t("suggestions.scopeHint")}</p>
         {keys.map((key) => (
-          <div className="cc-preference-row" key={key}>
-            <span>
-              {data?.chats.find((c) => c.sessionKey === key)?.title ??
-                t("common.closedConversation")}
-            </span>
+          <SettingsRow key={key} action={
             <Btn
               disabled={busy}
               onClick={() =>
@@ -160,30 +145,41 @@ export function ProposalSettings() {
             >
               {t("common.remove")}
             </Btn>
-          </div>
+          }>
+            <span>
+              {data?.chats.find((c) => c.sessionKey === key)?.title ??
+                t("common.closedConversation")}
+            </span>
+          </SettingsRow>
         ))}
         <div className="cc-proposal-actions">
-          <NativeSelect
-            aria-label={t("common.conversationForSuggestions")}
-            value={chosen}
-            disabled={busy || !data}
-            onChange={(e) => setChosen(e.target.value)}
-          >
-            <option value="">{t("common.chooseAConversation")}</option>
-            {data?.chats
-              .filter((c) => !keys.includes(c.sessionKey))
-              .map((c) => (
-                <option key={c.sessionKey} value={c.sessionKey}>
-                  {c.title}
-                </option>
-              ))}
-          </NativeSelect>
-          <Btn
-            disabled={busy || !chosen}
-            onClick={() => void save({ sessionKeys: [...keys, chosen] })}
-          >
-            {t("common.add")}
-          </Btn>
+          <ControlRow
+            field={
+              <NativeSelect
+                aria-label={t("common.conversationForSuggestions")}
+                value={chosen}
+                disabled={busy || !data}
+                onChange={(e) => setChosen(e.target.value)}
+              >
+                <option value="">{t("common.chooseAConversation")}</option>
+                {data?.chats
+                  .filter((c) => !keys.includes(c.sessionKey))
+                  .map((c) => (
+                    <option key={c.sessionKey} value={c.sessionKey}>
+                      {c.title}
+                    </option>
+                  ))}
+              </NativeSelect>
+            }
+            action={
+              <Btn
+                disabled={busy || !chosen}
+                onClick={() => void save({ sessionKeys: [...keys, chosen] })}
+              >
+                {t("common.add")}
+              </Btn>
+            }
+          />
         </div>
       </details>
       {data?.hook.command && !connected && (
@@ -196,8 +192,7 @@ export function ProposalSettings() {
         </details>
       )}
       <Btn aria-expanded={example} onClick={() => setExample((open) => !open)}>
-        {t("common.conversationExample")}
-        {example ? t("common.close") : t("common.view")}
+        {t(example ? "suggestions.hideExample" : "suggestions.showExample")}
       </Btn>
       {example && (
         <div className="cc-proposal-example">
@@ -208,6 +203,6 @@ export function ProposalSettings() {
           </blockquote>
         </div>
       )}
-    </section>
+    </SettingsSection>
   );
 }

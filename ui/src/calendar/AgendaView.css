@@ -1,6 +1,5 @@
 .cc-agenda {
   width: 100%;
-  max-width: 1120px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;

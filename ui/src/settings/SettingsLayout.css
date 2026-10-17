@@ -1,0 +1,63 @@
+.cc-settings-content {
+  max-inline-size: 800px;
+  container: settings / inline-size;
+}
+
+.cc-settings-section + .cc-settings-section {
+  margin-block-start: calc(var(--spacing) * 6);
+  padding-block-start: calc(var(--spacing) * 6);
+  border-block-start: 1px solid var(--border);
+}
+
+.cc-settings-section-header,
+.cc-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing) * 4);
+}
+
+.cc-settings-section-header {
+  margin-block-end: var(--spacing);
+}
+
+.cc-settings-section-header h3 {
+  min-inline-size: 0;
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.cc-settings-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing) * 2);
+}
+
+.cc-settings-section-body {
+  display: grid;
+  justify-items: stretch;
+  gap: calc(var(--spacing) * 3);
+  margin-block-start: calc(var(--spacing) * 3);
+}
+
+.cc-settings-section-body > button {
+  justify-self: start;
+}
+
+.cc-settings-row-content {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.cc-settings-row-action {
+  flex-shrink: 0;
+}
+
+@container settings (max-width: 540px) {
+  .cc-settings-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 2);
+  }
+}

@@ -1,3 +1,4 @@
+import { SettingsSection } from "../settings/SettingsLayout";
 import { calendarColor } from "./location";
 import { connectionName } from "../i18n/delivery.ts";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
@@ -19,13 +20,10 @@ export function CalendarConnections({
   onRefresh: () => Promise<void>;
 }) {
   return (
-    <>
-      <div className="cc-preference-row">
-        <h3>{t("common.externalCalendarConnections")}</h3>
-        <Btn onClick={() => void onRefresh()}>
-          {t("common.refreshConnections")}
-        </Btn>
-      </div>
+    <SettingsSection
+      title={t("common.externalCalendarConnections")}
+      actions={<Btn onClick={() => void onRefresh()}>{t("common.refreshConnections")}</Btn>}
+    >
       {error && (
         <p role="alert" className="cc-form-error">
           {renderNotice(error)}
@@ -39,7 +37,7 @@ export function CalendarConnections({
         />
       ))}
       {!connections.length && !error && <p>{t("connections.empty")}</p>}
-    </>
+    </SettingsSection>
   );
 }
 function ConnectionCard({
@@ -78,7 +76,7 @@ function ConnectionCard({
   const ready = c.state === "ready";
   return (
     <section
-      className="cc-page-section"
+      className="cc-connection-group"
       aria-label={connectionName(c.displayName)}
     >
       <h4>{connectionName(c.displayName)}</h4>

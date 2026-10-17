@@ -1,18 +1,16 @@
-.cc-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 0;
-  margin-bottom: 14px;
-  font-size: var(--text-sm);
-}
-
-.cc-checkbox input {
-  accent-color: var(--accent);
-}
-
 .cc-calendar-choices {
   display: grid;
-  gap: 10px;
-  padding: 12px 0;
+  gap: var(--spacing);
+  padding-block: calc(var(--spacing) * 2);
+}
+
+.cc-connection-group + .cc-connection-group {
+  padding-block-start: calc(var(--spacing) * 3);
+  border-block-start: 1px solid var(--border);
+}
+
+.cc-connection-group h4 {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  margin: 0 0 var(--spacing);
 }

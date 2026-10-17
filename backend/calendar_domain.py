@@ -2,7 +2,7 @@
 from __future__ import annotations
 from datetime import timedelta
 from typing import Protocol
-from .domain import DraftCandidate, DraftError, _parse_time, _text
+from .domain import DraftCandidate, DraftError, _parse_time
 
 
 class CalendarError(Exception):
@@ -42,7 +42,7 @@ def delivery_failure(exc: Exception, state: str) -> dict:
 
 
 def event_payload(fields: dict) -> dict:
-    candidate = DraftCandidate.parse(fields, proactive=False)
+    candidate = DraftCandidate.parse(fields)
     end = candidate.end or candidate.start + timedelta(hours=1)
     if end - candidate.start > timedelta(days=7):
         raise DraftError('첫 버전에서는 7일 이내의 단일 일정을 저장할 수 있습니다.')

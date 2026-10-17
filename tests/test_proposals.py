@@ -4,6 +4,8 @@ import json
 import subprocess
 import tempfile
 import unittest
+import uuid
+from unittest.mock import patch
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -11,7 +13,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 from runtime import load
 Services = load("composition").Services
-ProposalDenied = load("domain").ProposalDenied
 
 A = {"sessionKey": "dashboard:chat-a", "sessionType": "dashboard", "identitySource": "test"}
 B = {**A, "sessionKey": "dashboard:chat-b"}
@@ -30,21 +31,49 @@ class ProposalTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def enable(self):
-        self.services.settings.update({"sessionKeys": [A["sessionKey"]], "suggestionsEnabled": True})
+    def test_explicit_drafts_remain_available_with_suggestions_off(self):
+        first = self.store.create(FIELDS, A)[0]
+        repeated, duplicate = self.store.create(FIELDS, A)
+        other = self.store.create(FIELDS, B)[0]
+        self.assertTrue(duplicate)
+        self.assertEqual(first, repeated)
+        self.assertNotEqual(first["id"], other["id"])
+        self.assertEqual(first["status"], "proposed")
+        self.assertEqual(first["source"], "manual")
 
-    def test_scope_and_off_are_checked_on_every_call_manual_still_works(self):
-        self.enable()
-        with self.assertRaises(ProposalDenied) as error:
-            self.store.create(FIELDS, B, proactive=True, now=NOW)
-        self.assertEqual(error.exception.code, "out_of_scope")
-        self.services.settings.update({"suggestionsEnabled": False})
-        with self.assertRaises(ProposalDenied) as error:
-            self.store.create(FIELDS, A, proactive=True, now=NOW)
-        self.assertEqual(error.exception.code, "disabled")
-        self.assertEqual(self.store.create(FIELDS, B)[0]["source"], "manual")
+    def test_explicit_draft_does_not_reuse_confirmed_deleted_or_dismissed_items(self):
+        events = self.services.calendar().items
+        for state in ("direct", "accepted", "deleted", "dismissed"):
+            with self.subTest(state=state), patch.object(load("event_service"), "system_timezone", return_value="Asia/Seoul"):
+                fields = {**FIELDS, "title": f"지원서 {state}"}
+                save = {**fields, "requestId": uuid.uuid4().hex,
+                        "destination": {"connectionId": "crew", "calendarId": "default"}}
+                if state == "direct":
+                    previous = events.save(save, origin=A)[0]
+                else:
+                    previous = self.store.create(fields, A)[0]
+                    if state == "dismissed":
+                        previous = events.dismiss(previous["id"], {"revision": previous["revision"]})
+                    else:
+                        previous = events.accept(previous["id"], {**save, "revision": previous["revision"]})
+                        if state == "deleted":
+                            previous = events.set_deleted(previous["id"], {"revision": previous["revision"]}, True)
 
-
+                result = load("mcp_server").call_tool(self.services, {
+                    "name": "create_schedule_draft", "arguments": fields,
+                    "_meta": {"kirocrew.caller": {"schemaVersion": 1,
+                              "sessionKey": A["sessionKey"], "sessionType": "dashboard"}},
+                })
+                self.assertFalse(result["isError"])
+                self.assertEqual(result["structuredContent"]["outcome"], "created")
+                draft = result["structuredContent"]["draft"]
+                self.assertEqual(draft["status"], "proposed")
+                self.assertFalse(draft.get("deletedAt"))
+                self.assertNotEqual(draft["id"], previous["id"])
+                self.assertEqual(self.services.repository.get_item(previous["id"]), previous)
+                repeated, duplicate = self.store.create(fields, A)
+                self.assertTrue(duplicate)
+                self.assertEqual(repeated, draft)
 
 
 MCP_FIELDS = {"title":"지원서 마무리", "start":"2026-10-01T19:00:00+09:00", "end":"2026-10-01T20:00:00+09:00"}

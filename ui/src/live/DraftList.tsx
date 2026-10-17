@@ -27,7 +27,7 @@ export function DraftList({
 }) {
   return (
     <section className="cc-page-section" aria-labelledby="cc-live-drafts">
-      <div className="cc-preference-row">
+      <div className="cc-draft-header">
         <div>
           <h3 id="cc-live-drafts">{t("common.eventDrafts")}</h3>
         </div>

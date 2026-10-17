@@ -1,12 +1,10 @@
-"""Use cases. Adapters inject a repository, policy and clock at composition."""
+"""Explicit draft storage. Deduplication only applies to active proposals."""
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Callable
 import uuid
-from .domain import DraftCandidate, DraftError, ProposalDenied
+from .domain import DraftCandidate, DraftError
 from .repository import Repository
-from .settings import SettingsService
-from .proposal_policy import ProposalPolicy
 
 
 def utc_now() -> datetime:
@@ -14,37 +12,28 @@ def utc_now() -> datetime:
 
 
 class DraftService:
-    def __init__(self, repository: Repository, settings: SettingsService, *,
-                 policy: ProposalPolicy | None = None, clock: Callable[[], datetime] = utc_now):
-        if settings.repository is not repository:
-            raise ValueError("Drafts and settings must share one transactional repository")
+    def __init__(self, repository: Repository, *,
+                 clock: Callable[[], datetime] = utc_now):
         self.repository = repository
-        self.settings = settings
-        self.policy = policy or ProposalPolicy()
         self.clock = clock
 
-    def create(self, fields: dict, origin: dict, *, proactive: bool = False,
+    def create(self, fields: dict, origin: dict, *,
                now: datetime | None = None) -> tuple[dict, bool]:
         session = origin.get("sessionKey", "")
         if not session:
             raise DraftError("caller conversation is unknown; draft not saved")
-        candidate = DraftCandidate.parse(fields, proactive=proactive)
+        candidate = DraftCandidate.parse(fields)
         with self.repository.transaction():
-            # Time-dependent policy is evaluated after acquiring the lock.
+            # Creation time is assigned inside the shared write lock.
             stamp = now or self.clock()
-            if proactive:
-                try:
-                    current = self.settings.read()
-                except DraftError:
-                    raise ProposalDenied("unavailable")
-                self.policy.require_enabled(current, session)
             existing = self.repository.session_items(session)
-            duplicate = self.policy.duplicate(candidate, session, existing, proactive=proactive)
+            duplicate = next((item for item in existing
+                              if item["status"] == "proposed" and not item.get("deletedAt")
+                              and item["title"].casefold() == candidate.title.casefold()
+                              and DraftCandidate.parse(item).start == candidate.start), None)
             if duplicate is not None:
                 return duplicate, True
-            if proactive:
-                self.policy.require_new_proposal(candidate, session, existing, stamp)
-            record = candidate.to_record(origin, proactive=proactive, now=stamp)
+            record = candidate.to_record(origin, now=stamp)
             # A user can edit a draft while its identity and external links stay stable.
             # Repeating the original MCP input must not overwrite that edited record.
             if any(d['id'] == record['id'] for d in existing):

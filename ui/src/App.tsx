@@ -1,3 +1,5 @@
+import { SettingsPage } from "./settings/SettingsLayout";
+import { ControlCell } from "./layout/Controls";
 import { WorkspacePage } from "./layout/WorkspacePage";
 import type { EventSeed } from "./calendar/creation";
 import { useAppApi, useAppInfo, useChatLauncher } from "@kirocrew/app-sdk";
@@ -434,26 +436,32 @@ function CalendarWorkspace({
           subtitle={timezone}
           actions={
             <>
-              <Btn
-                aria-label={t("common.refreshEvents")}
-                disabled={refreshing}
-                onClick={() => void refresh()}
-              >
-                <RotateCcw size={14} />
-              </Btn>
-              <Btn disabled={!preferencesReady} onClick={() => edit(null)}>
-                <Plus size={15} />
-                {t("common.addEvent")}
-              </Btn>
-              <Btn
-                aria-label={t("common.calendarSettings")}
-                aria-pressed={page === "settings"}
-                onClick={() =>
-                  setPage(page === "settings" ? "calendar" : "settings")
-                }
-              >
-                <Settings2 size={16} />
-              </Btn>
+              <ControlCell>
+                <Btn
+                  aria-label={t("common.refreshEvents")}
+                  disabled={refreshing}
+                  onClick={() => void refresh()}
+                >
+                  <RotateCcw size={14} />
+                </Btn>
+              </ControlCell>
+              <ControlCell>
+                <Btn disabled={!preferencesReady} onClick={() => edit(null)}>
+                  <Plus size={15} />
+                  {t("common.addEvent")}
+                </Btn>
+              </ControlCell>
+              <ControlCell>
+                <Btn
+                  aria-label={t("common.calendarSettings")}
+                  aria-pressed={page === "settings"}
+                  onClick={() =>
+                    setPage(page === "settings" ? "calendar" : "settings")
+                  }
+                >
+                  <Settings2 size={16} />
+                </Btn>
+              </ControlCell>
             </>
           }
         />
@@ -549,11 +557,11 @@ function CalendarWorkspace({
           }
         />
       </div>
-      <WorkspacePage
-        label={t("common.settings")}
+      <SettingsPage
         title={t("common.settings")}
         hidden={page !== "settings"}
       >
+        {page === "settings" && <ProposalSettings />}
         {preferencesReady && (
           <CalendarPreferences
             value={preferences}
@@ -566,8 +574,7 @@ function CalendarWorkspace({
           error={connectionError}
           onRefresh={loadConnection}
         />
-        {page === "settings" && <ProposalSettings />}
-      </WorkspacePage>
+      </SettingsPage>
       {page === "proposals" && (
         <WorkspacePage label={t("navigation.proposals")}>
           <DraftList

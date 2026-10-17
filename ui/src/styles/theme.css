@@ -1,6 +1,12 @@
-/* Host theme tokens are consumed directly; only calendar geometry is local. */
+/* Match the host PageHeader gutters; calendar geometry remains local. */
 .cc-calendar {
   --cc-detail-width: 340px;
-  --cc-space-page: calc(var(--spacing) * 5);
+  --cc-space-page: calc(var(--spacing) * 4);
   --cc-space-field: calc(var(--spacing) * 4);
+}
+
+@media (min-width: 48rem) {
+  .cc-calendar {
+    --cc-space-page: calc(var(--spacing) * 6);
+  }
 }

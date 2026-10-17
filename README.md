@@ -1,13 +1,14 @@
 # Crew Calendar
 
-Crew Calendar를 기본 저장 위치로 사용하는 캘린더 앱입니다. 직접 입력한 일정은 바로 확정되고, AI 제안은 검토용 초안으로 시작해 수락하면 같은 ID의 확정 일정이 됩니다. Crew 일정은 외부 계정 없이 생성·수정·삭제·복원할 수 있습니다.
+Crew Calendar를 기본 저장 위치로 사용하는 캘린더 앱입니다. 직접 입력한 일정은 바로 확정되고, 대화 중 AI 제안은 기존 선택지로 조율한 뒤 사용자가 동의하면 Crew Calendar에 등록합니다. 명시적으로 보관한 초안은 앱에서 검토할 수 있습니다. Crew 일정은 외부 계정 없이 생성·수정·삭제·복원할 수 있습니다.
 
 현재 지원: 기본 Crew Calendar, 기본 저장 위치와 표시 여부 설정, AI 초안 수정·수락·넘기기, 선택한 대화의 opt-in 일정 제안, 주간·월간·연간·목록 보기, macOS Apple Calendar 연결·범위 조회·단일 일정 생성. 기존 외부 일정의 수정·삭제, 캘린더 간 이동·복사·자동 동기화, 참석자 초대, 반복 일정 생성, 알림·Crew 작업 예약은 지원하지 않습니다. 외부의 여러 날·종일·반복 일정은 조회할 수 있습니다.
 
 ## Crew Calendar 사용
 
 - **일정 추가 → 저장**은 확정 일정을 바로 만듭니다. 직접 추가에는 초안 보관 단계가 없습니다.
-- AI 제안은 **초안 수정 저장** 또는 **일정으로 저장**을 선택합니다. 수락해도 ID와 원래 대화 연결이 유지됩니다.
+- 대화 중 제안은 **이대로 등록 / 시간 바꾸기 / 지금은 괜찮아** 같은 Crew의 기존 선택지로 답합니다. 동의 전에는 초안이나 일정이 생성되지 않습니다.
+- 따로 보관한 초안과 기존 제안 목록은 **초안 수정 저장** 또는 **일정으로 저장**을 선택합니다. 수락해도 ID와 원래 대화 연결이 유지됩니다.
 - Crew 일정의 상세에서 **수정**, **삭제**할 수 있습니다. 삭제 직후 **실행 취소**, 설정의 **삭제한 일정 → 복원**을 제공합니다.
 - 기본 저장 캘린더와 표시할 캘린더는 독립적입니다. 표시를 꺼도 저장 위치는 바뀌지 않습니다. 접근 불가능한 기본 위치를 다른 캘린더로 자동 대체하지 않습니다.
 - 데이터는 Crew 설치의 저장소에 보관됩니다. 브라우저를 닫거나 앱을 다시 열어도 유지되며, 다른 컴퓨터와 자동으로 동기화하지 않습니다.
@@ -55,14 +56,24 @@ Crew가 실행되는 Mac에 연결됩니다. 원격 게이트웨이를 다른 �
 
 ## 대화 중 일정 제안
 
-- `create_schedule_draft`: 사용자가 명시적으로 요청한 초안을 저장합니다.
-- `propose_schedule_draft`: ON인 선택 대화에서 자동 후보를 저장합니다. OFF·알 수 없는 출처·비공개 세션·중복·빈도 제한을 확인합니다.
-- 두 도구 모두 외부 일정 저장·승인을 제공하지 않습니다. Crew 일정 확정은 앱에서, Apple 저장은 Mac 연결 창에서 최종 확인합니다.
-- 설정은 `data/settings.json`, 초안과 확정 일정은 하나의 모델로 `data/calendar/entries/`에 저장됩니다. 자동 제안 초깃값은 OFF입니다. 임시·비공개 대화와 서브에이전트는 제외합니다.
-- Crew의 에이전트 기능 → 훅에서 `UserPromptSubmit` 훅을 한 번 연결합니다. 앱 설정의 ‘처음 한 번 연결하기’에 현재 설치 위치의 명령이 있습니다. 이름은 `Crew Calendar · schedule suggestions`, 매처는 비워두고 제한 시간은 5초를 권장합니다. 앱은 전역 훅 설정을 덮어쓰지 않습니다.
-- 훅 연결 후 설정 다시 확인을 누르고 적용할 일반 대화를 선택합니다. OFF 지침은 다음 메시지부터 반영하고 자동 저장은 서버의 최신 설정을 다시 확인합니다. 생성 중인 답변을 소급 취소하지 않습니다.
-- 같은 대화의 자동 후보는 30분 간격으로 제한합니다. 같은 행동·마감의 후보를 넘긴 뒤 준비 시각만 바꿔 다시 제안하지 않습니다. 다른 마감의 다음 회차는 허용합니다.
-- 별도 분석 모델을 호출하지 않지만 지침과 도구 응답은 토큰을 사용합니다. OFF를 비용 0으로 보장하지 않습니다. 수동 도구의 ‘명시적 요청’ 판단은 모델 지침이며 사용자 승인 증명이 아닙니다.
+- 훅은 현재 날짜·제안 시점·동의 전 미저장만 짧게 안내합니다. 등록·재시도·기존 초안 수락·결과 안내의 세부 규칙은 MCP 도구 설명에서 제공합니다. 스킬이나 별도 분석 에이전트는 사용하지 않습니다.
+- ON인 선택 대화에서 원래 질문에 먼저 답한 뒤, 실행 의도가 뚜렷하고 시간 확보가 도움이 될 때만 짧게 제안합니다. Crew의 기존 `[OPTIONS: ...]` 버튼을 사용하며 제안 자체는 대화에만 남습니다. 거절·무응답·화제 변경은 등록하지 않고 그대로 대화로 돌아갑니다.
+- 제목·날짜·시작/종료·Crew Calendar 저장 위치를 보여준 뒤 동의받습니다. 시간이 모호하면 필요한 정보만 조율합니다. 이미 구체적으로 등록을 요청했다면 같은 확인을 반복하지 않습니다.
+- 동의 후 `get_schedule_context`를 한 번 호출해 등록 작업의 새 요청 ID와 시각·시간대를 받습니다. 조회는 아무것도 저장하지 않습니다. 재시도할 때는 이 ID와 등록 인자를 그대로 사용하며, 새 ID를 발급받지 않습니다.
+- `register_schedule`는 일정과 요청 처리 기록을 같은 레코드에 원자적으로 저장합니다. 같은 ID·같은 내용은 기존 항목을 반환하고, 같은 ID·다른 내용 또는 대상은 충돌입니다. 새 ID는 내용이 같아도 별개의 등록입니다. 내용 해시로 다른 요청을 합치지 않습니다.
+- 보관한 초안은 `get_schedule_context(draftId)`로 현재 버전을 확인한 뒤, `register_schedule`에 해당 `draftId`와 `revision`을 포함합니다. 새 일정을 만들지 않고 같은 초안을 확정합니다. 요청 중복 검사·초안 소유 대화/버전/상태 검사·저장은 `EventService.save`의 한 잠금 안에서 처리합니다.
+- 재시도 결과에는 `replayed`와 현재 항목을 반환합니다. 이후 수정·삭제된 일정은 덮어쓰거나 복원하지 않으며 새 등록 완료로 안내하지 않습니다. 불확실한 저장 결과 이후 요청 ID를 잃었다면 Calendar에서 먼저 확인합니다.
+- `create_schedule_draft`는 사용자가 **나중에 검토할 초안 보관**을 명시적으로 요청했을 때만 사용합니다. 자동 제안에서는 초안을 만들지 않습니다.
+- 등록 위치는 **Crew Calendar**입니다. Apple Calendar 저장은 기존 앱·Mac 최종 확인 경로를 사용합니다. 외부 저장·알림·반복 일정·등록된 일정의 대화 수정은 이 도구에 포함되지 않습니다.
+- 자동 제안의 ON/OFF·선택 대화·훅은 제안 지침에만 관여합니다. 명시적인 등록 요청은 활성 앱의 일반 대화에서 처리하며, 다른 대화의 훅 오류나 전역 `last_status`에 의존하지 않습니다.
+- 설정은 `data/settings.json`, 초안과 확정 일정은 `data/calendar/entries/`에 저장됩니다. 별도 요청 저장소·대화 원문·미승인 일정은 만들지 않습니다. 기존 훅 적용 기록은 마지막 안내 상태를 기억합니다. ON을 안내한 대화가 OFF·적용 제외·비활성 상태가 되면 다음 훅 실행에서 OFF를 한 번 반환하고, 이후에는 생략합니다. ON인 동안에는 현재 시각과 짧은 지침을 계속 전달합니다.
+- Crew의 에이전트 기능 → 훅에서 `UserPromptSubmit` 훅을 한 번 연결합니다. 앱 설정의 ‘처음 한 번 연결하기’에 현재 설치 위치의 명령이 있습니다. 이름은 `Crew Calendar · schedule suggestions`, 매처는 비우고 제한 시간은 5초를 권장합니다. 현재 호스트의 `session_key`로 호출 대화를 식별합니다. 앱은 전역 훅 설정을 덮어쓰지 않습니다.
+
+### 보장 범위
+
+설치 호스트의 선택지는 일반 채팅 경로에서 문구만 전송합니다. OPTIONS 클릭 자체를 승인 토큰으로 취급하지 않으며, 어떤 일정에 대한 동의인지는 대화 에이전트가 판단합니다. 모호하면 정확한 내용을 한 번 확인합니다.
+
+요청 ID는 사용자 메시지나 모델 실행의 ID가 아니라 **등록 작업의 멱등성 키**입니다. 같은 키의 재시도는 한 번만 저장하지만, 모델이 재생성 중 기존 키를 잊고 새 키로 다시 등록하는 경우까지 자동으로 구분하지 않습니다. 이를 위해 호스트 수정, 내용 해시 추정, 실행 세대 관리나 별도 승인 저장소를 추가하지 않습니다.
 
 ## 비활성화·제거
 
@@ -74,8 +85,9 @@ Crew의 기본 제거는 앱 데이터를 보존합니다. 실제 Apple Calendar
 
 ## 구조와 검증
 
-- `backend/domain.py`, `proposal_policy.py`: 초안 값과 제안 정책.
-- `backend/application.py`, `settings.py`, `hook_context.py`: 초안·설정·메시지 지침의 사용 사례.
+- `backend/domain.py`: 초안 값과 일정 입력 검증.
+- `backend/application.py`, `settings.py`, `hook_context.py`: 명시적 초안 보관·설정·대화 제안 지침.
+- `backend/conversation_schedule.py`: 등록 요청 ID 발급과 대화 등록 어댑터. 저장은 기존 `EventService`를 사용합니다.
 - `backend/repository.py`: JSON 저장 계약과 공통 프로세스 잠금. transaction은 배타 구간이며 여러 쓰기의 롤백을 보장하지 않습니다.
 - `backend/entry_policy.py`, `event_service.py`, `calendar_migration.py`: 단일 일정 레코드의 생명주기와 백업을 포함한 저장소 전환.
 - `backend/calendar_domain.py`, `calendar_service.py`, `calendar_storage.py`: 공급자 중립 대상·저장 준비·실행 상태·결과 기록. 외부 호출은 로컬 잠금 밖에서 수행합니다.
@@ -85,7 +97,7 @@ Crew의 기본 제거는 앱 데이터를 보존합니다. 실제 Apple Calendar
 
 앱별 신뢰는 앱 코드를 Crew 권한으로 실행하도록 허용합니다. `permissions.network: false`가 내부 Python 코드의 네트워크 접근을 OS 수준에서 차단하지는 않습니다. 앱 실행 신뢰, macOS 전체 접근, 개별 일정 저장 확인은 각각 별개의 절차입니다.
 
-`npm test`는 날짜·범위·패키징·저장 정책·동시 실행·불명확한 결과·API 접근 테스트를 실행합니다. 현재 테스트는 UI 12개·패키징 3개·Python 14개로 총 29개입니다. 제품에서 사용하지 않는 미리보기 모델, 중복된 계층별 검증, 단순 문구·플랫폼 모의 호출·이전 API의 세부 검증은 별도로 유지하지 않습니다. 세부 분기를 모두 다루기보다 생성·수락·복원, 권한·대화 출처, 외부 중복 저장 방지와 실제로 수정한 시간 계산 버그를 검증하는 작은 시나리오 세트로 유지합니다. aiohttp가 없는 Python에서는 API 테스트가 skip될 수 있으므로 설치된 Crew Python으로도 실행합니다. 로컬 초안과 모의 공급자 테스트의 성공은 실제 EventKit 저장 성공을 뜻하지 않습니다. 실제 연결과 저장 결과는 별도로 검증해야 합니다.
+`npm test`는 날짜·범위·패키징·저장 정책·동시 실행·불명확한 결과·API 접근 테스트를 실행합니다. 현재 테스트는 UI 16개·패키징 3개·Python 26개로 총 45개입니다. 제품에서 사용하지 않는 미리보기 모델, 중복된 계층별 검증, 단순 문구·플랫폼 모의 호출·이전 API의 세부 검증은 별도로 유지하지 않습니다. 세부 분기를 모두 다루기보다 생성·수락·복원, 권한·대화 출처, 외부 중복 저장 방지와 실제로 수정한 시간 계산 버그를 검증하는 작은 시나리오 세트로 유지합니다. aiohttp가 없는 Python에서는 API 테스트가 skip될 수 있으므로 설치된 Crew Python으로도 실행합니다. 로컬 초안과 모의 공급자 테스트의 성공은 실제 EventKit 저장 성공을 뜻하지 않습니다. 실제 연결과 저장 결과는 별도로 검증해야 합니다.
 
 2026-10-04 실기 검증: 사용자가 macOS 전체 접근과 네이티브 저장 확인 창을 승인한 뒤, 선택한 캘린더에 5분짜리 테스트 일정을 생성했습니다. 별도 EventKit 범위 조회와 저장 요청 재조회에서 제목·시간·대상 캘린더가 일치했고, 앱 상세에도 외부 일정으로 표시됐습니다. 같은 저장 요청을 다시 실행해도 일정은 1개였습니다. UI 25개, 패키징 5개, Python 55개 테스트가 통과했습니다. 다른 기기까지의 동기화와 공개 스토어 배포는 검증 범위에 포함하지 않습니다.
 
@@ -179,3 +191,9 @@ Host verification covered Kiro light/dark, Emerald light, 550px editor layout, S
 
 
 Style ownership stays local: `CalendarToolbar.css` defines one toolbar layout, `DateJump.css` owns the date disclosure and popup, and `styles/forms.css` owns field layout only. SDK inputs keep their default typography at every viewport width; native select/textarea appearance is shared in `platform/kiro/NativeControls.css`. Responsive rules change layout rather than redefining host control typography. Agenda title/metadata and month item typography each have a single base definition.
+
+
+Page gutters share the host `PageHeader` breakpoint and spacing: 16px by default, 24px from 48rem, expressed through the host spacing token. Calendar content, workspace tabs, settings and feedback consume the same gutter value. Agenda uses the full available width. SettingsLayout owns the left-aligned 800px settings body, section headings/actions, section spacing and setting rows. Event suggestions appear first, followed by the default calendar and external connections. WorkspacePage retains scrolling and shared page gutters; shared checkbox layout belongs to forms, and connection-group/grid spacing to CalendarConnections.
+
+
+`layout/Controls` owns shared control geometry. `ControlCell` sets a single outer block size of ten host spacing units (40px at the default scale) for header and toolbar controls. `ControlRow` combines a flexible field, optional metadata and an action, used by calendar search and conversation selection. SDK colors, borders, padding, focus and interaction behavior remain host-owned. No descendant selectors or per-button height overrides are used; page styles own only the row's placement. Conversation-example actions use complete locale messages for both expanded and collapsed states.

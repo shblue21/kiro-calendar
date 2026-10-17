@@ -1,3 +1,4 @@
+import { SettingsSection } from "../settings/SettingsLayout";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
 import { useState } from "react";
 import { t } from "../i18n/index.ts";
@@ -32,13 +33,10 @@ export function CalendarPreferences({
     }
   }
   return (
-    <section
-      className="cc-page-section"
-      aria-label={t("common.defaultCalendar")}
+    <SettingsSection
+      title={t("common.defaultCalendar")}
+      description={t("settings.localStorageDescription")}
     >
-      <h3>{t("common.defaultCalendar")}</h3>
-      <p>{t("settings.localStorageDescription")}</p>
-      <div className="cc-preferences-fields">
       <DestinationSelect
         label={t("common.defaultSaveCalendar")}
         disabled={busy}
@@ -55,8 +53,7 @@ export function CalendarPreferences({
         />
         {t("common.showCrewCalendar")}
       </label>
-      </div>
       {error && <p role="alert">{renderNotice(error)}</p>}
-    </section>
+    </SettingsSection>
   );
 }

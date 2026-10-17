@@ -213,10 +213,12 @@ export const en = {
     "Could not save changes. Previous settings are unchanged.",
   "common.eventSuggestionsInConversations":
     "Event suggestions in conversations",
+  "suggestions.showExample": "View conversation example",
+  "suggestions.hideExample": "Hide conversation example",
   "suggestions.description":
-    "Crew can suggest drafts when it notices something to plan.",
+    "Crew can suggest a useful time to act during your conversation.",
   "suggestions.reviewHint":
-    "Suggestions remain drafts. Review them before saving to an external calendar.",
+    "Choose a reply in chat. Events are added to Crew Calendar only after you agree.",
   "common.checking": "Checking",
   "common.savingStatus": "Saving",
   "suggestions.activationHint":
@@ -234,12 +236,10 @@ export const en = {
   "common.connectSuggestions": "Connect suggestions",
   "suggestions.setupInstructions":
     "In Crew agent features → Hooks, register the command below for UserPromptSubmit. Name it Crew Calendar · schedule suggestions, leave the condition empty and enable it. Then refresh settings.",
-  "common.conversationExample": "Conversation example",
-  "common.view": "View",
   "suggestions.exampleUser":
-    "Me: “The application is due Friday and I have not started.”",
+    "Me: “The application is due Friday. I can spare Thursday, 19:00–19:30, to start writing.”",
   "suggestions.exampleAssistant":
-    "Crew: “How about setting aside Thursday evening? I left a draft for you to review.”",
+    "Crew: “Shall I add application writing on Thursday, 19:00–19:30, to Crew Calendar?” — Register as shown / Change time / Not now",
   "suggestions.registered":
     "The hook is registered. A run in a conversation has not been verified yet.",
   "suggestions.runTimeout":

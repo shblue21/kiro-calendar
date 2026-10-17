@@ -40,7 +40,7 @@ class Repository(Protocol):
     def scan_items(self) -> dict[str, list]: ...
     def items(self, *, strict: bool = False) -> list[dict[str, Any]]: ...
     def session_items(self, session_key: str) -> list[dict[str, Any]]: ...
-    def was_applied(self, session_key: str) -> bool: ...
+    def was_enabled(self, session_key: str) -> bool: ...
     def record_application(self, session_key: str, value: dict[str, Any]) -> None: ...
     def save_item(self, value: dict[str, Any]) -> None: ...
     def get_item(self, draft_id: str) -> dict[str, Any]: ...
@@ -217,8 +217,16 @@ class JsonRepository:
             / (hashlib.sha256(session_key.encode()).hexdigest() + ".json")
         )
 
-    def was_applied(self, session_key: str) -> bool:
-        return self._receipt(session_key).exists()
+    def was_enabled(self, session_key: str) -> bool:
+        try:
+            value = json.loads(self._receipt(session_key).read_text(encoding="utf-8"))
+            if not isinstance(value, dict) or type(value.get("enabled")) is not bool:
+                raise ValueError("invalid hook state")
+            return value["enabled"]
+        except FileNotFoundError:
+            return False
+        except (OSError, ValueError) as exc:
+            raise StorageUnavailable("Calendar hook state could not be read") from exc
 
     def record_application(self, session_key: str, value: dict[str, Any]) -> None:
         _atomic_json(self._receipt(session_key), value)

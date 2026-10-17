@@ -1,3 +1,4 @@
+import { ControlCell } from "../layout/Controls";
 import { NativeSelect } from "../platform/kiro/NativeControls";
 import { DateJump } from "./DateJump";
 import type { CivilDate } from "./dates";
@@ -76,83 +77,97 @@ export function CalendarToolbar({
   return (
     <div className="cc-toolbar">
       <div className="cc-date-nav">
-        <Btn
-          aria-label={t("common.previous", {
-            period:
-              view === "day"
-                ? t("common.day")
-                : view === "month"
-                  ? t("common.periodMonth")
-                  : view === "year"
-                    ? t("common.periodYear")
-                    : t("common.week"),
-          })}
-          onClick={onPrevious}
-        >
-          <ChevronLeft size={16} />
-        </Btn>
-        <Btn
-          aria-label={t("common.next", {
-            period:
-              view === "day"
-                ? t("common.day")
-                : view === "month"
-                  ? t("common.periodMonth")
-                  : view === "year"
-                    ? t("common.periodYear")
-                    : t("common.week"),
-          })}
-          onClick={onNext}
-        >
-          <ChevronRight size={16} />
-        </Btn>
-        <Btn onClick={onReset}>{t("common.today")}</Btn>
+        <ControlCell>
+          <Btn
+            aria-label={t("common.previous", {
+              period:
+                view === "day"
+                  ? t("common.day")
+                  : view === "month"
+                    ? t("common.periodMonth")
+                    : view === "year"
+                      ? t("common.periodYear")
+                      : t("common.week"),
+            })}
+            onClick={onPrevious}
+          >
+            <ChevronLeft size={16} />
+          </Btn>
+        </ControlCell>
+        <ControlCell>
+          <Btn
+            aria-label={t("common.next", {
+              period:
+                view === "day"
+                  ? t("common.day")
+                  : view === "month"
+                    ? t("common.periodMonth")
+                    : view === "year"
+                      ? t("common.periodYear")
+                      : t("common.week"),
+            })}
+            onClick={onNext}
+          >
+            <ChevronRight size={16} />
+          </Btn>
+        </ControlCell>
+        <ControlCell>
+          <Btn onClick={onReset}>{t("common.today")}</Btn>
+        </ControlCell>
         <DateJump date={date} label={range} onChange={onDate} />
       </div>
       <div className="cc-toolbar-actions">
-        <Btn
-          aria-label={t("common.searchEvents")}
-          aria-expanded={searchOpen}
-          onClick={onSearch}
-        >
-          <Search size={15} />
-        </Btn>
-        <NativeSelect
-          style={{ width: "auto" }}
-          aria-label={t("common.displayPeriod")}
-          value={view}
-          onChange={(e) => onView(e.target.value as CalendarView)}
-        >
-          <option value="day">{t("common.viewDay")}</option>
-          <option value="week">{t("common.viewWeek")}</option>
-          <option value="month">{t("common.viewMonth")}</option>
-          <option value="year">{t("common.viewYear")}</option>
-        </NativeSelect>
-        <SegmentedControl<CalendarLayout>
-          ariaLabel={t("common.displayLayout")}
-          layoutId={layoutId}
-          collapse={false}
-          value={layout}
-          onChange={onLayout}
-          segments={[
-            {
-              key: "calendar",
-              label: t("common.calendarGrid"),
-              disabled: narrow && view === "week",
-            },
-            { key: "list", label: t("common.list") },
-          ]}
-        />
-        <div className="cc-display-menu" ref={menu}>
+        <ControlCell>
           <Btn
-            aria-expanded={open}
-            aria-controls="cc-display-options"
-            onClick={() => setOpen((value) => !value)}
+            aria-label={t("common.searchEvents")}
+            aria-expanded={searchOpen}
+            onClick={onSearch}
           >
-            <SlidersHorizontal size={14} />
-            {t("common.show")}
-            <ChevronDown size={13} />
+            <Search size={15} />
           </Btn>
+        </ControlCell>
+        <ControlCell>
+          <NativeSelect
+            style={{ width: "auto" }}
+            aria-label={t("common.displayPeriod")}
+            value={view}
+            onChange={(e) => onView(e.target.value as CalendarView)}
+          >
+            <option value="day">{t("common.viewDay")}</option>
+            <option value="week">{t("common.viewWeek")}</option>
+            <option value="month">{t("common.viewMonth")}</option>
+            <option value="year">{t("common.viewYear")}</option>
+          </NativeSelect>
+        </ControlCell>
+        <ControlCell>
+          <SegmentedControl<CalendarLayout>
+            ariaLabel={t("common.displayLayout")}
+            layoutId={layoutId}
+            collapse={false}
+            value={layout}
+            onChange={onLayout}
+            segments={[
+              {
+                key: "calendar",
+                label: t("common.calendarGrid"),
+                disabled: narrow && view === "week",
+              },
+              { key: "list", label: t("common.list") },
+            ]}
+          />
+        </ControlCell>
+        <div className="cc-display-menu" ref={menu}>
+          <ControlCell>
+            <Btn
+              aria-expanded={open}
+              aria-controls="cc-display-options"
+              onClick={() => setOpen((value) => !value)}
+            >
+              <SlidersHorizontal size={14} />
+              {t("common.show")}
+              <ChevronDown size={13} />
+            </Btn>
+          </ControlCell>
           {open && (
             <div id="cc-display-options" className="cc-display-popover">
               <h3>{t("common.itemsToDisplay")}</h3>

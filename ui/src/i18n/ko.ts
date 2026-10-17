@@ -209,10 +209,12 @@ export const ko = {
   "suggestions.loadError": "설정을 확인하지 못했어요. 다시 시도해 주세요.",
   "suggestions.saveError": "변경을 저장하지 못했어요. 이전 설정을 유지합니다.",
   "common.eventSuggestionsInConversations": "대화 중 일정 제안",
+  "suggestions.showExample": "대화 예시 보기",
+  "suggestions.hideExample": "대화 예시 닫기",
   "suggestions.description":
-    "대화에서 챙길 일을 발견하면 검토용 초안을 제안해요.",
+    "대화에서 실행할 일이 생기면 시간을 잡아볼지 자연스럽게 제안해요.",
   "suggestions.reviewHint":
-    "초안만 제안하며, 외부 캘린더 저장은 직접 검토한 뒤 진행해요.",
+    "대화의 선택지로 답하고, 동의한 일정만 Crew Calendar에 등록해요.",
   "common.checking": "확인 중",
   "common.savingStatus": "저장 중",
   "suggestions.activationHint":
@@ -230,11 +232,9 @@ export const ko = {
   "common.connectSuggestions": "처음 한 번 연결하기",
   "suggestions.setupInstructions":
     "Crew의 에이전트 기능 → 훅에서 아래 명령을 UserPromptSubmit 이벤트로 등록해 주세요. 이름은 Crew Calendar · schedule suggestions, 조건은 비워두고 활성화합니다. 등록 후 설정 다시 확인을 누르세요.",
-  "common.conversationExample": "대화 예시",
-  "common.view": "보기",
-  "suggestions.exampleUser": "나 · “금요일 마감인데 지원서 아직 못 썼네.”",
+  "suggestions.exampleUser": "나 · “금요일 마감인데 지원서 아직 못 썼네. 목요일 저녁 7시부터 30분은 비어.”",
   "suggestions.exampleAssistant":
-    "Crew · “목요일 저녁에 마무리할 시간을 잡아보면 어때요? 검토용 초안을 남겼어요.”",
+    "Crew · “목요일 19:00–19:30에 지원서 작성 시간을 Crew Calendar에 추가할까요?” — 이대로 등록 / 시간 바꾸기 / 지금은 괜찮아",
   "suggestions.registered":
     "연결은 등록됐어요. 실제 대화에서의 실행은 아직 확인하지 않았어요.",
   "suggestions.runTimeout":

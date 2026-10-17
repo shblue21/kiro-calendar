@@ -6,17 +6,12 @@
   font-size: var(--text-xs);
 }
 
-.cc-proposal-example-button {
-  margin-top: 12px;
-}
-
 .cc-proposal-example {
   max-width: 560px;
-  margin-top: 16px;
 }
 
 .cc-proposal-example blockquote {
-  margin: 16px 0;
+  margin: 0;
   padding-left: 12px;
   border-left: 2px solid var(--border);
   font-size: var(--text-sm);
@@ -24,14 +19,15 @@
 }
 
 .cc-proposal-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   margin-top: 16px;
 }
 
 .cc-settings-fold {
-  margin-bottom: 18px;
+  min-inline-size: 0;
+}
+
+.cc-settings-fold .cc-settings-row {
+  padding-block: calc(var(--spacing) * 2);
 }
 
 .cc-settings-fold > summary {
@@ -39,12 +35,6 @@
   font-size: var(--text-sm);
   font-weight: 600;
   padding: 6px 0;
-}
-
-.cc-settings-fold h4 {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  margin: 18px 0 8px;
 }
 
 .cc-hook-command {

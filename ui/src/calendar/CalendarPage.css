@@ -60,16 +60,7 @@
 }
 
 .cc-search-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 10px;
-  font-size: var(--text-xs);
-}
-
-.cc-search-row span {
-  white-space: nowrap;
-  color: var(--muted);
+  margin-bottom: 10px;
 }
 
 .cc-state-panel {
@@ -103,7 +94,7 @@
 
 @container calendar (max-width: 760px) {
   .cc-content {
-    padding: 0 16px 10px;
+    padding-bottom: 10px;
     overflow: visible;
   }
 
@@ -115,5 +106,3 @@
     font-size: var(--text-lg);
   }
 }
-
-.cc-search-row > input { max-width: 430px; }

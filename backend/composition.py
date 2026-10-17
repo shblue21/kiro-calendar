@@ -12,7 +12,7 @@ class Services:
         from .calendar_migration import migrate
         migrate(self.repository)
         self.settings = SettingsService(self.repository)
-        self.drafts = DraftService(self.repository, self.settings)
+        self.drafts = DraftService(self.repository)
         self.contexts = SuggestionContextService(self.repository, self.settings)
 
     def calendar(self):
@@ -25,3 +25,8 @@ class Services:
             CalendarConnection('apple-local', 'apple', 'Apple Calendar', AppleCalendarProvider(root.parent, root), system_name='appleLocal'),
         ])
         return CalendarService(self.drafts, CalendarStorage(root, legacy_connection_id='apple-local'), connections)
+
+    def conversation_schedule(self):
+        from .conversation_schedule import ConversationSchedule
+        from .host import app_active_for
+        return ConversationSchedule(self.calendar().items, app_active_for)

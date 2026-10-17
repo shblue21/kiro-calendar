@@ -2,7 +2,7 @@
   "name": "crew-calendar",
   "version": "0.2.0",
   "displayName": "Calendar",
-  "description": "Create and manage events in the built-in Crew Calendar. Review AI proposals before confirming them. Optionally save to Apple Calendar on macOS after native confirmation. Uses the Crew host operating system timezone.",
+  "description": "Create and manage events in Crew Calendar. Discuss suggestions in chat and register after agreeing. Keep drafts only when requested. Apple Calendar saves require native confirmation on macOS.",
   "tags": [
     "calendar",
     "productivity",
