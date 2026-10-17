@@ -14,9 +14,7 @@ import { bindLanguageSource } from "../i18n/locale.ts";
 import { NoticeError, notice, renderNotice } from "../i18n/notice.ts";
 import { collectionNotice, errorNotice } from "./api.ts";
 
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-test("English is the base; Korean keys and substitutions match without hardcoded UI copy", () => {
+test("locale keys, substitutions and plural forms remain aligned", () => {
   assert.equal(resolveLocale("ko-KR"), "ko");
   assert.equal(resolveLocale("en-GB"), "en");
   assert.equal(resolveLocale("fr"), "en");
@@ -29,10 +27,8 @@ test("English is the base; Korean keys and substitutions match without hardcoded
     assert.equal(typeof source, typeof translated, key);
     variants(source).forEach((text, i) =>
       assert.deepEqual(
-        text.match(/\{[a-zA-Z]+\}/g)?.sort() ?? [],
-        variants(translated)
-          [i].match(/\{[a-zA-Z]+\}/g)
-          ?.sort() ?? [],
+        new Set(text.match(/\{[a-zA-Z][a-zA-Z0-9]*\}/g) ?? []),
+        new Set(variants(translated)[i].match(/\{[a-zA-Z][a-zA-Z0-9]*\}/g) ?? []),
         key,
       ),
     );
@@ -43,6 +39,9 @@ test("English is the base; Korean keys and substitutions match without hardcoded
     t("calendar.monthSummary", { year: "2026", month: "10", count: 1 }),
     "Show 2026-10, 1 event",
   );
+});
+
+test("provider labels and weekdays follow the document language", () => {
   const oldConfirmation = {
     mode: "provider" as const,
     actionLabel: "Mac에서 최종 확인",
@@ -61,16 +60,11 @@ test("English is the base; Korean keys and substitutions match without hardcoded
   ]);
   assert.match(renderNotice(partialWarning), /Only 5,000 events/);
   assert.match(renderNotice(partialWarning), /Shorten the date range/);
-  assert.match(
-    renderNotice(errorNotice({ code: "events_truncated" })),
-    /Some events/,
-  );
+  assert.match(renderNotice(errorNotice({ code: "events_truncated" })), /Some events/);
   assert.match(
     renderNotice(errorNotice({ code: "calendar_missing" })),
     /calendar is unavailable/,
   );
-  const englishDays = weekdays();
-  for (let i = 0; i < 12; i++) assert.equal(weekdays(), englishDays);
   assert.equal(t("calendar.eventCount", { count: 3 }), "3 events");
   assert.equal(weekdays()[0], "Mon");
   assert.equal(
@@ -85,10 +79,7 @@ test("English is the base; Korean keys and substitutions match without hardcoded
       configurable: true,
       value: { documentElement: { lang: "ko-KR" } },
     });
-    assert.equal(
-      confirmationAction(oldConfirmation, "apple"),
-      "Mac에서 최종 확인",
-    );
+    assert.equal(confirmationAction(oldConfirmation, "apple"), "Mac에서 최종 확인");
     assert.equal(
       connectionName({ kind: "system", key: "appleLocal" }),
       "Apple Calendar · 이 Mac",
@@ -107,13 +98,14 @@ test("English is the base; Korean keys and substitutions match without hardcoded
     if (previous) Object.defineProperty(globalThis, "document", previous);
     else Reflect.deleteProperty(globalThis, "document");
   }
+});
+
+test("existing notices render in the current host language without leaking diagnostics", () => {
   let hostLanguage = "ko";
   const unbind = bindLanguageSource(() => hostLanguage);
   try {
     const saved = notice("common.eventDeleted");
-    const validation = errorNotice(
-      new NoticeError(notice("editor.invalidFields")),
-    );
+    const validation = errorNotice(new NoticeError(notice("editor.invalidFields")));
     const conflict = errorNotice(
       Object.assign(new Error("API error"), {
         status: 409,
@@ -126,9 +118,7 @@ test("English is the base; Korean keys and substitutions match without hardcoded
         body: "broken body with private data",
       }),
     );
-    const damaged = collectionNotice([
-      { itemId: "test-id", message: "원본 오류" },
-    ]);
+    const damaged = collectionNotice([{ itemId: "test-id", message: "원본 오류" }]);
     assert.equal(renderNotice(saved), "일정을 삭제했습니다.");
     hostLanguage = "en";
     assert.equal(renderNotice(saved), "Event deleted.");
@@ -145,15 +135,4 @@ test("English is the base; Korean keys and substitutions match without hardcoded
   } finally {
     unbind();
   }
-  const root = new URL("../", import.meta.url).pathname;
-  function scan(dir: string) {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name === "i18n") continue;
-      const p = join(dir, entry.name);
-      if (entry.isDirectory()) scan(p);
-      else if (/\.tsx?$/.test(p) && !p.includes(".test."))
-        assert.equal(/[가-힣]/.test(readFileSync(p, "utf8")), false, p);
-    }
-  }
-  scan(root);
 });

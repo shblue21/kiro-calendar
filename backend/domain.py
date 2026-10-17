@@ -1,12 +1,21 @@
 """Calendar draft values and validation. No Crew or persistence imports."""
+
 from __future__ import annotations
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import hashlib
 
 SCHEMA_VERSION = 3
+TITLE_LIMIT = 120
+NOTES_LIMIT = 2000
+DEFAULT_EVENT_DURATION = timedelta(hours=1)
+MAX_EVENT_DURATION = timedelta(days=7)
+MAX_QUERY_DURATION = timedelta(days=370)
+CREW_DESTINATION = {"connectionId": "crew", "calendarId": "default"}
+
+
 class DraftError(ValueError):
     pass
 
@@ -18,7 +27,8 @@ class ItemNotFound(DraftError):
 class StorageUnavailable(DraftError):
     """Persistent data could not be read or written, or is corrupt."""
 
-def _parse_time(value: Any, field: str) -> datetime:
+
+def parse_time(value: Any, field: str) -> datetime:
     if not isinstance(value, str) or not value.strip():
         raise DraftError(f"{field} is required (ISO 8601 with UTC offset)")
     try:
@@ -44,7 +54,6 @@ def _text(value: Any, field: str, limit: int, required: bool = False) -> str:
     return text
 
 
-
 @dataclass(frozen=True)
 class DraftCandidate:
     title: str
@@ -57,9 +66,9 @@ class DraftCandidate:
     def parse(cls, fields: dict[str, Any]) -> "DraftCandidate":
         if not isinstance(fields, dict):
             raise DraftError("Draft arguments must be an object")
-        title = _text(fields.get("title"), "title", 120, required=True)
-        start = _parse_time(fields.get("start"), "start")
-        end = _parse_time(fields.get("end"), "end") if fields.get("end") else None
+        title = _text(fields.get("title"), "title", TITLE_LIMIT, required=True)
+        start = parse_time(fields.get("start"), "start")
+        end = parse_time(fields.get("end"), "end") if fields.get("end") else None
         if end is not None and end <= start:
             raise DraftError("end must be after start")
         tz_name = _text(fields.get("timezone"), "timezone", 64)
@@ -68,7 +77,11 @@ class DraftCandidate:
                 zone = ZoneInfo(tz_name)
             except (ZoneInfoNotFoundError, ValueError) as exc:
                 raise DraftError("timezone must be a valid IANA zone") from exc
-            if any(t.utcoffset() != t.astimezone(zone).utcoffset() for t in [start, end] if t is not None):
+            if any(
+                t.utcoffset() != t.astimezone(zone).utcoffset()
+                for t in [start, end]
+                if t is not None
+            ):
                 raise DraftError("UTC offset does not match timezone")
         reason = _text(fields.get("reason"), "reason", 300)
         return cls(title, start, end, tz_name, reason)
@@ -76,12 +89,27 @@ class DraftCandidate:
     def to_record(self, origin: dict[str, str], *, now: datetime) -> dict[str, Any]:
         session = origin["sessionKey"]
         normalized = self.start.astimezone(timezone.utc).isoformat()
-        draft_id = hashlib.sha256("\0".join([session, self.title.casefold(), normalized]).encode()).hexdigest()[:16]
+        draft_id = hashlib.sha256(
+            "\0".join([session, self.title.casefold(), normalized]).encode()
+        ).hexdigest()[:16]
         created = now.isoformat(timespec="seconds")
-        return {"schemaVersion": SCHEMA_VERSION, "revision": 1, "id": draft_id, "title": self.title,
-                "start": self.start.isoformat(), "end": self.end.isoformat() if self.end else None,
-                "timezone": self.timezone, "reason": self.reason, "status": "proposed",
-                "source": "manual", "destination": {"connectionId": "crew", "calendarId": "default"},
-                "origin": {"sessionKey": session, "sessionType": origin.get("sessionType", "unknown"),
-                           "identitySource": origin.get("identitySource", "unknown")},
-                "createdAt": created, "updatedAt": created}
+        return {
+            "schemaVersion": SCHEMA_VERSION,
+            "revision": 1,
+            "id": draft_id,
+            "title": self.title,
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat() if self.end else None,
+            "timezone": self.timezone,
+            "reason": self.reason,
+            "status": "proposed",
+            "source": "manual",
+            "destination": dict(CREW_DESTINATION),
+            "origin": {
+                "sessionKey": session,
+                "sessionType": origin.get("sessionType", "unknown"),
+                "identitySource": origin.get("identitySource", "unknown"),
+            },
+            "createdAt": created,
+            "updatedAt": created,
+        }

@@ -19,10 +19,7 @@ export function ControlRow({
 }) {
   return (
     <div className="cc-control-row">
-      <div
-        className="cc-control-field"
-        style={{ maxInlineSize: fieldMaxWidth }}
-      >
+      <div className="cc-control-field" style={{ maxInlineSize: fieldMaxWidth }}>
         <ControlCell>{field}</ControlCell>
       </div>
       {meta != null && <span className="cc-control-meta">{meta}</span>}

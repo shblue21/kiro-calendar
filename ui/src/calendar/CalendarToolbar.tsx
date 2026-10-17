@@ -6,19 +6,14 @@ import { Btn, SegmentedControl } from "@kirocrew/app-sdk/ui";
 import { useEffect, useId, useRef, useState } from "react";
 import { t } from "../i18n/index.ts";
 import {
+  CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Search,
   SlidersHorizontal,
 } from "../platform/kiro/icons";
-import { KIND_ICON } from "./TypeMark";
-import type {
-  CalendarLayers,
-  CalendarLayout,
-  CalendarView,
-  Kind,
-} from "./types";
+import type { CalendarLayout, CalendarView } from "./types";
 type Props = {
   range: string;
   date: CivilDate;
@@ -26,13 +21,13 @@ type Props = {
   onPrevious: () => void;
   onNext: () => void;
   onReset: () => void;
-  layers: CalendarLayers;
+  showEvents: boolean;
   view: CalendarView;
   layout: CalendarLayout;
   onLayout: (layout: CalendarLayout) => void;
   narrow: boolean;
   onView: (view: CalendarView) => void;
-  onToggle: (kind: Kind) => void;
+  onToggle: () => void;
   searchOpen: boolean;
   onSearch: () => void;
 };
@@ -43,7 +38,7 @@ export function CalendarToolbar({
   onPrevious,
   onNext,
   onReset,
-  layers,
+  showEvents,
   view,
   layout,
   onLayout,
@@ -171,20 +166,11 @@ export function CalendarToolbar({
           {open && (
             <div id="cc-display-options" className="cc-display-popover">
               <h3>{t("common.itemsToDisplay")}</h3>
-              {(["event"] as Kind[]).map((kind) => {
-                const Icon = KIND_ICON[kind];
-                return (
-                  <label key={kind}>
-                    <input
-                      type="checkbox"
-                      checked={layers[kind]}
-                      onChange={() => onToggle(kind)}
-                    />
-                    <Icon size={14} />
-                    {t("common.eventsAndDrafts")}
-                  </label>
-                );
-              })}
+              <label>
+                <input type="checkbox" checked={showEvents} onChange={onToggle} />
+                <CalendarDays size={14} />
+                {t("common.eventsAndDrafts")}
+              </label>
             </div>
           )}
         </div>

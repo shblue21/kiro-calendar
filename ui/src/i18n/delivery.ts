@@ -6,9 +6,7 @@ export function confirmationAction(
 ): string {
   if (confirmation?.mode === "provider")
     return t(
-      provider === "apple"
-        ? "delivery.confirmOnMac"
-        : "delivery.confirmInProvider",
+      provider === "apple" ? "delivery.confirmOnMac" : "delivery.confirmInProvider",
     );
   return t("common.saveToThisCalendar");
 }

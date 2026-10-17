@@ -4,31 +4,20 @@ import { WorkspacePage } from "./layout/WorkspacePage";
 import type { EventSeed } from "./calendar/creation";
 import { useAppApi, useAppInfo, useChatLauncher } from "@kirocrew/app-sdk";
 import { Btn, PageHeader, SegmentedControl } from "@kirocrew/app-sdk/ui";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useId,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
 import { CalendarPage } from "./calendar/CalendarPage";
 import { dateKey, dayOffset, monday, shift } from "./calendar/dates";
 import { calendarRange } from "./calendar/period";
 import { dateRangeInstants, zonedDay, zonedInput } from "./calendar/time";
-import type {
-  CalendarLayout,
-  CalendarView,
-  CalendarViewItem,
-} from "./calendar/types";
+import type { CalendarLayout, CalendarView } from "./calendar/types";
 import { t } from "./i18n/index.ts";
 import type { Notice } from "./i18n/notice.ts";
 import { notice, NoticeError, renderNotice } from "./i18n/notice.ts";
 import { useLocale } from "./i18n/useLocale";
-import { collectionNotice, errorNotice } from "./live/api";
+import { errorNotice } from "./live/api";
+import { useCalendarData } from "./live/useCalendarData";
 import { CalendarConnections } from "./live/CalendarConnections";
 import { CalendarPreferences } from "./live/CalendarPreferences";
-import { CREW_DESTINATION } from "./live/DestinationSelect";
 import { DraftList } from "./live/DraftList";
 import {
   ConfirmedEventEditor,
@@ -38,12 +27,7 @@ import {
 import { EventTrash } from "./live/EventTrash";
 import { ExternalSavePanel } from "./live/ExternalSavePanel";
 import { calendarItems, eventItems } from "./live/projection";
-import type {
-  CalendarEvent,
-  CalendarItem,
-  Connection,
-  CalendarPreferences as Preferences,
-} from "./live/types";
+import type { CalendarItem } from "./live/types";
 import { can } from "./live/types";
 import { AlertCircle, Plus, RotateCcw, Settings2 } from "./platform/kiro/icons";
 import { ProposalSettings } from "./settings/ProposalSettings";
@@ -81,9 +65,7 @@ export default function CalendarApp() {
     return (
       <div className="cc-calendar">
         <style>{styles}</style>
-        <p role="status">
-          {renderNotice(error) || t("common.loadingCalendar")}
-        </p>
+        <p role="status">{renderNotice(error) || t("common.loadingCalendar")}</p>
         {error && (
           <Btn onClick={() => void load().catch(() => {})}>
             {t("common.checkAgain")}
@@ -108,31 +90,15 @@ function CalendarWorkspace({
   const base = `/api/apps/${name}`;
   const [clock, setClock] = useState(() => new Date()),
     [weekStart] = useState(() => monday(zonedDay(new Date(), timezone)));
-  const [focusDate, setFocusDate] = useState(() =>
-      zonedDay(new Date(), timezone),
-    ),
+  const [focusDate, setFocusDate] = useState(() => zonedDay(new Date(), timezone)),
     [view, setView] = useState<CalendarView>("week"),
     [layout, setLayout] = useState<CalendarLayout>("calendar");
-  const [page, setPage] = useState<
-    "calendar" | "proposals" | "activity" | "settings"
-  >(() =>
-    new URLSearchParams(window.location.search).get("view") === "drafts"
-      ? "proposals"
-      : "calendar",
+  const [page, setPage] = useState<"calendar" | "proposals" | "activity" | "settings">(
+    () =>
+      new URLSearchParams(window.location.search).get("view") === "drafts"
+        ? "proposals"
+        : "calendar",
   );
-  const [records, setRecords] = useState<CalendarItem[]>([]),
-    [events, setEvents] = useState<CalendarEvent[]>([]),
-    [connections, setConnections] = useState<Connection[]>([]);
-  const [recordError, setRecordError] = useState<Notice | null>(null),
-    [eventError, setEventError] = useState<Notice | null>(null),
-    [connectionError, setConnectionError] = useState<Notice | null>(null);
-  const [loading, setLoading] = useState(true),
-    [refreshing, setRefreshing] = useState(false);
-  const [preferences, setPreferences] = useState<Preferences>({
-    defaultDestination: CREW_DESTINATION,
-    showCrew: true,
-  });
-  const [preferencesReady, setPreferencesReady] = useState(false);
   const [editor, setEditor] = useState<{
     key: string;
     item: CalendarItem | null;
@@ -149,13 +115,12 @@ function CalendarWorkspace({
     notice: Notice;
     tone: "info" | "error";
   } | null>(null);
-  function setFeedback(value: Notice | null, tone: "info" | "error" = "info") {
-    setFeedbackState(value ? { notice: value, tone } : null);
-  }
-  const recordSequence = useRef(0),
-    eventSequence = useRef(0),
-    connectionSequence = useRef(0),
-    preferenceSequence = useRef(0);
+  const setFeedback = useCallback(
+    (value: Notice | null, tone: "info" | "error" = "info") => {
+      setFeedbackState(value ? { notice: value, tone } : null);
+    },
+    [],
+  );
   const range = calendarRange(focusDate, view, weekStart, layout);
   const first = shift(weekStart, range.first),
     last = shift(weekStart, range.end);
@@ -164,127 +129,27 @@ function CalendarWorkspace({
     dateKey(last),
     timezone,
   );
-  const selected = JSON.stringify(
-    connections.map((c) => [c.id, c.state, c.selectedCalendarIds]),
-  );
-  const loadRecords = useCallback(async () => {
-    const seq = ++recordSequence.current;
-    try {
-      const body = await api.current.get<{
-        items: CalendarItem[];
-        errors: {
-          message: string;
-        }[];
-      }>(`${base}/calendar/items`);
-      if (seq === recordSequence.current) {
-        setRecords(body.items);
-        setRecordError(collectionNotice(body.errors));
-      }
-    } catch (error) {
-      if (seq === recordSequence.current)
-        setRecordError(
-          notice("calendar.loadError", { error: errorNotice(error) }),
-        );
-    } finally {
-      if (seq === recordSequence.current) setLoading(false);
-    }
-  }, [base]);
-  const loadConnection = useCallback(async () => {
-    const seq = ++connectionSequence.current;
-    try {
-      const body = await api.current.get<{
-        connections: Connection[];
-      }>(`${base}/calendar/connection`);
-      if (seq === connectionSequence.current) {
-        setConnections(body.connections);
-        setConnectionError(null);
-      }
-    } catch (error) {
-      if (seq === connectionSequence.current) {
-        setConnectionError(errorNotice(error));
-        setConnections([]);
-      }
-    }
-  }, [base]);
-  const loadPreferences = useCallback(async () => {
-    const seq = ++preferenceSequence.current;
-    try {
-      const body = await api.current.get<{
-        preferences: Preferences;
-      }>(`${base}/calendar/preferences`);
-      if (seq === preferenceSequence.current) {
-        setPreferences(body.preferences);
-        setPreferencesReady(true);
-      }
-    } catch (error) {
-      if (seq === preferenceSequence.current)
-        setFeedback(
-          notice("settings.loadError", { error: errorNotice(error) }),
-          "error",
-        );
-    }
-  }, [base]);
-  const loadEvents = useCallback(async () => {
-    const seq = ++eventSequence.current;
-    if (!connections.some((c) => c.selectedCalendarIds.length)) {
-      setEvents([]);
-      setEventError(null);
-      return;
-    }
-    try {
-      const body = await api.current.get<{
-        events: CalendarEvent[];
-        errors: {
-          message: string;
-        }[];
-      }>(
-        `${base}/calendar/events?start=${encodeURIComponent(rangeStart)}&end=${encodeURIComponent(rangeEnd)}`,
-      );
-      if (seq === eventSequence.current) {
-        setEvents(body.events);
-        setEventError(collectionNotice(body.errors));
-      }
-    } catch (error) {
-      if (seq === eventSequence.current) {
-        setEvents([]);
-        setEventError(
-          notice("calendar.lookupError", { error: errorNotice(error) }),
-        );
-      }
-    }
-  }, [base, rangeStart, rangeEnd, selected]);
-  useEffect(() => {
-    void loadRecords();
-    void loadConnection();
-    void loadPreferences();
-  }, [loadRecords, loadConnection, loadPreferences]);
-  useEffect(() => {
-    setEvents([]);
-    void loadEvents();
-  }, [loadEvents]);
+  const {
+    records,
+    events,
+    connections,
+    recordError,
+    eventError,
+    connectionError,
+    loading,
+    refreshing,
+    preferences,
+    preferencesReady,
+    loadRecords,
+    loadConnection,
+    loadPreferences,
+    changed,
+    refresh,
+  } = useCalendarData(rangeStart, rangeEnd, refreshTimezone, setFeedback);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(new Date()), 60000);
     return () => window.clearInterval(timer);
   }, []);
-  const changed = useCallback(async () => {
-    await Promise.all([loadRecords(), loadEvents()]);
-  }, [loadRecords, loadEvents]);
-  async function refresh() {
-    setRefreshing(true);
-    try {
-      await Promise.all([
-        refreshTimezone(),
-        loadRecords(),
-        loadConnection(),
-        loadPreferences(),
-        loadEvents(),
-      ]);
-    } catch (error) {
-      setFeedback(errorNotice(error), "error");
-    } finally {
-      setRefreshing(false);
-    }
-  }
   const items = useMemo(
     () => [
       ...calendarItems(
@@ -344,10 +209,7 @@ function CalendarWorkspace({
     edit(draft);
   }
   async function saved(item: CalendarItem) {
-    if (
-      item.status === "confirmed" &&
-      item.destination?.connectionId !== "crew"
-    ) {
+    if (item.status === "confirmed" && item.destination?.connectionId !== "crew") {
       openDelivery(item, true);
     } else setEditor(null);
     await changed();
@@ -358,7 +220,7 @@ function CalendarWorkspace({
     }>(`${base}/calendar/items/${item.id}/delete`, { revision: item.revision });
     setUndo(result.item);
     setFeedback(notice("common.eventDeleted"));
-    setEditor(null);
+    setEditor((current) => (current?.key === editor?.key ? null : current));
     await changed();
   }
   async function restore(item: CalendarItem) {
@@ -387,35 +249,27 @@ function CalendarWorkspace({
     const item = items.find((i) => i.id === id);
     if (!item) return null;
     const draft = records.find((d) => d.id === item.itemId);
-    const session =
-      draft?.origin.sessionKey || item.providerEvent?.origin?.sessionKey;
+    const session = draft?.origin.sessionKey || item.providerEvent?.origin?.sessionKey;
     return (
       <div className="cc-inline-actions">
         {session?.startsWith("dashboard:") && (
-          <Btn onClick={() => origin(session)}>
-            {t("common.returnToConversation")}
-          </Btn>
+          <Btn onClick={() => origin(session)}>{t("common.returnToConversation")}</Btn>
         )}
         {draft && can(draft, "edit") && (
           <Btn onClick={() => edit(draft)}>
-            {draft.status === "proposed"
-              ? t("common.reviewAndSave")
-              : t("common.edit")}
+            {draft.status === "proposed" ? t("common.reviewAndSave") : t("common.edit")}
           </Btn>
         )}
-        {draft?.status === "confirmed" &&
-          draft.destination.connectionId !== "crew" && (
-            <Btn onClick={() => openDelivery(draft)}>
-              {t("common.externalSaveStatus")}
-            </Btn>
-          )}
+        {draft?.status === "confirmed" && draft.destination.connectionId !== "crew" && (
+          <Btn onClick={() => openDelivery(draft)}>
+            {t("common.externalSaveStatus")}
+          </Btn>
+        )}
         {draft && can(draft, "delete") && (
           <Btn
             danger
             onClick={() =>
-              void remove(draft).catch((e) =>
-                setFeedback(errorNotice(e), "error"),
-              )
+              void remove(draft).catch((e) => setFeedback(errorNotice(e), "error"))
             }
           >
             {t("common.delete")}
@@ -424,9 +278,7 @@ function CalendarWorkspace({
       </div>
     );
   }
-  const visibleDrafts = records.filter(
-    (d) => d.status === "proposed" && !d.deletedAt,
-  );
+  const visibleDrafts = records.filter((d) => d.status === "proposed" && !d.deletedAt);
   return (
     <div className="cc-calendar">
       <style>{styles}</style>
@@ -455,9 +307,7 @@ function CalendarWorkspace({
                 <Btn
                   aria-label={t("common.calendarSettings")}
                   aria-pressed={page === "settings"}
-                  onClick={() =>
-                    setPage(page === "settings" ? "calendar" : "settings")
-                  }
+                  onClick={() => setPage(page === "settings" ? "calendar" : "settings")}
                 >
                   <Settings2 size={16} />
                 </Btn>
@@ -489,16 +339,12 @@ function CalendarWorkspace({
           className={`cc-feedback ${feedback.tone === "error" ? "cc-feedback--error" : ""}`}
           role={feedback.tone === "error" ? "alert" : "status"}
         >
-          {feedback.tone === "error" && (
-            <AlertCircle size={16} aria-hidden="true" />
-          )}
+          {feedback.tone === "error" && <AlertCircle size={16} aria-hidden="true" />}
           {renderNotice(feedback.notice)}
           {undo && (
             <Btn
               onClick={() =>
-                void restore(undo).catch((e) =>
-                  setFeedback(errorNotice(e), "error"),
-                )
+                void restore(undo).catch((e) => setFeedback(errorNotice(e), "error"))
               }
             >
               {t("common.undo")}
@@ -534,10 +380,6 @@ function CalendarWorkspace({
           status={loading ? "loading" : "ready"}
           onReload={() => void refresh()}
           onAdd={(seed) => edit(null, seed)}
-          onEdit={(item: CalendarViewItem) => {
-            const d = records.find((d) => d.id === item.itemId);
-            if (d) edit(d);
-          }}
           eventActions={actions}
           notice={
             <>
@@ -548,19 +390,14 @@ function CalendarWorkspace({
                     .map(renderNotice)
                     .filter(Boolean)
                     .join(" ")}
-                  <Btn onClick={() => void refresh()}>
-                    {t("common.checkAgain")}
-                  </Btn>
+                  <Btn onClick={() => void refresh()}>{t("common.checkAgain")}</Btn>
                 </div>
               )}
             </>
           }
         />
       </div>
-      <SettingsPage
-        title={t("common.settings")}
-        hidden={page !== "settings"}
-      >
+      <SettingsPage title={t("common.settings")} hidden={page !== "settings"}>
         {page === "settings" && <ProposalSettings />}
         {preferencesReady && (
           <CalendarPreferences
@@ -608,9 +445,7 @@ function CalendarWorkspace({
               .map((d) => (
                 <div className="cc-draft-row" key={d.id}>
                   <strong>{d.title}</strong>
-                  <Btn onClick={() => openDelivery(d)}>
-                    {t("common.saveStatus")}
-                  </Btn>
+                  <Btn onClick={() => openDelivery(d)}>{t("common.saveStatus")}</Btn>
                 </div>
               ))}
           </section>

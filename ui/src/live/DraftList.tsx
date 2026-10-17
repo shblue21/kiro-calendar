@@ -3,7 +3,7 @@ import { formatDateTime } from "../i18n/format.ts";
 import { t } from "../i18n/index.ts";
 import type { Notice } from "../i18n/notice.ts";
 import { renderNotice } from "../i18n/notice.ts";
-import type { Draft } from "./types";
+import type { CalendarItem } from "./types";
 import { can } from "./types";
 /** Presentational list. Requests, navigation and refresh coordination stay in App. */
 export function DraftList({
@@ -17,12 +17,12 @@ export function DraftList({
   onConfigure,
 }: {
   onConfigure: () => void;
-  drafts: readonly Draft[];
+  drafts: readonly CalendarItem[];
   timezone: string;
   error: Notice | null;
   onRefresh: () => void;
-  onSelect: (draft: Draft) => void;
-  onDismiss: (draft: Draft) => void;
+  onSelect: (draft: CalendarItem) => void;
+  onDismiss: (draft: CalendarItem) => void;
   onOrigin: (key: string) => void;
 }) {
   return (
@@ -34,7 +34,12 @@ export function DraftList({
         <Btn onClick={onRefresh}>{t("common.refreshDrafts")}</Btn>
       </div>
       {error && <p role="alert">{renderNotice(error)}</p>}
-      {!drafts.length && <div><p>{t("common.noDraftsToReview")}</p><Btn onClick={onConfigure}>{t("navigation.proposalSettings")}</Btn></div>}
+      {!drafts.length && (
+        <div>
+          <p>{t("common.noDraftsToReview")}</p>
+          <Btn onClick={onConfigure}>{t("navigation.proposalSettings")}</Btn>
+        </div>
+      )}
       {drafts.map((d) => (
         <div className="cc-draft-row" key={d.id}>
           <div>
@@ -53,9 +58,7 @@ export function DraftList({
           </div>
           <div className="cc-inline-actions">
             <Btn primary onClick={() => onSelect(d)}>
-              {can(d, "edit")
-                ? t("common.reviewAndEdit")
-                : t("common.checkSaveStatus")}
+              {can(d, "edit") ? t("common.reviewAndEdit") : t("common.checkSaveStatus")}
             </Btn>
             {d.origin.sessionKey.startsWith("dashboard:") && (
               <Btn onClick={() => onOrigin(d.origin.sessionKey)}>

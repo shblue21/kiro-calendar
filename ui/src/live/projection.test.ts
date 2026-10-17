@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { civilDate } from "../calendar/dates.ts";
 import { eventItems } from "./projection.ts";
-import type { CalendarEvent, Draft } from "./types.ts";
+import type { CalendarEvent, CalendarItem } from "./types.ts";
 const base = civilDate("2030-01-07");
 const event: CalendarEvent = {
   eventId: "opaque",
@@ -40,6 +40,32 @@ test("exclusive all-day end does not add the following day", () => {
     [0, 1],
   );
   assert.ok(items.every((i) => i.allDay));
+  assert.deepEqual(items[0].interval, {
+    startDate: "2030-01-07",
+    endDate: "2030-01-08",
+    timeLabels: undefined,
+  });
+});
+test("details retain the whole occurrence when the view clips days or ends at midnight", () => {
+  const [clipped] = eventItems(event, base, { first: 1, end: 2 }, "Asia/Seoul");
+  assert.deepEqual(clipped.timeLabels, { start: "00:00", end: "01:00" });
+  assert.deepEqual(clipped.interval, {
+    startDate: "2030-01-07",
+    endDate: "2030-01-08",
+    timeLabels: { start: "23:00", end: "01:00" },
+  });
+  const [midnight] = eventItems(
+    { ...event, end: "2030-01-08T00:00:00+09:00" },
+    base,
+    { first: 0, end: 7 },
+    "Asia/Seoul",
+  );
+  assert.equal(midnight.timeLabels?.end, "24:00");
+  assert.deepEqual(midnight.interval, {
+    startDate: "2030-01-07",
+    endDate: "2030-01-08",
+    timeLabels: { start: "23:00", end: "00:00" },
+  });
 });
 test("DST fall-back interval retains actual duration and offset-qualified display labels", () => {
   const source = {
@@ -59,6 +85,7 @@ test("DST fall-back interval retains actual duration and offset-qualified displa
     start: "01:30 UTC-04:00",
     end: "01:15 UTC-05:00",
   });
+  assert.deepEqual(item.interval?.timeLabels, item.timeLabels);
 });
 test("spring-forward and 25-hour cross-day intervals preserve elapsed time without duplicated segments", () => {
   const spring = eventItems(
@@ -103,7 +130,7 @@ test("spring-forward and 25-hour cross-day intervals preserve elapsed time witho
 
 test("proposal acceptance keeps display identity, local visibility never changes status", async () => {
   const { calendarItems } = await import("./projection.ts");
-  const d: Draft = {
+  const d: CalendarItem = {
     id: "stable",
     revision: 1,
     title: "Local",
@@ -117,13 +144,7 @@ test("proposal acceptance keeps display identity, local visibility never changes
     actions: ["edit", "accept", "dismiss"],
     origin: { sessionKey: "dashboard:test", identitySource: "test" },
   };
-  const proposed = calendarItems(
-    [d],
-    base,
-    { first: 0, end: 7 },
-    "Asia/Seoul",
-    true,
-  );
+  const proposed = calendarItems([d], base, { first: 0, end: 7 }, "Asia/Seoul", true);
   const accepted = {
     ...d,
     status: "confirmed" as const,
@@ -144,16 +165,21 @@ test("proposal acceptance keeps display identity, local visibility never changes
     local.map((i) => i.occurrenceKey),
     proposed.map((i) => i.occurrenceKey),
   );
+  for (const item of [...proposed, ...local]) {
+    assert.deepEqual(item.interval, {
+      startDate: "2030-01-07",
+      endDate: "2030-01-08",
+      timeLabels: { start: "23:00", end: "01:00" },
+    });
+  }
   assert.ok(
     local.every(
-      (i) =>
-        i.calendarLocation === "Crew Calendar" && i.deliveryState === undefined,
+      (i) => i.calendarLocation === "Crew Calendar" && i.deliveryState === undefined,
     ),
   );
   assert.ok(local.every((i) => i.storage === "local"));
   assert.equal(
-    calendarItems([accepted], base, { first: 0, end: 7 }, "Asia/Seoul", false)
-      .length,
+    calendarItems([accepted], base, { first: 0, end: 7 }, "Asia/Seoul", false).length,
     0,
   );
   assert.equal(
@@ -183,7 +209,7 @@ test("proposal acceptance keeps display identity, local visibility never changes
 });
 test("external delivery placeholders are not local events and disappear after provider confirmation", async () => {
   const { calendarItems } = await import("./projection.ts");
-  const d: Draft = {
+  const d: CalendarItem = {
     id: "pending",
     revision: 1,
     title: "External",
@@ -226,7 +252,7 @@ test("external delivery placeholders are not local events and disappear after pr
           delivery:
             state === "unsubmitted"
               ? undefined
-              : ({ state } as Draft["delivery"]),
+              : ({ state } as CalendarItem["delivery"]),
         };
         const [row] = calendarItems(
           [value],
@@ -253,11 +279,10 @@ test("external delivery placeholders are not local events and disappear after pr
   const confirmed = {
     ...d,
     externalRef: { ...d.destination, eventId: "opaque" },
-    delivery: { state: "confirmed" } as Draft["delivery"],
+    delivery: { state: "confirmed" } as CalendarItem["delivery"],
   };
   assert.equal(
-    calendarItems([confirmed], base, { first: 0, end: 7 }, "Asia/Seoul", true)
-      .length,
+    calendarItems([confirmed], base, { first: 0, end: 7 }, "Asia/Seoul", true).length,
     0,
   );
   const remote = eventItems(
@@ -266,13 +291,38 @@ test("external delivery placeholders are not local events and disappear after pr
     { first: 0, end: 7 },
     "Asia/Seoul",
   );
+  assert.deepEqual(
+    remote.map((i) => i.day),
+    [0, 1],
+  );
   assert.ok(remote.every((i) => i.itemId === d.id));
 });
 
 test("calendar color follows the calendar while occurrence identity stays stable", () => {
-  const first = eventItems({...event, calendarColor: "#12AB34"}, base, {first:0,end:7}, "Asia/Seoul");
-  const changed = eventItems({...event, calendarColor: "#654321"}, base, {first:0,end:7}, "Asia/Seoul");
-  assert.ok(first.every(row => row.calendarColor === "#12AB34"));
-  assert.deepEqual(first.map(row => row.id), changed.map(row => row.id));
-  assert.equal(eventItems({...event, calendarColor: "not-a-color"}, base, {first:0,end:7}, "Asia/Seoul")[0].calendarColor, undefined);
+  const first = eventItems(
+    { ...event, calendarColor: "#12AB34" },
+    base,
+    { first: 0, end: 7 },
+    "Asia/Seoul",
+  );
+  const changed = eventItems(
+    { ...event, calendarColor: "#654321" },
+    base,
+    { first: 0, end: 7 },
+    "Asia/Seoul",
+  );
+  assert.ok(first.every((row) => row.calendarColor === "#12AB34"));
+  assert.deepEqual(
+    first.map((row) => row.id),
+    changed.map((row) => row.id),
+  );
+  assert.equal(
+    eventItems(
+      { ...event, calendarColor: "not-a-color" },
+      base,
+      { first: 0, end: 7 },
+      "Asia/Seoul",
+    )[0].calendarColor,
+    undefined,
+  );
 });

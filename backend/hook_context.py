@@ -1,4 +1,5 @@
 """Per-message context use case; transport and host eligibility are adapters."""
+
 from __future__ import annotations
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -19,25 +20,38 @@ class SuggestionContextService:
         self.repository = repository
         self.settings = settings
 
-    def for_session(self, session: str, *, active: bool, now: datetime | None = None) -> str:
+    def for_session(
+        self, session: str, *, active: bool, now: datetime | None = None
+    ) -> str:
         with self.repository.transaction():
             previously_enabled = self.repository.was_enabled(session)
             try:
                 settings = self.settings.read()
             except DraftError:
                 settings = None
-            enabled = bool(settings is not None and active
-                           and settings["suggestionsEnabled"]
-                           and session in settings["sessionKeys"])
+            enabled = bool(
+                settings is not None
+                and active
+                and settings["suggestionsEnabled"]
+                and session in settings["sessionKeys"]
+            )
             # No ON guidance to cancel, or OFF was already returned for this chat.
             if not enabled and not previously_enabled:
                 return ""
             stamp = now or datetime.now(timezone.utc)
             output = render_on(settings, stamp) if enabled else OFF
-            self.repository.record_application(session, {
-                **({"revision": settings["revision"]} if settings is not None else {}),
-                "seenAt": stamp.isoformat(), "enabled": enabled,
-            })
+            self.repository.record_application(
+                session,
+                {
+                    **(
+                        {"revision": settings["revision"]}
+                        if settings is not None
+                        else {}
+                    ),
+                    "seenAt": stamp.isoformat(),
+                    "enabled": enabled,
+                },
+            )
             return output
 
 

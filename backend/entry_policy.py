@@ -4,7 +4,8 @@ from __future__ import annotations
 import re
 from .calendar_domain import CalendarError
 
-CREW = {"connectionId": "crew", "calendarId": "default"}
+from .domain import CREW_DESTINATION as CREW
+
 PENDING = {"awaiting_confirmation", "unknown"}
 UNWRITTEN = {"prepared", "cancelled", "failed"}
 

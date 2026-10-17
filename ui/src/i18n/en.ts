@@ -5,8 +5,7 @@ export const en = {
   "calendar.loadError": "Could not load events. {error}",
   "settings.loadError": "Could not load calendar preferences. {error}",
   "calendar.lookupError": "Event lookup failed. {error}",
-  "editor.destinationLoading":
-    "Wait for the default calendar to load, then try again.",
+  "editor.destinationLoading": "Wait for the default calendar to load, then try again.",
   "common.eventDeleted": "Event deleted.",
   "common.eventRestored": "Event restored.",
   "common.returnToConversation": "Return to conversation",
@@ -23,8 +22,6 @@ export const en = {
   "common.settings": "Settings",
   "common.externalSaveHistory": "External save history",
   "common.saveStatus": "Save status",
-  "common.year": "year",
-  "common.month": "month",
   "common.day": "day",
   "common.today": "Today",
   "common.search": "Search",
@@ -66,31 +63,12 @@ export const en = {
   "common.itemsToDisplay": "Items to display",
   "common.eventsAndDrafts": "Events and drafts",
   "common.selectedEventDetails": "Selected event details",
-  "common.draftForReview": "Draft for review",
+  "common.draftForReview": "CalendarItem for review",
   "common.closeDetails": "Close details",
-  "common.reviewAndEditDraft": "Review and edit draft",
-  "common.editEvent": "Edit event",
   "common.date": "Date",
-  "common.scheduledTime": "Scheduled time",
   "common.time": "Time",
-  "common.assignedAgent": "Assigned agent",
   "common.save": "Save",
-  "common.repeat": "Repeat",
-  "common.weekdaysFlexibleStart": "Weekdays · flexible start",
-  "common.oneTimeSchedule": "One-time schedule",
-  "common.runDuration": "Run duration",
-  "common.linkedEvent": "Linked event",
-  "common.linkedRun": "Linked run",
-  "common.originalSchedule": "Original schedule",
-  "common.output": "Output",
-  "common.previewOutput": "Preview output",
-  "details.externalEditHint":
-    "Edit or delete this event in its original calendar.",
-  "details.externalOpenUnsupported":
-    "Opening the original calendar is not supported yet.",
-  "details.scheduleOpenUnsupported": "Opening Schedule is not supported yet.",
-  "details.sessionOpenUnsupported": "Opening the session is not supported yet.",
-  "common.showWeekOf": "Show week of {date}",
+  "details.externalEditHint": "Edit or delete this event in its original calendar.",
   "common.allDay": "All day",
   "calendar.dayOverflow": {
     one: "Show {count} more event on {date}",
@@ -99,7 +77,6 @@ export const en = {
   "calendar.clockChangeNotice":
     "Clocks change this week. Check the time labels in each day column.",
   "calendar.dayLabel": "{month}/{day} ({weekday})",
-  "common.automatic": " · automatic",
   "common.now": "Now",
   "calendar.yearLegend":
     "Dots mark days with matching events. Select a month to see details.",
@@ -112,13 +89,6 @@ export const en = {
     other: "{count} events",
   },
   "common.event": "Event",
-  "common.aiSchedule": "AI schedule",
-  "common.run": "Run",
-  "common.running": "Running",
-  "common.complete": "Complete",
-  "common.failed": "Failed",
-  "common.scheduled": "Scheduled",
-  "common.approximately": " approximately",
   "common.checkTheDateAndTime": "Check the date and time.",
   "time.ambiguousOrMissing":
     "This time does not exist or occurs twice due to a clock change. Choose another time.",
@@ -127,10 +97,8 @@ export const en = {
   "time.invalid": "This date or time does not exist. Choose another time.",
   "common.externalCalendarConnections": "External calendar connections",
   "common.refreshConnections": "Refresh connections",
-  "connections.empty":
-    "No external connections. You can still use Crew Calendar.",
+  "connections.empty": "No external connections. You can still use Crew Calendar.",
   "common.checkThePermissionPrompt": "Check the permission prompt…",
-  "common.checkConnectionPermissions": "Check connection permissions",
   "common.chooseTheCalendarsToDisplay": "Choose the calendars to display.",
   "common.readOnly": "· Read-only",
   "common.defaultCalendar": "Default calendar",
@@ -151,7 +119,6 @@ export const en = {
   "common.checkSaveStatus": "Check save status",
   "common.originalConversation": "Original conversation",
   "common.dismiss": "Dismiss",
-  "common.confirmExternalSave": "Confirm external save",
   "common.newEvent": "New event",
   "common.reviewSuggestion": "Review suggestion",
   "common.saveAsEvent": "Save as event",
@@ -176,7 +143,6 @@ export const en = {
   "common.noDeletedEvents": "No deleted events.",
   "common.externalCalendar": "External calendar",
   "common.closeSaveStatus": "Close save status",
-  "common.selectedExternalCalendar": "Selected external calendar",
   "delivery.notSubmitted": "Not saved to the external calendar yet.",
   "delivery.reviewHint": "Ready to save.",
   "common.checkingTheSaveResult": "Checking the save result.",
@@ -186,8 +152,7 @@ export const en = {
   "delivery.unknown":
     "The save result is uncertain. Verify it before trying again to avoid duplicates.",
   "delivery.eventChanged": "The original event changed or is unavailable.",
-  "delivery.checking":
-    "Checking the current status of the existing save request.",
+  "delivery.checking": "Checking the current status of the existing save request.",
   "common.editDetails": "Edit details",
   "common.deleteRequest": "Delete request",
   "common.saveToThisCalendar": "Save to this calendar",
@@ -198,21 +163,17 @@ export const en = {
   "time.offsetLabel": "{field} UTC offset",
   "common.chooseWhichOccurrence": "Choose which occurrence",
   "errors.requestFailed": "Could not complete the request. Try again.",
-  "common.draft": "Draft",
+  "common.draft": "CalendarItem",
   "common.crewSuggestion": "Crew suggestion",
-  "common.awaitingExternalSaveConfirmation":
-    "Awaiting external save confirmation",
+  "common.awaitingExternalSaveConfirmation": "Awaiting external save confirmation",
   "common.externalSaveNeedsVerification": "External save needs verification",
-  "common.externalSaveRecordsNeedRecovery":
-    "External save records need recovery",
+  "common.externalSaveRecordsNeedRecovery": "External save records need recovery",
   "common.externalSaveFailed": "External save failed",
   "common.externalSaveCancelled": "External save cancelled",
   "common.externalSavePending": "External save pending",
   "suggestions.loadError": "Could not load settings. Try again.",
-  "suggestions.saveError":
-    "Could not save changes. Previous settings are unchanged.",
-  "common.eventSuggestionsInConversations":
-    "Event suggestions in conversations",
+  "suggestions.saveError": "Could not save changes. Previous settings are unchanged.",
+  "common.eventSuggestionsInConversations": "Event suggestions in conversations",
   "suggestions.showExample": "View conversation example",
   "suggestions.hideExample": "Hide conversation example",
   "suggestions.description":
@@ -242,12 +203,10 @@ export const en = {
     "Crew: “Shall I add application writing on Thursday, 19:00–19:30, to Crew Calendar?” — Register as shown / Change time / Not now",
   "suggestions.registered":
     "The hook is registered. A run in a conversation has not been verified yet.",
-  "suggestions.runTimeout":
-    "The latest hook run timed out. Check Crew hook history.",
+  "suggestions.runTimeout": "The latest hook run timed out. Check Crew hook history.",
   "suggestions.runBlocked":
     "The latest hook run was blocked by policy. Check Crew hook history.",
-  "suggestions.runFailed":
-    "The latest hook run failed. Check Crew hook history.",
+  "suggestions.runFailed": "The latest hook run failed. Check Crew hook history.",
   "suggestions.runUnknown":
     "The hook is registered, but its recent run status is unavailable.",
   "editor.timezoneHint":
@@ -256,31 +215,23 @@ export const en = {
   "suggestions.conversationCount": "Enabled conversations · {count}",
   "time.occurrenceOffset": "Occurrence {occurrence} · UTC{offset}",
   "common.moreEvents": "+{count} more",
-  "details.duration": "{minutes} min",
-  "details.elapsed": "{minutes} min elapsed",
   "delivery.confirmInProvider": "Confirm in calendar app",
   "delivery.confirmOnMac": "Confirm on Mac",
   "delivery.providerPending":
     "Confirm the event in the calendar app. Closing this panel does not cancel that confirmation.",
   "connections.authorize": "Connect calendar",
-  "connections.permissionRequired":
-    "Allow calendar access to read and save events.",
+  "connections.permissionRequired": "Allow calendar access to read and save events.",
   "connections.permissionDenied":
     "Calendar access is denied. Check system privacy settings.",
   "connections.unsupported":
     "This calendar connection is not supported on this device.",
-  "connections.unavailable":
-    "Could not reach the calendar connection. Try again.",
-  "errors.staleEvent":
-    "This event changed elsewhere. Reload it before editing.",
+  "connections.unavailable": "Could not reach the calendar connection. Try again.",
+  "errors.staleEvent": "This event changed elsewhere. Reload it before editing.",
   "errors.requestConflict":
     "This save request has different contents. Reload the event.",
-  "errors.actionUnavailable":
-    "Check the current save status before continuing.",
-  "errors.operationChanged":
-    "This save request was replaced. Check the current event.",
-  "errors.storageUnavailable":
-    "Could not read or save calendar data. Try again.",
+  "errors.actionUnavailable": "Check the current save status before continuing.",
+  "errors.operationChanged": "This save request was replaced. Check the current event.",
+  "errors.storageUnavailable": "Could not read or save calendar data. Try again.",
   "errors.deliveryUnavailable":
     "The save record needs recovery before this event can be changed.",
   "errors.readOnly": "This calendar is read-only. Choose another calendar.",
@@ -288,10 +239,8 @@ export const en = {
     "The selected calendar is unavailable. Check the connection.",
   "errors.connectionMissing":
     "The original connection is unavailable. Choose a destination explicitly.",
-  "errors.connectionChanged":
-    "The connection changed. Review the save request again.",
-  "errors.helperMissing":
-    "The calendar helper is missing. Reinstall the Calendar app.",
+  "errors.connectionChanged": "The connection changed. Review the save request again.",
+  "errors.helperMissing": "The calendar helper is missing. Reinstall the Calendar app.",
   "errors.helperTimeout":
     "The calendar helper did not respond in time. Check the save status.",
   "errors.helperUnavailable":
@@ -299,33 +248,30 @@ export const en = {
   "errors.appDisabled": "Calendar is disabled. Enable it before saving.",
   "errors.providerResponse":
     "Could not verify the calendar response. Check the connection and save status.",
-  "errors.itemUnavailable":
-    "Could not read this event. Its stored data is preserved.",
+  "errors.itemUnavailable": "Could not read this event. Its stored data is preserved.",
   "errors.recordUnavailable":
     "Could not read event {id}. Its stored data is preserved.",
   "errors.ownerRequired": "Open Calendar in the owner dashboard to continue.",
   "connections.appleLocal": "Apple Calendar · This Mac",
   "errors.eventsTruncated": {
     one: "Only {count} event is shown. Shorten the date range to see all events.",
-    other:
-      "Only {count} events are shown. Shorten the date range to see all events.",
+    other: "Only {count} events are shown. Shorten the date range to see all events.",
   },
   "errors.eventsIncomplete":
     "Some events are not shown. Shorten the date range and try again.",
   "destination.unavailable": "Calendar unavailable",
   "delivery.statusLabel": "Save status",
   "common.source": "Source",
-"navigation.label": "Calendar workspace",
-"navigation.proposals": "Proposals",
-"navigation.activity": "History",
-"navigation.proposalSettings": "Suggestion settings",
-"common.viewDay": "Day",
-"common.thisDay": "this day",
-"calendar.chooseDate": "Choose a date",
-"calendar.goToDate": "Go to date",
-"calendar.openDay": "Show {date}",
-"calendar.addOnDate": "Add an event on {date}",
-"navigation.proposalCount":{"one":"Proposals, {count} to review","other":"Proposals, {count} to review"},
+  "navigation.label": "Calendar workspace",
+  "navigation.proposals": "Proposals",
+  "navigation.activity": "History",
+  "navigation.proposalSettings": "Suggestion settings",
+  "common.viewDay": "Day",
+  "common.thisDay": "this day",
+  "calendar.chooseDate": "Choose a date",
+  "calendar.goToDate": "Go to date",
+  "calendar.openDay": "Show {date}",
+  "calendar.addOnDate": "Add an event on {date}",
 } as const;
 export type Messages = {
   [K in keyof typeof en]: (typeof en)[K] extends string

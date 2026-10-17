@@ -13,7 +13,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from .domain import StorageUnavailable
-from .repository import _atomic_json
+from .repository import atomic_json
 from .entry_policy import CREW, delivery
 
 
@@ -138,7 +138,10 @@ def migrate(repository):
                     elif op["state"] != "prepared":
                         if op["target"]["connectionId"] == "apple-local":
                             op.setdefault("provider", "apple")
-                            op.setdefault("connectionName", {"kind": "system", "key": "appleLocal"})
+                            op.setdefault(
+                                "connectionName",
+                                {"kind": "system", "key": "appleLocal"},
+                            )
                             op.setdefault("canReconcile", True)
                         item["delivery"] = op
                         item["delivery"] = delivery(item)
@@ -158,9 +161,9 @@ def migrate(repository):
                     for evidence in damaged
                 ):
                     item["delivery"] = {"state": "unavailable"}
-                _atomic_json(stage / path.name, item)
+                atomic_json(stage / path.name, item)
             if damaged:
-                _atomic_json(
+                atomic_json(
                     stage / ".migration-report.json",
                     {"unreadableLegacyOperations": damaged},
                 )

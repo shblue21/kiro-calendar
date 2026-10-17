@@ -76,14 +76,6 @@
   cursor: pointer;
 }
 
-.cc-month-item.cc-trigger {
-  border-left-style: dashed;
-}
-
-.cc-month-item.cc-run {
-  border-left-color: var(--ok);
-}
-
 .cc-month-item span:last-child {
   white-space: nowrap;
   overflow: hidden;

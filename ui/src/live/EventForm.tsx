@@ -6,25 +6,14 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { dateKey } from "../calendar/dates";
 import type { CivilDate } from "../calendar/dates.ts";
-import {
-  editTime,
-  resolveTime,
-  rezoneTime,
-  timeSelection,
-} from "../calendar/time";
+import { editTime, resolveTime, rezoneTime, timeSelection } from "../calendar/time";
 import { t } from "../i18n/index.ts";
 import type { Notice } from "../i18n/notice.ts";
 import { notice, NoticeError, renderNotice } from "../i18n/notice.ts";
 import { errorNotice } from "./api";
 import { TimeField } from "./TimeField";
 import type { CalendarItem } from "./types";
-export type EventFields = {
-  title: string;
-  start: string;
-  end: string;
-  timezone: string;
-  notes: string;
-};
+import { eventEnd, TITLE_LIMIT, NOTES_LIMIT, type EventFields } from "./eventFields";
 type Props = {
   item?: CalendarItem;
   initialTimes?: EventTimes;
@@ -69,10 +58,7 @@ export function EventForm({
     end: item?.end
       ? timeSelection(item.end, timezone)
       : item
-        ? timeSelection(
-            new Date(+new Date(item.start) + 3600000).toISOString(),
-            timezone,
-          )
+        ? timeSelection(eventEnd(item), timezone)
         : initialTimes
           ? timeSelection(initialTimes.end, timezone)
           : editTime(`${dateKey(date)}T11:00`, timezone),
@@ -103,8 +89,7 @@ export function EventForm({
     [error, setError] = useState<Notice | null>(null),
     [leave, setLeave] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
-  const dirty =
-    targetChanged || JSON.stringify(values) !== JSON.stringify(initial);
+  const dirty = targetChanged || JSON.stringify(values) !== JSON.stringify(initial);
   useEffect(() => {
     dialog.current?.showModal();
     return () => dialog.current?.close();
@@ -131,10 +116,7 @@ export function EventForm({
         start: resolveTime(values.start, timezone),
         end: resolveTime(values.end, timezone),
       };
-      if (
-        !fields.title.trim() ||
-        Date.parse(fields.end) <= Date.parse(fields.start)
-      )
+      if (!fields.title.trim() || Date.parse(fields.end) <= Date.parse(fields.start))
         throw new NoticeError(notice("editor.invalidFields"));
       await action(fields);
     } catch (e) {
@@ -180,7 +162,7 @@ export function EventForm({
               <Input
                 autoFocus
                 required
-                maxLength={120}
+                maxLength={TITLE_LIMIT}
                 value={values.title}
                 onChange={(e) => set("title", e.target.value)}
               />
@@ -206,7 +188,7 @@ export function EventForm({
               {t("common.description")}
               <NativeTextarea
                 rows={3}
-                maxLength={2000}
+                maxLength={NOTES_LIMIT}
                 value={values.notes}
                 onChange={(e) => set("notes", e.target.value)}
               />
@@ -216,10 +198,10 @@ export function EventForm({
           {leave && (
             <div className="cc-editor-confirm" role="alert">
               <p>{t("common.discardYourUnsavedChanges")}</p>
-              <Btn type="button" onClick={() => setLeave(false)}>
+              <Btn type="button" disabled={busy} onClick={() => setLeave(false)}>
                 {t("common.keepEditing")}
               </Btn>
-              <Btn type="button" danger onClick={onClose}>
+              <Btn type="button" danger disabled={busy} onClick={onClose}>
                 {t("common.discardAndClose")}
               </Btn>
             </div>

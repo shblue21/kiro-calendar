@@ -22,7 +22,9 @@ export function CalendarConnections({
   return (
     <SettingsSection
       title={t("common.externalCalendarConnections")}
-      actions={<Btn onClick={() => void onRefresh()}>{t("common.refreshConnections")}</Btn>}
+      actions={
+        <Btn onClick={() => void onRefresh()}>{t("common.refreshConnections")}</Btn>
+      }
     >
       {error && (
         <p role="alert" className="cc-form-error">
@@ -75,10 +77,7 @@ function ConnectionCard({
   }
   const ready = c.state === "ready";
   return (
-    <section
-      className="cc-connection-group"
-      aria-label={connectionName(c.displayName)}
-    >
+    <section className="cc-connection-group" aria-label={connectionName(c.displayName)}>
       <h4>{connectionName(c.displayName)}</h4>
       {c.state !== "ready" && (
         <p className="cc-page-section-note">{connectionNotice(c.state)}</p>
@@ -92,14 +91,10 @@ function ConnectionCard({
         <Btn
           disabled={busy}
           onClick={() =>
-            void run(() =>
-              api.post(`${base}/authorize`, { connectionId: c.id }),
-            )
+            void run(() => api.post(`${base}/authorize`, { connectionId: c.id }))
           }
         >
-          {busy
-            ? t("common.checkThePermissionPrompt")
-            : t("connections.authorize")}
+          {busy ? t("common.checkThePermissionPrompt") : t("connections.authorize")}
         </Btn>
       )}
       {ready && c.capabilities.read && (
@@ -124,7 +119,11 @@ function ConnectionCard({
                   }
                 />
                 <span>
-                  <span className="cc-calendar-dot" aria-hidden="true" style={{ background: calendarColor(cal.color) ?? "var(--accent)" }} />
+                  <span
+                    className="cc-calendar-dot"
+                    aria-hidden="true"
+                    style={{ background: calendarColor(cal.color) ?? "var(--accent)" }}
+                  />
                   {cal.sourceTitle} · {cal.title}
                   {!cal.writable && <small>{t("common.readOnly")}</small>}
                 </span>

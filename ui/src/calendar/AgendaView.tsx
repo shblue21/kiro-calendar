@@ -9,8 +9,8 @@ import { t } from "../i18n/index.ts";
 import { ChevronRight } from "../platform/kiro/icons";
 import { dateKey, shift } from "./dates";
 import type { CivilDate } from "./dates.ts";
-import { STATUS_LABEL, timeLabel } from "./format";
-import { TypeMark } from "./TypeMark";
+import { timeLabel } from "./format";
+import { EventMark } from "./EventMark";
 import type { CalendarViewItem } from "./types";
 type Props = {
   items: readonly CalendarViewItem[];
@@ -28,9 +28,7 @@ export function AgendaView({
   selectedId,
   onSelect,
 }: Props) {
-  const days = [...new Set(items.map((item) => item.day))].sort(
-    (a, b) => a - b,
-  );
+  const days = [...new Set(items.map((item) => item.day))].sort((a, b) => a - b);
   const monthOf = (day: number) => {
     const date = shift(base, day);
     return `${date.year}-${date.month}`;
@@ -42,8 +40,7 @@ export function AgendaView({
       {days.map((day, index) => {
         const date = shift(base, day);
         const monthHeading =
-          multiMonth &&
-          (index === 0 || monthOf(days[index - 1]) !== monthOf(day));
+          multiMonth && (index === 0 || monthOf(days[index - 1]) !== monthOf(day));
         const list = items
           .filter((x) => x.day === day)
           .sort((a, b) => a.start - b.start);
@@ -71,15 +68,14 @@ export function AgendaView({
                   eventId={item.id}
                   registerButton={registerButton}
                   selected={selectedId === item.id}
-
                   key={item.id}
                   style={calendarStyle(item.calendarColor)}
-                  className={`cc-agenda-item cc-${item.kind}`}
+                  className="cc-agenda-item cc-event"
                   onClick={() => onSelect(item)}
                 >
                   <span className="cc-agenda-time">{timeLabel(item)}</span>
                   <span className="cc-agenda-title">
-                    <TypeMark item={item} />
+                    <EventMark />
                     {item.title}
                   </span>
                   <span className="cc-agenda-source">{sourceLabel(item)}</span>
@@ -87,21 +83,6 @@ export function AgendaView({
                     <span className="cc-agenda-delivery">
                       {deliveryLabel(item.deliveryState)}
                     </span>
-                  )}
-                  {item.status && (
-                    <Badge
-                      variant={
-                        item.status === "failed"
-                          ? "err"
-                          : item.status === "success"
-                            ? "ok"
-                            : item.status === "running"
-                              ? "aim"
-                              : "muted"
-                      }
-                    >
-                      {STATUS_LABEL[item.status]}
-                    </Badge>
                   )}
                   <ChevronRight size={14} />
                 </EventButton>

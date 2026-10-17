@@ -15,17 +15,14 @@ import { CalendarToolbar } from "./CalendarToolbar";
 import { dateKey, dayOffset, shift } from "./dates";
 import type { CivilDate } from "./dates.ts";
 import { DetailPanel } from "./DetailPanel";
-import { STATUS_LABEL } from "./format";
+import { countItems } from "./count";
 import { MonthView } from "./MonthView";
 import { calendarRange, movePeriod } from "./period";
-import { dayBounds, elapsedMinute } from "./time";
 import type {
-  CalendarLayers,
   CalendarLayout,
   CalendarReferenceTime,
   CalendarView,
   CalendarViewItem,
-  Kind,
 } from "./types";
 import { TimeGrid } from "./TimeGrid";
 import { YearView } from "./YearView";
@@ -50,7 +47,6 @@ type Props = {
   };
   status: "loading" | "error" | "ready";
   onAdd: (seed?: EventSeed) => void;
-  onEdit: (item: CalendarViewItem) => void;
 };
 export function CalendarPage({
   timezone,
@@ -70,27 +66,18 @@ export function CalendarPage({
   jump,
   status,
   onAdd,
-  onEdit,
 }: Props) {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const { ref: contentRef, width: contentWidth } =
-    useElementWidth<HTMLDivElement>();
+  const { ref: contentRef, width: contentWidth } = useElementWidth<HTMLDivElement>();
   const narrow = contentWidth > 0 && contentWidth < VIEW_LAYOUT.listBelowPx;
-  const [layers, setLayers] = useState<CalendarLayers>({
-    event: true,
-    trigger: true,
-    run: true,
-  });
+  const [showEvents, setShowEvents] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const eventButtons = useRef(new Map<string, HTMLButtonElement>());
-  const registerButton = useCallback(
-    (id: string, button: HTMLButtonElement | null) => {
-      if (button) eventButtons.current.set(id, button);
-      else eventButtons.current.delete(id);
-    },
-    [],
-  );
+  const registerButton = useCallback((id: string, button: HTMLButtonElement | null) => {
+    if (button) eventButtons.current.set(id, button);
+    else eventButtons.current.delete(id);
+  }, []);
   const dates =
     view === "day"
       ? [focusDate]
@@ -99,21 +86,15 @@ export function CalendarPage({
   const effectiveView = view;
   const effectiveLayout = narrow && view === "week" ? "list" : layout;
   const isCurrentPeriod =
-    referenceTime.day >= gridFirst &&
-    referenceTime.day < gridFirst + dates.length;
-  const range = calendarRange(
-    focusDate,
-    effectiveView,
-    weekStart,
-    effectiveLayout,
-  );
+    referenceTime.day >= gridFirst && referenceTime.day < gridFirst + dates.length;
+  const range = calendarRange(focusDate, effectiveView, weekStart, effectiveLayout);
   const periodItems = suppliedItems.filter(
     (item) => item.day >= range.first && item.day < range.end,
   );
   const matches = (item: CalendarViewItem) =>
-    layers[item.kind] &&
+    showEvents &&
     (!query.trim() ||
-      `${item.title} ${item.description} ${sourceLabel(item)} ${deliveryLabel(item.deliveryState)} ${item.status ? STATUS_LABEL[item.status] : ""} ${item.artifact ?? ""}`
+      `${item.title} ${item.description} ${sourceLabel(item)} ${deliveryLabel(item.deliveryState)} `
         .toLowerCase()
         .includes(query.trim().toLowerCase()));
   const canonicalItems = periodItems.filter(matches);
@@ -121,18 +102,8 @@ export function CalendarPage({
     ...item,
     day: item.day - gridFirst,
   }));
-  const selectedCanonical = canonicalItems.find(
-    (item) => item.id === selectedId,
-  );
-  const selectedWeek = selectedCanonical
-    ? Math.floor(selectedCanonical.day / 7)
-    : offset;
-  const detailDates = weekdays().map((_, day) =>
-    shift(weekStart, selectedWeek * 7 + day),
-  );
-  const selected = selectedCanonical
-    ? { ...selectedCanonical, day: selectedCanonical.day - selectedWeek * 7 }
-    : undefined;
+  const selectedCanonical = canonicalItems.find((item) => item.id === selectedId);
+  const selected = selectedCanonical;
   const filteredOut = periodItems.length > 0 && items.length === 0;
   const rangeLabel =
     effectiveView === "day"
@@ -151,7 +122,7 @@ export function CalendarPage({
     if (jump) {
       setSelectedId(jump.id);
       setQuery("");
-      setLayers({ event: true, trigger: true, run: true });
+      setShowEvents(true);
     }
   }, [jump]);
   const closeDetail = () => {
@@ -160,10 +131,7 @@ export function CalendarPage({
   };
   function select(item: CalendarViewItem) {
     const canonical = suppliedItems.find((i) => i.id === item.id);
-    if (
-      canonical &&
-      (canonical.day < range.first || canonical.day >= range.end)
-    )
+    if (canonical && (canonical.day < range.first || canonical.day >= range.end))
       onFocusDate(shift(weekStart, canonical.day));
     setSelectedId(item.id);
   }
@@ -171,9 +139,13 @@ export function CalendarPage({
     onFocusDate(next);
     setSelectedId(null);
   }
-  function toggle(kind: Kind) {
-    setLayers((previous) => ({ ...previous, [kind]: !previous[kind] }));
-    if (selected?.kind === kind) closeDetail();
+  function toggleEvents() {
+    setShowEvents((value) => !value);
+    if (selected) closeDetail();
+  }
+  function closeSearch() {
+    setQuery("");
+    setSearchOpen(false);
   }
   useEffect(() => {
     if (!selected) return;
@@ -199,10 +171,10 @@ export function CalendarPage({
           onLayout={onLayout}
           narrow={narrow}
           onView={onView}
-          layers={layers}
-          onToggle={toggle}
+          showEvents={showEvents}
+          onToggle={toggleEvents}
           searchOpen={searchOpen}
-          onSearch={() => setSearchOpen((value) => !value)}
+          onSearch={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
         />
         {searchOpen && (
           <div className="cc-search-row">
@@ -226,17 +198,8 @@ export function CalendarPage({
                   onChange={(e) => setQuery(e.target.value)}
                 />
               }
-              meta={t("calendar.eventCount", { count: items.length })}
-              action={
-                <Btn
-                  onClick={() => {
-                    setQuery("");
-                    setSearchOpen(false);
-                  }}
-                >
-                  {t("common.close")}
-                </Btn>
-              }
+              meta={t("calendar.eventCount", { count: countItems(canonicalItems) })}
+              action={<Btn onClick={closeSearch}>{t("common.close")}</Btn>}
             />
           </div>
         )}
@@ -258,9 +221,7 @@ export function CalendarPage({
                     : t("calendar.connectionRetry")}
                 </p>
                 <Btn onClick={onReload} disabled={status === "loading"}>
-                  {status === "loading"
-                    ? t("common.loading")
-                    : t("common.tryAgain")}
+                  {status === "loading" ? t("common.loading") : t("common.tryAgain")}
                 </Btn>
               </div>
             ) : effectiveLayout === "calendar" && effectiveView === "month" ? (
@@ -289,8 +250,7 @@ export function CalendarPage({
                   onView("month");
                 }}
               />
-            ) : items.length === 0 &&
-              (effectiveLayout === "list" || filteredOut) ? (
+            ) : items.length === 0 && (effectiveLayout === "list" || filteredOut) ? (
               <div className="cc-empty">
                 <div className="cc-empty-icon">
                   <CalendarDays size={32} />
@@ -313,7 +273,7 @@ export function CalendarPage({
                   primary
                   onClick={() => {
                     setQuery("");
-                    setLayers({ event: true, trigger: true, run: true });
+                    setShowEvents(true);
                     if (!filteredOut) {
                       onAdd({ date: focusDate });
                     }
@@ -359,22 +319,8 @@ export function CalendarPage({
           {selected && (
             <DetailPanel
               item={selected}
-              items={suppliedItems}
-              dates={detailDates}
-              referenceMinute={elapsedMinute(
-                referenceTime.instant,
-                dayBounds(dateKey(detailDates[selected.day]), timezone),
-              )}
-              actions={
-                selected.kind === "event"
-                  ? eventActions(selected.id)
-                  : undefined
-              }
-              onEdit={() =>
-                onEdit(suppliedItems.find((item) => item.id === selected.id)!)
-              }
+              actions={eventActions(selected.id)}
               onClose={closeDetail}
-              onSelect={select}
             />
           )}
         </div>

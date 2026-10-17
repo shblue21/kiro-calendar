@@ -9,9 +9,13 @@ import uuid
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from .calendar_domain import (
-    CalendarError, event_payload, interval, delivery_result, delivery_failure,
+    CalendarError,
+    event_payload,
+    interval,
+    delivery_result,
+    delivery_failure,
 )
-from .domain import DraftError, _parse_time
+from .domain import DraftError, parse_time
 from .event_service import EventService
 from .entry_policy import CREW, delivery, require_action, require_revision, view
 from .timezone import system_timezone
@@ -22,9 +26,9 @@ def now():
 
 
 class CalendarService:
-    def __init__(self, drafts, storage, connections):
+    def __init__(self, repository, storage, connections):
         self.repository, self.storage, self.connections = (
-            drafts.repository,
+            repository,
             storage,
             connections,
         )
@@ -174,7 +178,9 @@ class CalendarService:
                 errors.append(
                     {
                         "connectionId": binding.id,
-                        "code": exc.code if isinstance(exc, CalendarError) else "provider_error",
+                        "code": exc.code
+                        if isinstance(exc, CalendarError)
+                        else "provider_error",
                         "message": (
                             exc.message
                             if isinstance(exc, CalendarError)
@@ -184,7 +190,7 @@ class CalendarService:
                 )
         return {"events": events, "errors": errors, "checkedAt": now()}
 
-    def _operation(self, item, operation_id):
+    def operation_for(self, item, operation_id):
         op = delivery(item)
         if not op or op["state"] == "unavailable" or op["id"] != operation_id:
             raise CalendarError(
@@ -194,7 +200,7 @@ class CalendarService:
         return op
 
     def get_operation(self, item_id, operation_id):
-        return self._operation(self.repository.get_item(item_id), operation_id)
+        return self.operation_for(self.repository.get_item(item_id), operation_id)
 
     def prepare(self, item_id, revision):
         snapshot = self.repository.get_item(item_id)
@@ -216,7 +222,7 @@ class CalendarService:
             payload.update(
                 timezone=zone,
                 **{
-                    k: _parse_time(payload[k], k).astimezone(ZoneInfo(zone)).isoformat()
+                    k: parse_time(payload[k], k).astimezone(ZoneInfo(zone)).isoformat()
                     for k in ("start", "end")
                 },
             )
@@ -254,7 +260,7 @@ class CalendarService:
     def claim(self, item_id, operation_id):
         with self.repository.transaction():
             item = self.repository.get_item(item_id)
-            op = self._operation(item, operation_id)
+            op = self.operation_for(item, operation_id)
             if op["state"] != "prepared":
                 return op, False
             require_revision(item, op["itemRevision"])
@@ -297,7 +303,7 @@ class CalendarService:
     def _record_result(self, item_id, operation_id, result, *, verification=False):
         with self.repository.transaction():
             item = self.repository.get_item(item_id)
-            op = self._operation(item, operation_id)
+            op = self.operation_for(item, operation_id)
             # Terminal evidence cannot be weakened by an older in-flight read.
             if op["state"] in {"confirmed", "cancelled", "failed"}:
                 if verification and op["state"] == "confirmed":
@@ -320,8 +326,8 @@ class CalendarService:
                             for k in ("title", "notes")
                         )
                         and all(
-                            _parse_time(event.get(k), k)
-                            == _parse_time(op["payload"][k], k)
+                            parse_time(event.get(k), k)
+                            == parse_time(op["payload"][k], k)
                             for k in ("start", "end")
                         )
                         and not event.get("allDay")
@@ -347,7 +353,7 @@ class CalendarService:
     def reconcile(self, item_id, operation_id):
         item = self.repository.get_item(item_id)
         require_action(item, "reconcile")
-        op = self._operation(item, operation_id)
+        op = self.operation_for(item, operation_id)
         binding = self.connections.get(op["target"]["connectionId"])
         binding.require("reconcile")
         if op["provider"] != binding.provider_key:

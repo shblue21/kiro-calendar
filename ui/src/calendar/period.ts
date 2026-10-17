@@ -6,11 +6,7 @@ export function monthDates(date: CivilDate) {
   const start = monday(date.with({ day: 1 }));
   return Array.from({ length: 42 }, (_, day) => shift(start, day));
 }
-export function movePeriod(
-  date: CivilDate,
-  view: CalendarView,
-  direction: number,
-) {
+export function movePeriod(date: CivilDate, view: CalendarView, direction: number) {
   if (view === "day") return shift(date, direction);
   if (view === "month") return date.with({ day: 1 }).add({ months: direction });
   if (view === "year") return date.with({ day: 1 }).add({ years: direction });

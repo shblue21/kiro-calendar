@@ -1,20 +1,11 @@
 import { connectionName } from "../i18n/delivery.ts";
 import { t } from "../i18n/index.ts";
-import type {
-  Calendar,
-  CalendarItem,
-  Connection,
-  ConnectionName,
-} from "./types.ts";
+import type { Calendar, CalendarItem, Connection, ConnectionName } from "./types.ts";
 export function locationLabel(
   name: ConnectionName | undefined,
   calendar: Pick<Calendar, "title" | "sourceTitle">,
 ): string {
-  return [
-    name ? connectionName(name) : "",
-    calendar.sourceTitle,
-    calendar.title,
-  ]
+  return [name ? connectionName(name) : "", calendar.sourceTitle, calendar.title]
     .filter(Boolean)
     .join(" · ");
 }
@@ -24,9 +15,7 @@ export function itemLocation(
   connections: readonly Connection[],
 ): string {
   if (item.destination.connectionId === "crew") return "Crew Calendar";
-  const connection = connections.find(
-    (c) => c.id === item.destination.connectionId,
-  );
+  const connection = connections.find((c) => c.id === item.destination.connectionId);
   const calendar = connection?.calendars.find(
     (c) => c.id === item.destination.calendarId,
   );

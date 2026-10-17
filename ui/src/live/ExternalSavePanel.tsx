@@ -54,16 +54,14 @@ export function ExternalSavePanel({
             await refreshTimezone();
             return api.current.post<DeliveryResponse>(base, { revision });
           },
-          execute: (id) =>
-            api.current.post<DeliveryResponse>(`${base}/${id}/execute`),
+          execute: (id) => api.current.post<DeliveryResponse>(`${base}/${id}/execute`),
           reconcile: (id) =>
             api.current.post<DeliveryResponse>(`${base}/${id}/reconcile`),
         },
         setSnapshot,
       ),
   );
-  const op =
-    current.delivery?.state === "unavailable" ? null : current.delivery;
+  const op = current.delivery?.state === "unavailable" ? null : current.delivery;
   const state = current.delivery?.state;
   useEffect(() => {
     dialog.current?.showModal();
@@ -78,14 +76,11 @@ export function ExternalSavePanel({
   useEffect(() => {
     if (!started.current) {
       started.current = true;
-      void perform(() =>
-        startImmediately ? session.save() : session.refresh(),
-      );
+      void perform(() => (startImmediately ? session.save() : session.refresh()));
     }
   }, []);
   useEffect(() => {
-    if (!checking && state !== "awaiting_confirmation" && state !== "unknown")
-      return;
+    if (!checking && state !== "awaiting_confirmation" && state !== "unknown") return;
     const timer = window.setInterval(() => {
       if (!session.state.busy) void perform(() => session.refresh());
     }, 1500);
@@ -108,11 +103,7 @@ export function ExternalSavePanel({
           <Badge variant="muted">{t("common.externalCalendar")}</Badge>
           <h2 id="cc-external-title">{t("common.saveStatus")}</h2>
         </div>
-        <Btn
-          disabled={busy}
-          aria-label={t("common.closeSaveStatus")}
-          onClick={onClose}
-        >
+        <Btn disabled={busy} aria-label={t("common.closeSaveStatus")} onClick={onClose}>
           ×
         </Btn>
       </header>
@@ -133,16 +124,12 @@ export function ExternalSavePanel({
           {state === "cancelled" && <p>{t("delivery.cancelled")}</p>}
           {state === "failed" && (
             <p>
-              {op?.error
-                ? renderNotice(errorNotice(op.error))
-                : t("delivery.failed")}
+              {op?.error ? renderNotice(errorNotice(op.error)) : t("delivery.failed")}
             </p>
           )}
           {state === "unknown" && <p>{t("delivery.unknown")}</p>}
           {current.delivery?.state === "unavailable" && (
-            <p role="alert">
-              {renderNotice(errorNotice(current.delivery.error))}
-            </p>
+            <p role="alert">{renderNotice(errorNotice(current.delivery.error))}</p>
           )}
           {op?.verification && op.verification.state !== "confirmed" && (
             <p role="alert">
@@ -168,9 +155,7 @@ export function ExternalSavePanel({
             <Btn
               danger
               disabled={busy}
-              onClick={() =>
-                void perform(() => session.run(() => onDelete(current)))
-              }
+              onClick={() => void perform(() => session.run(() => onDelete(current)))}
             >
               {t("common.deleteRequest")}
             </Btn>
@@ -197,9 +182,7 @@ export function ExternalSavePanel({
             <Btn
               disabled={busy}
               onClick={() =>
-                void perform(() =>
-                  checking ? session.refresh() : session.reconcile(),
-                )
+                void perform(() => (checking ? session.refresh() : session.reconcile()))
               }
             >
               {checking

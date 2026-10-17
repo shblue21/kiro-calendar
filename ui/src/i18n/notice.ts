@@ -26,9 +26,10 @@ export function renderNotice(value: Notice | null): string {
       typeof value === "object" ? renderNotice(value) : value,
     ]),
   );
-  return (
-    t as (key: MessageKey, args: Record<string, string | number>) => string
-  )(value.key, args);
+  return (t as (key: MessageKey, args: Record<string, string | number>) => string)(
+    value.key,
+    args,
+  );
 }
 export class NoticeError extends Error {
   readonly notice: Notice;

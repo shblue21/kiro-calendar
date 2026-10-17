@@ -2,6 +2,7 @@
 
 Register using Crew's owner Hooks UI. stdout is exclusively prompt context.
 """
+
 from __future__ import annotations
 import json
 import sys
@@ -15,9 +16,14 @@ Services = load("composition").Services
 app_active_for = load("host").app_active_for
 
 
-def prompt_for(services, event: dict, *, active: bool, now: datetime | None = None) -> str:
-    if (event.get("hook_event_name") != "UserPromptSubmit" or event.get("subagent_id")
-            or event.get("agent_role")):
+def prompt_for(
+    services, event: dict, *, active: bool, now: datetime | None = None
+) -> str:
+    if (
+        event.get("hook_event_name") != "UserPromptSubmit"
+        or event.get("subagent_id")
+        or event.get("agent_role")
+    ):
         return ""
     session = event.get("session_key", "")
     if not isinstance(session, str) or not session.startswith("dashboard:chat-"):

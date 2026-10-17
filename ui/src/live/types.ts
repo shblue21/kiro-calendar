@@ -1,6 +1,11 @@
 export type ConnectionName =
-  { kind: "system"; key: string } | { kind: "custom"; text: string };
+  | { kind: "system"; key: string }
+  | { kind: "custom"; text: string };
 export type Destination = { connectionId: string; calendarId: string };
+export const CREW_DESTINATION: Destination = {
+  connectionId: "crew",
+  calendarId: "default",
+};
 export type CalendarPreferences = {
   defaultDestination: Destination;
   showCrew: boolean;
@@ -30,10 +35,8 @@ export type CalendarItem = {
   externalRef?: Destination & { eventId: string };
   source: "manual" | "proactive" | "direct";
   origin: { sessionKey: string; identitySource: string };
-  returnTarget?: { kind: string; slotKey?: string };
   delivery?: Delivery | null;
 };
-export type Draft = CalendarItem;
 export type Calendar = {
   color?: string;
   id: string;
@@ -49,8 +52,7 @@ export type Connection = {
   id: string;
   provider: string;
   displayName: ConnectionName;
-  state:
-    "ready" | "needs_authorization" | "denied" | "unsupported" | "unavailable";
+  state: "ready" | "needs_authorization" | "denied" | "unsupported" | "unavailable";
   capabilities: { read: boolean; create: boolean; reconcile: boolean };
   message?: string;
   confirmation?: Confirmation;

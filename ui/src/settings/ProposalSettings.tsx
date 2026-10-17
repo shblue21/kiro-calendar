@@ -81,29 +81,37 @@ export function ProposalSettings() {
   return (
     <SettingsSection
       title={t("common.eventSuggestionsInConversations")}
-      actions={<Btn disabled={busy} onClick={() => void load()}>{t("common.refreshSettings")}</Btn>}
+      actions={
+        <Btn disabled={busy} onClick={() => void load()}>
+          {t("common.refreshSettings")}
+        </Btn>
+      }
     >
-      <SettingsRow action={
-        <div className="cc-proposal-toggle">
-          <span>
-            {!data
-              ? t("common.checking")
-              : busy
-                ? t("common.savingStatus")
-                : enabled
-                  ? "ON"
-                  : "OFF"}
-          </span>
-          <Toggle
-            checked={enabled ?? false}
-            label={t("common.eventSuggestionsInConversations")}
-            disabled={busy || !data || (!enabled && !canEnable)}
-            onChange={(suggestionsEnabled) => void save({ suggestionsEnabled })}
-          />
-        </div>
-      }>
+      <SettingsRow
+        action={
+          <div className="cc-proposal-toggle">
+            <span>
+              {!data
+                ? t("common.checking")
+                : busy
+                  ? t("common.savingStatus")
+                  : enabled
+                    ? "ON"
+                    : "OFF"}
+            </span>
+            <Toggle
+              checked={enabled ?? false}
+              label={t("common.eventSuggestionsInConversations")}
+              disabled={busy || !data || (!enabled && !canEnable)}
+              onChange={(suggestionsEnabled) => void save({ suggestionsEnabled })}
+            />
+          </div>
+        }
+      >
         <p className="cc-page-section-note">
-          {t("suggestions.description")}<br />{t("suggestions.reviewHint")}
+          {t("suggestions.description")}
+          <br />
+          {t("suggestions.reviewHint")}
         </p>
       </SettingsRow>
       <p className="cc-page-section-note">{t("suggestions.activationHint")}</p>
@@ -128,24 +136,25 @@ export function ProposalSettings() {
         </p>
       )}
       <details className="cc-settings-fold">
-        <summary>
-          {t("suggestions.conversationCount", { count: keys.length })}
-        </summary>
+        <summary>{t("suggestions.conversationCount", { count: keys.length })}</summary>
         <p className="cc-page-section-note">{t("suggestions.scopeHint")}</p>
         {keys.map((key) => (
-          <SettingsRow key={key} action={
-            <Btn
-              disabled={busy}
-              onClick={() =>
-                void save({
-                  sessionKeys: keys.filter((k) => k !== key),
-                  ...(keys.length === 1 ? { suggestionsEnabled: false } : {}),
-                })
-              }
-            >
-              {t("common.remove")}
-            </Btn>
-          }>
+          <SettingsRow
+            key={key}
+            action={
+              <Btn
+                disabled={busy}
+                onClick={() =>
+                  void save({
+                    sessionKeys: keys.filter((k) => k !== key),
+                    ...(keys.length === 1 ? { suggestionsEnabled: false } : {}),
+                  })
+                }
+              >
+                {t("common.remove")}
+              </Btn>
+            }
+          >
             <span>
               {data?.chats.find((c) => c.sessionKey === key)?.title ??
                 t("common.closedConversation")}
@@ -185,9 +194,7 @@ export function ProposalSettings() {
       {data?.hook.command && !connected && (
         <details className="cc-settings-fold">
           <summary>{t("common.connectSuggestions")}</summary>
-          <p className="cc-page-section-note">
-            {t("suggestions.setupInstructions")}
-          </p>
+          <p className="cc-page-section-note">{t("suggestions.setupInstructions")}</p>
           <pre className="cc-hook-command">{data.hook.command}</pre>
         </details>
       )}

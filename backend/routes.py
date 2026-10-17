@@ -1,4 +1,5 @@
 """App-owned draft/settings endpoints. Hook registration remains a host owner action."""
+
 from __future__ import annotations
 import asyncio
 import importlib
@@ -28,6 +29,7 @@ def _services(ctx: Any):
 
 async def settings_get(request: Any, ctx: Any) -> Any:
     from aiohttp import web
+
     domain = _module("domain")
     try:
         settings = await asyncio.to_thread(_services(ctx).settings.read)
@@ -40,6 +42,7 @@ async def settings_get(request: Any, ctx: Any) -> Any:
 
 async def settings_put(request: Any, ctx: Any) -> Any:
     from aiohttp import web
+
     domain = _module("domain")
     try:
         body = await request.json()
@@ -52,11 +55,15 @@ async def settings_put(request: Any, ctx: Any) -> Any:
             retained = set(previous["sessionKeys"])
             # Closed/private former selections must remain removable. Only NEW
             # entries must still be eligible; persistence guards recheck privacy.
-            if not isinstance(keys, list) or any(not isinstance(k, str) or k not in allowed | retained for k in keys):
+            if not isinstance(keys, list) or any(
+                not isinstance(k, str) or k not in allowed | retained for k in keys
+            ):
                 raise domain.DraftError("Choose an open regular conversation")
         hook = await asyncio.to_thread(_module("host").connection_info)
         if body.get("suggestionsEnabled") is True and hook["status"] != "ready":
-            return web.json_response({"error": "Connect the Calendar hook before enabling"}, status=409)
+            return web.json_response(
+                {"error": "Connect the Calendar hook before enabling"}, status=409
+            )
         settings = await asyncio.to_thread(_services(ctx).settings.update, body)
     except (domain.StorageUnavailable, OSError):
         return web.json_response({"error": "Settings were not saved"}, status=503)
@@ -64,10 +71,15 @@ async def settings_put(request: Any, ctx: Any) -> Any:
         return web.json_response({"error": str(exc)}, status=400)
     except (AttributeError, KeyError):
         return web.json_response({"error": "Settings were not saved"}, status=503)
-    return web.json_response({"settings": settings, "hook": hook, "chats": _chats(request)})
+    return web.json_response(
+        {"settings": settings, "hook": hook, "chats": _chats(request)}
+    )
 
 
 def register_routes(ctx: Any) -> list[Any]:
     from kiro_crew.apps.route_registry import AppRoute
-    return [AppRoute("GET", "/settings", settings_get),
-            AppRoute("PUT", "/settings", settings_put)] + _module("calendar_routes").routes()
+
+    return [
+        AppRoute("GET", "/settings", settings_get),
+        AppRoute("PUT", "/settings", settings_put),
+    ] + _module("calendar_routes").routes()

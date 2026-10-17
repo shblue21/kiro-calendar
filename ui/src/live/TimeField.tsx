@@ -37,8 +37,8 @@ export function TimeField({
               onChange({
                 ...value,
                 instant:
-                  choices.find((choice) => choice.offset === e.target.value)
-                    ?.instant || null,
+                  choices.find((choice) => choice.offset === e.target.value)?.instant ||
+                  null,
               })
             }
           >

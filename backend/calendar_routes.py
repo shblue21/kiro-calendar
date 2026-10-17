@@ -82,8 +82,11 @@ async def items_get(request, ctx):
 
 async def item_get(request, ctx):
     async def work(s):
-        item = await asyncio.to_thread(s.repository.get_item, request.match_info["item_id"])
+        item = await asyncio.to_thread(
+            s.repository.get_item, request.match_info["item_id"]
+        )
         return {"item": view(item)}
+
     return await _run(request, ctx, work)
 
 
@@ -128,7 +131,7 @@ async def item_restore(request, ctx):
 
 def _delivery_response(service, item_id, operation_id):
     item = service.repository.get_item(item_id)
-    return {"operation": service._operation(item, operation_id), "item": view(item)}
+    return {"operation": service.operation_for(item, operation_id), "item": view(item)}
 
 
 async def prepare(request, ctx):

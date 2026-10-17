@@ -2,7 +2,11 @@ import { useId, type ReactNode } from "react";
 import { WorkspacePage } from "../layout/WorkspacePage";
 
 /** Settings own their reading width; WorkspacePage owns scrolling and gutters. */
-export function SettingsPage({ title, hidden, children }: {
+export function SettingsPage({
+  title,
+  hidden,
+  children,
+}: {
   title: string;
   hidden: boolean;
   children: ReactNode;
@@ -10,7 +14,9 @@ export function SettingsPage({ title, hidden, children }: {
   return (
     <WorkspacePage label={title} hidden={hidden}>
       <div className="cc-settings-content">
-        <header className="cc-page-heading"><h2>{title}</h2></header>
+        <header className="cc-page-heading">
+          <h2>{title}</h2>
+        </header>
         {children}
       </div>
     </WorkspacePage>
@@ -18,7 +24,12 @@ export function SettingsPage({ title, hidden, children }: {
 }
 
 /** One heading/action pattern for every top-level settings section. */
-export function SettingsSection({ title, actions, description, children }: {
+export function SettingsSection({
+  title,
+  actions,
+  description,
+  children,
+}: {
   title: string;
   actions?: ReactNode;
   description?: ReactNode;
@@ -37,7 +48,10 @@ export function SettingsSection({ title, actions, description, children }: {
   );
 }
 
-export function SettingsRow({ children, action }: {
+export function SettingsRow({
+  children,
+  action,
+}: {
   children: ReactNode;
   action: ReactNode;
 }) {

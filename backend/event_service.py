@@ -58,7 +58,9 @@ class EventService:
         command = {"payload": value, "destination": target}
         if draft_id is not None:
             command["revision"] = fields.get("revision")
-        digest = hashlib.sha256(json.dumps(command, sort_keys=True).encode()).hexdigest()
+        digest = hashlib.sha256(
+            json.dumps(command, sort_keys=True).encode()
+        ).hexdigest()
         with self.repository.transaction():
             # Creation and acceptance share the request namespace. Reusing a key
             # cannot switch operation, target, caller or agreed contents.
@@ -67,27 +69,45 @@ class EventService:
                 acceptance = previous.get("acceptance", {}).get("id") == receipt
                 if not creation and not acceptance:
                     continue
-                previous_digest = previous["creationDigest"] if creation else previous["acceptance"]["digest"]
+                previous_digest = (
+                    previous["creationDigest"]
+                    if creation
+                    else previous["acceptance"]["digest"]
+                )
                 if (
                     creation != (draft_id is None)
                     or (acceptance and previous["id"] != draft_id)
                     or previous_digest != digest
-                    or (origin is not None and previous["origin"]["sessionKey"] != origin["sessionKey"])
+                    or (
+                        origin is not None
+                        and previous["origin"]["sessionKey"] != origin["sessionKey"]
+                    )
                 ):
-                    raise CalendarError("request_conflict", "같은 저장 요청의 내용이나 대상이 변경되었습니다.")
+                    raise CalendarError(
+                        "request_conflict",
+                        "같은 저장 요청의 내용이나 대상이 변경되었습니다.",
+                    )
                 return previous, True
 
             if draft_id is not None:
                 item = self.repository.get_item(draft_id)
-                if origin is not None and item["origin"]["sessionKey"] != origin["sessionKey"]:
-                    raise CalendarError("draft_unavailable", "이 대화에 연결된 초안만 등록할 수 있습니다.")
+                if (
+                    origin is not None
+                    and item["origin"]["sessionKey"] != origin["sessionKey"]
+                ):
+                    raise CalendarError(
+                        "draft_unavailable",
+                        "이 대화에 연결된 초안만 등록할 수 있습니다.",
+                    )
                 require_revision(item, fields.get("revision"))
                 require_action(item, "accept")
                 item.update(value)
                 item.update(
-                    status="confirmed", destination=target,
+                    status="confirmed",
+                    destination=target,
                     acceptance={"id": receipt, "digest": digest},
-                    revision=item["revision"] + 1, updatedAt=stamp(),
+                    revision=item["revision"] + 1,
+                    updatedAt=stamp(),
                 )
             else:
                 try:
@@ -95,15 +115,27 @@ class EventService:
                 except ItemNotFound:
                     pass
                 else:
-                    raise CalendarError("request_conflict", "이미 사용 중인 일정 식별자입니다.")
+                    raise CalendarError(
+                        "request_conflict", "이미 사용 중인 일정 식별자입니다."
+                    )
                 item = {
-                    **value, "schemaVersion": 3, "id": receipt, "revision": 1,
-                    "status": "confirmed", "source": "direct",
-                    "origin": dict(origin) if origin is not None else {
-                        "sessionKey": "calendar:manual", "identitySource": "dashboard",
+                    **value,
+                    "schemaVersion": 3,
+                    "id": receipt,
+                    "revision": 1,
+                    "status": "confirmed",
+                    "source": "direct",
+                    "origin": dict(origin)
+                    if origin is not None
+                    else {
+                        "sessionKey": "calendar:manual",
+                        "identitySource": "dashboard",
                     },
-                    "destination": target, "reason": "", "creationDigest": digest,
-                    "createdAt": stamp(), "updatedAt": stamp(),
+                    "destination": target,
+                    "reason": "",
+                    "creationDigest": digest,
+                    "createdAt": stamp(),
+                    "updatedAt": stamp(),
                 }
             self.repository.save_item(item)
             return item, False

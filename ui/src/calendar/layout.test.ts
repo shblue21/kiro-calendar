@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { timeLabel } from "./format.ts";
-import { itemGeometry, minuteOffset, place } from "./layout.ts";
+import { itemGeometry, minuteOffset, place, WEEK_LAYOUT } from "./layout.ts";
 import type { CalendarViewItem } from "./types.ts";
 
 const shortEvent: CalendarViewItem = {
   id: "short",
   occurrenceKey: "short",
   day: 0,
-  kind: "event",
+  storage: "local",
+  interval: { startDate: "2026-10-18", endDate: "2026-10-18" },
   title: "일정",
   start: 600,
   end: 605,
@@ -17,8 +18,8 @@ const shortEvent: CalendarViewItem = {
 };
 
 test("short event uses readable height but preserves the actual duration mark", () => {
-  const geometry = itemGeometry(shortEvent, 700);
-  assert.equal(geometry.heightPx, 42);
+  const geometry = itemGeometry(shortEvent);
+  assert.equal(geometry.heightPx, WEEK_LAYOUT.minimumEventHeightPx);
   assert.equal(geometry.durationHeightPx, minuteOffset(5));
   assert.equal(geometry.durationMarkHeightPx, geometry.durationHeightPx);
   assert.equal(geometry.occupiedHeightPx, geometry.heightPx);
@@ -34,13 +35,10 @@ test("touching events share a lane while actual overlap splits it", () => {
   ]) {
     const a = { ...shortEvent, start, end: start + duration };
     const b = { ...a, id: "b", start: a.end, end: a.end + 60 };
-    const placed = place([a, b], 1400);
+    const placed = place([a, b]);
     assert.equal(placed[0].lanes, 1, `${start}–${a.end}`);
-    assert.equal(
-      placed[0].geometry.occupiedEndUnit,
-      placed[1].geometry.topUnit,
-    );
-    assert.equal(place([a, { ...b, start: b.start - 1 }], 1400)[0].lanes, 2);
+    assert.equal(placed[0].geometry.occupiedEndUnit, placed[1].geometry.topUnit);
+    assert.equal(place([a, { ...b, start: b.start - 1 }])[0].lanes, 2);
   }
   const overlapping = Array.from({ length: 5 }, (_, i) => ({
     ...shortEvent,
@@ -49,9 +47,12 @@ test("touching events share a lane while actual overlap splits it", () => {
     end: 660,
   }));
   const following = { ...shortEvent, id: "following", start: 660, end: 860 };
-  const placed = place([...overlapping, following],1400);
-  assert.equal(placed.length,6);
-  assert.deepEqual(placed.slice(0,5).map(x=>x.item.id),overlapping.map(x=>x.id));
-  assert.ok(placed.slice(0,5).every(x=>x.lanes===5));
-  assert.equal(placed[5].lanes,1);
+  const placed = place([...overlapping, following]);
+  assert.equal(placed.length, 6);
+  assert.deepEqual(
+    placed.slice(0, 5).map((x) => x.item.id),
+    overlapping.map((x) => x.id),
+  );
+  assert.ok(placed.slice(0, 5).every((x) => x.lanes === 5));
+  assert.equal(placed[5].lanes, 1);
 });

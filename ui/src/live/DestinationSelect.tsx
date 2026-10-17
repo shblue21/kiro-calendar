@@ -1,11 +1,7 @@
 import { NativeSelect } from "../platform/kiro/NativeControls";
 import { locationLabel } from "./location.ts";
 import { t } from "../i18n/index.ts";
-import type { Connection, Destination } from "./types";
-export const CREW_DESTINATION: Destination = {
-  connectionId: "crew",
-  calendarId: "default",
-};
+import { CREW_DESTINATION, type Connection, type Destination } from "./types";
 export const destinationKey = (target: Destination) =>
   JSON.stringify([target.connectionId, target.calendarId]);
 export function DestinationSelect({
@@ -54,10 +50,7 @@ export function DestinationSelect({
           </option>
         )}
         {choices.map((c) => (
-          <option
-            key={destinationKey(c.target)}
-            value={destinationKey(c.target)}
-          >
+          <option key={destinationKey(c.target)} value={destinationKey(c.target)}>
             {c.label}
           </option>
         ))}

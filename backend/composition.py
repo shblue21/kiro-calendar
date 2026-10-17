@@ -1,4 +1,5 @@
 """The only production binding from use cases to JSON storage."""
+
 from __future__ import annotations
 from pathlib import Path
 from .repository import JsonRepository
@@ -6,10 +7,12 @@ from .settings import SettingsService
 from .application import DraftService
 from .hook_context import SuggestionContextService
 
+
 class Services:
     def __init__(self, data_dir: Path | str):
         self.repository = JsonRepository(data_dir)
         from .calendar_migration import migrate
+
         migrate(self.repository)
         self.settings = SettingsService(self.repository)
         self.drafts = DraftService(self.repository)
@@ -20,13 +23,27 @@ class Services:
         from .calendar_storage import CalendarStorage
         from .apple_provider import AppleCalendarProvider
         from .calendar_connections import CalendarConnection, CalendarConnections
+
         root = self.repository.data_dir
-        connections = CalendarConnections([
-            CalendarConnection('apple-local', 'apple', 'Apple Calendar', AppleCalendarProvider(root.parent, root), system_name='appleLocal'),
-        ])
-        return CalendarService(self.drafts, CalendarStorage(root, legacy_connection_id='apple-local'), connections)
+        connections = CalendarConnections(
+            [
+                CalendarConnection(
+                    "apple-local",
+                    "apple",
+                    "Apple Calendar",
+                    AppleCalendarProvider(root.parent, root),
+                    system_name="appleLocal",
+                ),
+            ]
+        )
+        return CalendarService(
+            self.repository,
+            CalendarStorage(root, legacy_connection_id="apple-local"),
+            connections,
+        )
 
     def conversation_schedule(self):
         from .conversation_schedule import ConversationSchedule
         from .host import app_active_for
+
         return ConversationSchedule(self.calendar().items, app_active_for)

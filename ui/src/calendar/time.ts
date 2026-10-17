@@ -21,14 +21,9 @@ function zoned(value: string | Date, zone: string) {
   ).toZonedDateTimeISO(zone);
 }
 export function zonedInput(value: string | Date, zone: string): string {
-  return zoned(value, zone)
-    .toPlainDateTime()
-    .toString({ smallestUnit: "minute" });
+  return zoned(value, zone).toPlainDateTime().toString({ smallestUnit: "minute" });
 }
-export function zonedDay(
-  value: string | Date,
-  zone: string,
-): Temporal.PlainDate {
+export function zonedDay(value: string | Date, zone: string): Temporal.PlainDate {
   return zoned(value, zone).toPlainDate();
 }
 export type DayBounds = Readonly<{
@@ -54,8 +49,7 @@ export function dayBounds(date: string, zone: string): DayBounds {
     zone,
     startMs: start.epochMilliseconds,
     endMs: end.epochMilliseconds,
-    durationMinutes:
-      (end.epochMilliseconds - start.epochMilliseconds) / MINUTE_MS,
+    durationMinutes: (end.epochMilliseconds - start.epochMilliseconds) / MINUTE_MS,
     clockChanges:
       start.offset !== end.offset ||
       start.hour !== 0 ||
@@ -78,18 +72,12 @@ export function dateRangeInstants(
     end: new Date(dayBounds(exclusiveEndDate, zone).startMs).toISOString(),
   };
 }
-export function elapsedMinute(
-  instant: string | number,
-  day: DayBounds,
-): number {
+export function elapsedMinute(instant: string | number, day: DayBounds): number {
   const ms =
     typeof instant === "number"
       ? instant
       : Temporal.Instant.from(instant).epochMilliseconds;
-  return Math.max(
-    0,
-    Math.min(day.durationMinutes, (ms - day.startMs) / MINUTE_MS),
-  );
+  return Math.max(0, Math.min(day.durationMinutes, (ms - day.startMs) / MINUTE_MS));
 }
 export function dayTimeline(date: string, zone: string) {
   const day = dayBounds(date, zone);
@@ -113,9 +101,14 @@ export function dayTimeline(date: string, zone: string) {
   };
 }
 /** Labels retain wall-clock meaning; geometry uses elapsed time independently. */
-export function intervalLabels(startMs: number, endMs: number, day: DayBounds) {
-  const start = zoned(new Date(startMs), day.zone),
-    end = zoned(new Date(endMs), day.zone);
+export function intervalLabels(
+  startMs: number,
+  endMs: number,
+  zone: string,
+  dayEndMs?: number,
+) {
+  const start = zoned(new Date(startMs), zone),
+    end = zoned(new Date(endMs), zone);
   const offsetChanges = start.offset !== end.offset;
   const label = (z: typeof start) =>
     z.toPlainTime().toString({ smallestUnit: "minute" }) +
@@ -123,7 +116,7 @@ export function intervalLabels(startMs: number, endMs: number, day: DayBounds) {
   return {
     start: label(start),
     end:
-      endMs === day.endMs
+      endMs === dayEndMs
         ? "24:00" + (offsetChanges ? ` UTC${end.offset}` : "")
         : label(end),
   };

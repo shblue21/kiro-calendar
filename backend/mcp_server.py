@@ -47,10 +47,16 @@ TOOL = {
         "type": "object",
         "properties": {
             "title": {"type": "string", "description": "Short event title"},
-            "start": {"type": "string", "description": "e.g. 2026-10-01T19:00:00+09:00"},
+            "start": {
+                "type": "string",
+                "description": "e.g. 2026-10-01T19:00:00+09:00",
+            },
             "end": {"type": "string", "description": "Optional end time, same format"},
             "timezone": {"type": "string", "description": "IANA zone, e.g. Asia/Seoul"},
-            "reason": {"type": "string", "description": "Why this time, in one sentence"},
+            "reason": {
+                "type": "string",
+                "description": "Why this time, in one sentence",
+            },
         },
         "required": ["title", "start"],
         "additionalProperties": False,
@@ -72,7 +78,13 @@ CONTEXT_TOOL = {
         "not an approval token; clarify ambiguous agreements."
     ),
     "inputSchema": {
-        "type": "object", "properties": {"draftId": {"type": "string", "description": "Existing draft to register, if any"}},
+        "type": "object",
+        "properties": {
+            "draftId": {
+                "type": "string",
+                "description": "Existing draft to register, if any",
+            }
+        },
         "additionalProperties": False,
     },
 }
@@ -95,14 +107,35 @@ REGISTER_TOOL = {
     "inputSchema": {
         "type": "object",
         "properties": {
-            "requestId": {"type": "string", "description": "Request ID obtained once for this save; reuse unchanged for retries"},
-            "draftId": {"type": "string", "description": "Required when registering an existing saved draft"},
-            "revision": {"type": "integer", "description": "Current draft revision from get_schedule_context; retain on retries"},
+            "requestId": {
+                "type": "string",
+                "description": "Request ID obtained once for this save; reuse unchanged for retries",
+            },
+            "draftId": {
+                "type": "string",
+                "description": "Required when registering an existing saved draft",
+            },
+            "revision": {
+                "type": "integer",
+                "description": "Current draft revision from get_schedule_context; retain on retries",
+            },
             "title": {"type": "string"},
-            "start": {"type": "string", "description": "Agreed ISO timestamp with UTC offset"},
-            "end": {"type": "string", "description": "Agreed ISO timestamp with UTC offset; no implicit duration"},
-            "timezone": {"type": "string", "description": "Current IANA zone from get_schedule_context"},
-            "notes": {"type": "string", "description": "Only notes the user agreed to include; no transcript dump"},
+            "start": {
+                "type": "string",
+                "description": "Agreed ISO timestamp with UTC offset",
+            },
+            "end": {
+                "type": "string",
+                "description": "Agreed ISO timestamp with UTC offset; no implicit duration",
+            },
+            "timezone": {
+                "type": "string",
+                "description": "Current IANA zone from get_schedule_context",
+            },
+            "notes": {
+                "type": "string",
+                "description": "Only notes the user agreed to include; no transcript dump",
+            },
         },
         "required": ["requestId", "title", "start", "end", "timezone"],
         "additionalProperties": False,
@@ -110,11 +143,18 @@ REGISTER_TOOL = {
 }
 
 
-def _result(text: str, *, error: bool = False, data: dict[str, Any] | None = None) -> dict[str, Any]:
-    out: dict[str, Any] = {"content": [{"type": "text", "text": text}], "isError": error}
+def _result(
+    text: str, *, error: bool = False, data: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "content": [{"type": "text", "text": text}],
+        "isError": error,
+    }
     if data is not None:
         out["structuredContent"] = data
-        out["content"].append({"type": "text", "text": json.dumps(data, ensure_ascii=False)})
+        out["content"].append(
+            {"type": "text", "text": json.dumps(data, ensure_ascii=False)}
+        )
     return out
 
 
@@ -124,16 +164,23 @@ def call_tool(services, params: dict[str, Any]) -> dict[str, Any]:
         return _result("Unknown tool", error=True)
     meta = params.get("_meta")
     caller = caller_from_meta(meta)
-    if caller is None and not (isinstance(meta, dict) and ("kirocrew.tenant" in meta or CALLER_META_KEY in meta)):
+    if caller is None and not (
+        isinstance(meta, dict)
+        and ("kirocrew.tenant" in meta or CALLER_META_KEY in meta)
+    ):
         caller = caller_from_host()
     if caller is None:
-        return _result("NOT saved: the calling conversation could not be identified.", error=True)
+        return _result(
+            "NOT saved: the calling conversation could not be identified.", error=True
+        )
     try:
         if name == CONTEXT_TOOL["name"]:
             arguments = params.get("arguments") or {}
             if not isinstance(arguments, dict):
                 raise DraftError("Context arguments must be an object")
-            context = services.conversation_schedule().context(caller, arguments.get("draftId"))
+            context = services.conversation_schedule().context(
+                caller, arguments.get("draftId")
+            )
             return _result(
                 "New save request ID below; retain it for retries. This lookup is not consent. Only register if the user "
                 "clearly authorizes the exact event in the conversation; otherwise continue or clarify.",
@@ -141,25 +188,49 @@ def call_tool(services, params: dict[str, Any]) -> dict[str, Any]:
             )
         if name == REGISTER_TOOL["name"]:
             hidden = not services.calendar().storage.preferences()["showCrew"]
-            saved = services.conversation_schedule().register(params.get("arguments"), caller)
+            saved = services.conversation_schedule().register(
+                params.get("arguments"), caller
+            )
             item, replayed = saved["item"], saved["replayed"]
             removed = bool(item.get("deletedAt"))
             return _result(
-                ("This request was already saved and later deleted; it was NOT restored." if removed else
-                 "This save was already processed. The current item is returned; no new event was created or overwritten." if replayed else
-                 "Saved in Crew Calendar.")
-                + (" Crew Calendar display is currently hidden; enable Show Crew Calendar in settings to see it." if hidden and not removed else "")
+                (
+                    "This request was already saved and later deleted; it was NOT restored."
+                    if removed
+                    else "This save was already processed. The current item is returned; no new event was created or overwritten."
+                    if replayed
+                    else "Saved in Crew Calendar."
+                )
+                + (
+                    " Crew Calendar display is currently hidden; enable Show Crew Calendar in settings to see it."
+                    if hidden and not removed
+                    else ""
+                )
                 + " Open /apps/crew-calendar to review. This call did not write an external calendar or create a reminder.",
-                data={"outcome": "deleted" if removed else "replayed" if replayed else "registered", **saved, "calendarVisible": not hidden},
+                data={
+                    "outcome": "deleted"
+                    if removed
+                    else "replayed"
+                    if replayed
+                    else "registered",
+                    **saved,
+                    "calendarVisible": not hidden,
+                },
             )
         draft, duplicate = services.drafts.create(params.get("arguments") or {}, caller)
         outcome = "duplicate" if duplicate else "created"
         return _result(
-            "Saved a local review draft." if outcome == "created" else "This draft already exists; no new draft was created.",
+            "Saved a local review draft."
+            if outcome == "created"
+            else "This draft already exists; no new draft was created.",
             data={"outcome": outcome, "draft": draft, "duplicate": duplicate},
         )
     except CalendarError as exc:
-        return _result(f"NOT saved ({exc.code}): {exc.message}", error=True, data={"code": exc.code})
+        return _result(
+            f"NOT saved ({exc.code}): {exc.message}",
+            error=True,
+            data={"code": exc.code},
+        )
     except (DraftError, OSError) as exc:
         return _result(f"NOT saved: {exc}. Do not claim success.", error=True)
 
@@ -173,7 +244,10 @@ def handle(store, message: dict[str, Any]) -> dict[str, Any] | None:
     if method == "initialize":
         result: dict[str, Any] = {
             "protocolVersion": params.get("protocolVersion") or "2024-11-05",
-            "capabilities": {"tools": {"listChanged": False}, "experimental": CALLER_CAPABILITY},
+            "capabilities": {
+                "tools": {"listChanged": False},
+                "experimental": CALLER_CAPABILITY,
+            },
             "serverInfo": {"name": "crew-calendar-drafts", "version": "0.1.0"},
         }
     elif method == "tools/list":
@@ -183,7 +257,11 @@ def handle(store, message: dict[str, Any]) -> dict[str, Any] | None:
     elif method == "ping":
         result = {}
     else:
-        return {"jsonrpc": "2.0", "id": msg_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
+        return {
+            "jsonrpc": "2.0",
+            "id": msg_id,
+            "error": {"code": -32601, "message": f"Method not found: {method}"},
+        }
     return {"jsonrpc": "2.0", "id": msg_id, "result": result}
 
 
@@ -200,14 +278,20 @@ def main(argv: list[str]) -> int:
             message = json.loads(line)
         except json.JSONDecodeError:
             response: dict[str, Any] | None = {
-                "jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"},
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {"code": -32700, "message": "Parse error"},
             }
         else:
             try:
                 response = handle(store, message) if isinstance(message, dict) else None
             except Exception as exc:  # never kill the stream; report on stderr
                 print(f"crew-calendar-drafts: {exc!r}", file=sys.stderr)
-                response = {"jsonrpc": "2.0", "id": message.get("id"), "error": {"code": -32603, "message": "Internal error"}}
+                response = {
+                    "jsonrpc": "2.0",
+                    "id": message.get("id"),
+                    "error": {"code": -32603, "message": "Internal error"},
+                }
         if response is not None:
             sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
             sys.stdout.flush()

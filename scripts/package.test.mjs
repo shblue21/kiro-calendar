@@ -16,7 +16,15 @@ import { packageApp } from "./package.mjs";
 async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), "crew-package-test-"));
   t.after(() => rm(root, { recursive: true, force: true }));
-  for (const dir of ["docs", "research", "ui/src", "ui/dist", "ui/assets", "backend/__pycache__", "tests"])
+  for (const dir of [
+    "docs",
+    "research",
+    "ui/src",
+    "ui/dist",
+    "ui/assets",
+    "backend/__pycache__",
+    "tests",
+  ])
     await mkdir(path.join(root, dir), { recursive: true });
   await writeFile(
     path.join(root, "app.json"),
@@ -37,7 +45,10 @@ async function fixture(t) {
   await writeFile(path.join(root, "docs/private.md"), "PRIVATE");
   await writeFile(path.join(root, "research/private.md"), "PRIVATE");
   await writeFile(path.join(root, "ui/src/private.ts"), "PRIVATE");
-  await writeFile(path.join(root, "backend/routes.py"), "def register_routes(ctx): return []");
+  await writeFile(
+    path.join(root, "backend/routes.py"),
+    "def register_routes(ctx): return []",
+  );
   await writeFile(path.join(root, "backend/__pycache__/routes.pyc"), "PRIVATE");
   await writeFile(path.join(root, "backend/notes.md"), "PRIVATE");
   await writeFile(path.join(root, "tests/test_x.py"), "PRIVATE");
@@ -78,18 +89,32 @@ test("platform packages preserve the Mac bridge and omit it elsewhere", async (t
   const manifest = JSON.parse(await readFile(path.join(root, "app.json"), "utf8"));
   manifest.platform = { os: ["macos", "windows", "linux"] };
   await writeFile(path.join(root, "app.json"), JSON.stringify(manifest));
-  await assert.rejects(packageApp(root, path.join(root, ".build"), {platform:"darwin"}));
+  await assert.rejects(
+    packageApp(root, path.join(root, ".build"), { platform: "darwin" }),
+  );
   const bundle = "Crew Calendar Bridge.app";
-  const files = ["Contents/Info.plist", "Contents/MacOS/CrewCalendarBridge", "Contents/_CodeSignature/CodeResources"];
+  const files = [
+    "Contents/Info.plist",
+    "Contents/MacOS/CrewCalendarBridge",
+    "Contents/_CodeSignature/CodeResources",
+  ];
   for (const file of files) {
     const source = path.join(root, ".build/native", bundle, file);
     await mkdir(path.dirname(source), { recursive: true });
     await writeFile(source, file);
   }
-  const output = await packageApp(root, path.join(root, ".build"), {platform:"darwin"});
-  for (const file of files) assert.equal(await readFile(path.join(output, "native", bundle, file), "utf8"), file);
+  const output = await packageApp(root, path.join(root, ".build"), {
+    platform: "darwin",
+  });
+  for (const file of files)
+    assert.equal(
+      await readFile(path.join(output, "native", bundle, file), "utf8"),
+      file,
+    );
   for (const platform of ["win32", "linux"]) {
-    const crossPlatform = await packageApp(root, path.join(root, ".build"), {platform});
+    const crossPlatform = await packageApp(root, path.join(root, ".build"), {
+      platform,
+    });
     assert.ok(!(await readdir(crossPlatform)).includes("native"));
   }
 });

@@ -46,7 +46,7 @@ class Repository(Protocol):
     def get_item(self, draft_id: str) -> dict[str, Any]: ...
 
 
-def _atomic_json(path: Path, value: Any) -> None:
+def atomic_json(path: Path, value: Any) -> None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         fd, temporary = tempfile.mkstemp(
@@ -114,10 +114,10 @@ class JsonRepository:
             ) from exc
 
     def save_settings(self, value: dict[str, Any]) -> None:
-        _atomic_json(self.data_dir / "settings.json", value)
+        atomic_json(self.data_dir / "settings.json", value)
 
     def save_item(self, value: dict[str, Any]) -> None:
-        _atomic_json(self.item_path(value["id"]), value)
+        atomic_json(self.item_path(value["id"]), value)
 
     def get_item(self, draft_id: str) -> dict[str, Any]:
         path = self.item_path(draft_id)
@@ -161,14 +161,14 @@ class JsonRepository:
                 )
             ):
                 raise ValueError("external reference does not belong to item")
-            from .domain import _parse_time
+            from .domain import parse_time
 
             # Validate collection keys at the same boundary as the item itself.
             # Collection operations can then assume every decoded record is usable.
-            _parse_time(value.get("createdAt"), "createdAt")
-            value["start"] = _parse_time(value["start"], "start").isoformat()
+            parse_time(value.get("createdAt"), "createdAt")
+            value["start"] = parse_time(value["start"], "start").isoformat()
             if value.get("end"):
-                value["end"] = _parse_time(value["end"], "end").isoformat()
+                value["end"] = parse_time(value["end"], "end").isoformat()
             return value
         except FileNotFoundError as exc:
             raise ItemNotFound("unknown item") from exc
@@ -229,4 +229,4 @@ class JsonRepository:
             raise StorageUnavailable("Calendar hook state could not be read") from exc
 
     def record_application(self, session_key: str, value: dict[str, Any]) -> None:
-        _atomic_json(self._receipt(session_key), value)
+        atomic_json(self._receipt(session_key), value)

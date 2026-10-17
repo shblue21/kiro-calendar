@@ -3,6 +3,7 @@
 No pending proposals, turn tracking or separate request store. The agent obtains
 one request ID after agreement and retains it, with the exact fields, for retries.
 """
+
 from __future__ import annotations
 import uuid
 from datetime import datetime
@@ -20,7 +21,9 @@ class ConversationSchedule:
 
     def _require_available(self, caller):
         if not self.is_available(caller["sessionKey"]):
-            raise DraftError("Calendar registration requires an enabled app and a regular dashboard conversation")
+            raise DraftError(
+                "Calendar registration requires an enabled app and a regular dashboard conversation"
+            )
 
     def context(self, caller, draft_id=None):
         self._require_available(caller)
@@ -29,12 +32,15 @@ class ConversationSchedule:
             "requestId": uuid.uuid4().hex,
             "timezone": zone,
             "now": datetime.now(ZoneInfo(zone)).isoformat(timespec="minutes"),
-            "destination": dict(CREW), "calendarName": "Crew Calendar",
+            "destination": dict(CREW),
+            "calendarName": "Crew Calendar",
         }
         if draft_id is not None:
             draft = self.items.repository.get_item(draft_id)
             if draft["origin"]["sessionKey"] != caller["sessionKey"]:
-                raise CalendarError("draft_unavailable", "이 대화에 연결된 초안만 확인할 수 있습니다.")
+                raise CalendarError(
+                    "draft_unavailable", "이 대화에 연결된 초안만 확인할 수 있습니다."
+                )
             context["draft"] = draft
         return context
 
@@ -52,6 +58,8 @@ class ConversationSchedule:
         if draft_id is None and "revision" in fields:
             raise DraftError("revision requires draftId")
         item, replayed = self.items.save(
-            {**fields, "destination": dict(CREW)}, draft_id=draft_id, origin=caller,
+            {**fields, "destination": dict(CREW)},
+            draft_id=draft_id,
+            origin=caller,
         )
         return {"item": item, "replayed": replayed}

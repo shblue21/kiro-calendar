@@ -11,10 +11,9 @@ import { t } from "../i18n/index.ts";
 import { DateBadge } from "./DateBadge";
 import { dateKey } from "./dates";
 import type { CivilDate } from "./dates.ts";
-import { KIND_LABEL, STATUS_LABEL, timeLabel } from "./format";
+import { timeLabel } from "./format";
 import { place, minuteOffset, WEEK_LAYOUT } from "./layout";
 import { dayTimeline, elapsedMinute, zonedInput } from "./time";
-import { TypeMark } from "./TypeMark";
 import type { CalendarReferenceTime, CalendarViewItem } from "./types";
 type Props = {
   timezone: string;
@@ -111,7 +110,6 @@ export function TimeGrid({
                     eventId={item.id}
                     registerButton={registerButton}
                     selected={selectedId === item.id}
-
                     key={item.id}
                     className="cc-all-day-event"
                     style={calendarStyle(item.calendarColor)}
@@ -138,10 +136,7 @@ export function TimeGrid({
           <div className="cc-hour-labels">
             {!separateClocks &&
               timelines[0].ticks.map((tick) => (
-                <span
-                  key={tick.minute}
-                  style={{ top: minuteOffset(tick.minute) }}
-                >
+                <span key={tick.minute} style={{ top: minuteOffset(tick.minute) }}>
                   {tick.label}
                 </span>
               ))}
@@ -161,22 +156,14 @@ export function TimeGrid({
               onClick={(event) => {
                 if (event.target === event.currentTarget) {
                   const y =
-                    event.clientY -
-                    event.currentTarget.getBoundingClientRect().top;
+                    event.clientY - event.currentTarget.getBoundingClientRect().top;
                   onAdd(
-                    seedAtMinute(
-                      date,
-                      timezone,
-                      (y / WEEK_LAYOUT.hourHeightPx) * 60,
-                    ),
+                    seedAtMinute(date, timezone, (y / WEEK_LAYOUT.hourHeightPx) * 60),
                   );
                 }
               }}
               onKeyDown={(event) => {
-                if (
-                  event.target === event.currentTarget &&
-                  event.key === "Enter"
-                ) {
+                if (event.target === event.currentTarget && event.key === "Enter") {
                   event.preventDefault();
                   onAdd({ date });
                 }
@@ -199,51 +186,37 @@ export function TimeGrid({
                     ))}
                   </span>
                 ))}
-              {place(
-                items.filter((x) => x.day === day),
-                elapsedMinute(referenceTime.instant, timelines[day]),
-              ).map(({ item, lane, lanes, geometry }) => {
-                const positioning = {
-                  top: geometry.topPx,
-                  left: `calc((100% - var(--cc-clock-gutter)) * ${lane / lanes} + 4px)`,
-                  width: `calc((100% - var(--cc-clock-gutter)) / ${lanes} - 8px)`,
-                  height: geometry.heightPx,
-                  "--cc-span": `${geometry.durationMarkHeightPx}px`,
-                } as CSSProperties;
-                return (
-                  <EventButton
-                    eventId={item.id}
-                    registerButton={registerButton}
-                    selected={selectedId === item.id}
-
-                    key={item.id}
-                    className={`cc-item cc-item-${item.kind} ${geometry.compact ? "cc-item-event-short" : ""} cc-status-${item.status ?? "event"}`}
-                    style={{
-                      ...positioning,
-                      ...calendarStyle(item.calendarColor),
-                    }}
-                    onClick={() => onSelect(item)}
-                    aria-label={`${KIND_LABEL[item.kind]} ${item.title}, ${timeLabel(item)}${item.status ? ", " + STATUS_LABEL[item.status] : ""}`}
-                  >
-                    {item.kind === "run" && (
-                      <span className="cc-run-rail" aria-hidden="true" />
-                    )}
-                    <span className="cc-item-title">
-                      {item.kind !== "event" && <TypeMark item={item} />}
-                      <span>{item.title}</span>
-                    </span>
-                    <span className="cc-item-time">
-                      {timeLabel(item)}
-                      {item.automatic ? t("common.automatic") : ""}
-                    </span>
-                    {item.kind === "run" && (
-                      <span className="cc-item-status">
-                        {STATUS_LABEL[item.status!]}
+              {place(items.filter((x) => x.day === day)).map(
+                ({ item, lane, lanes, geometry }) => {
+                  const positioning = {
+                    top: geometry.topPx,
+                    left: `calc((100% - var(--cc-clock-gutter)) * ${lane / lanes} + 4px)`,
+                    width: `calc((100% - var(--cc-clock-gutter)) / ${lanes} - 8px)`,
+                    height: geometry.heightPx,
+                    "--cc-span": `${geometry.durationMarkHeightPx}px`,
+                  } as CSSProperties;
+                  return (
+                    <EventButton
+                      eventId={item.id}
+                      registerButton={registerButton}
+                      selected={selectedId === item.id}
+                      key={item.id}
+                      className={`cc-item cc-item-event ${geometry.compact ? "cc-item-event-short" : ""}`}
+                      style={{
+                        ...positioning,
+                        ...calendarStyle(item.calendarColor),
+                      }}
+                      onClick={() => onSelect(item)}
+                      aria-label={`${t("common.event")} ${item.title}, ${timeLabel(item)}`}
+                    >
+                      <span className="cc-item-title">
+                        <span>{item.title}</span>
                       </span>
-                    )}
-                  </EventButton>
-                );
-              })}
+                      <span className="cc-item-time">{timeLabel(item)}</span>
+                    </EventButton>
+                  );
+                },
+              )}
               {isCurrentPeriod && day === referenceTime.day && (
                 <div
                   className="cc-now-line"

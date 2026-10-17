@@ -1,4 +1,4 @@
-import type {EventTimes} from "../calendar/creation";
+import type { EventTimes } from "../calendar/creation";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
 import { useState } from "react";
 import type { CivilDate } from "../calendar/dates.ts";
@@ -19,17 +19,13 @@ type Targeted = Common & {
   connections: Connection[];
   defaultDestination: Destination;
 };
-function saveLabel(
-  target: Destination,
-  connections: Connection[],
-  localLabel: string,
-) {
+function saveLabel(target: Destination, connections: Connection[], localLabel: string) {
   const connection = connections.find((c) => c.id === target.connectionId);
   return target.connectionId === "crew"
     ? localLabel
     : confirmationAction(connection?.confirmation, connection?.provider);
 }
-export function NewEventEditor(props: Targeted & {initialTimes?:EventTimes}) {
+export function NewEventEditor(props: Targeted & { initialTimes?: EventTimes }) {
   const api = useAppApi(),
     { name } = useAppInfo();
   const [target, setTarget] = useState(props.defaultDestination),
@@ -77,11 +73,7 @@ export function ProposalEditor(
       {...props}
       heading={t("common.reviewSuggestion")}
       label={t("common.draftForReview")}
-      submitLabel={saveLabel(
-        target,
-        props.connections,
-        t("common.saveAsEvent"),
-      )}
+      submitLabel={saveLabel(target, props.connections, t("common.saveAsEvent"))}
       targetChanged={
         destinationKey(target) !== destinationKey(props.defaultDestination)
       }
@@ -137,9 +129,7 @@ export function ConfirmedEventEditor(
           ? saveLabel(target, props.connections, t("common.saveChanges"))
           : t("common.saveChanges")
       }
-      targetChanged={
-        destinationKey(target) !== destinationKey(props.item.destination)
-      }
+      targetChanged={destinationKey(target) !== destinationKey(props.item.destination)}
       onSubmit={async (fields) => {
         const result = await api.put<{
           item: CalendarItem;

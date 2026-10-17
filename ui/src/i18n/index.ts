@@ -13,9 +13,7 @@ type Slots<S> = S extends `${string}{${infer Name}}${infer Rest}`
   ? Name | Slots<Rest>
   : never;
 type Values<K extends keyof typeof en> = {
-  [P in Slots<Template<(typeof en)[K]>>]: P extends "count"
-    ? number
-    : string | number;
+  [P in Slots<Template<(typeof en)[K]>>]: P extends "count" ? number : string | number;
 };
 export function t<K extends keyof typeof en>(
   key: K,
@@ -26,9 +24,7 @@ export function t<K extends keyof typeof en>(
   const text =
     typeof message === "string"
       ? message
-      : message[
-          pluralCategory(Number(values.count)) === "one" ? "one" : "other"
-        ];
+      : message[pluralCategory(Number(values.count)) === "one" ? "one" : "other"];
   return text.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g, (_, name: string) =>
     name === "count" && typeof values[name] === "number"
       ? formatNumber(values[name] as number)

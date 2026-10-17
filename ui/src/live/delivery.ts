@@ -78,10 +78,7 @@ export class DeliverySession {
       this.update({ item: prepared.item, checking: false });
       const alreadyReviewed =
         reviewed?.state === "prepared" && reviewed.id === prepared.operation.id;
-      if (
-        prepared.operation.confirmation?.mode !== "provider" &&
-        !alreadyReviewed
-      )
+      if (prepared.operation.confirmation?.mode !== "provider" && !alreadyReviewed)
         return;
       this.update({ checking: true });
       const result = await this.ports.execute(prepared.operation.id);

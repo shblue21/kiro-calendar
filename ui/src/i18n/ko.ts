@@ -23,8 +23,6 @@ export const ko = {
   "common.settings": "설정",
   "common.externalSaveHistory": "외부 저장 기록",
   "common.saveStatus": "저장 상태",
-  "common.year": "년",
-  "common.month": "월",
   "common.day": "일",
   "common.today": "오늘",
   "common.search": "검색어",
@@ -46,8 +44,7 @@ export const ko = {
   "calendar.filtersHint": "검색어와 표시 조건을 확인하세요.",
   "calendar.emptyDescription":
     "대화에서 받은 초안과 선택한 캘린더의 일정이 표시됩니다.",
-  "calendar.periodEmptyDescription":
-    "다른 기간으로 이동하거나 새 초안을 추가하세요.",
+  "calendar.periodEmptyDescription": "다른 기간으로 이동하거나 새 초안을 추가하세요.",
   "common.resetSearchAndFilters": "검색·필터 초기화",
   "common.reload": "다시 불러오기",
   "common.previous": "이전 {period}",
@@ -68,30 +65,10 @@ export const ko = {
   "common.selectedEventDetails": "선택한 일정 상세",
   "common.draftForReview": "검토용 초안",
   "common.closeDetails": "상세 닫기",
-  "common.reviewAndEditDraft": "초안 검토·수정",
-  "common.editEvent": "편집",
   "common.date": "날짜",
-  "common.scheduledTime": "예약 시각",
   "common.time": "시간",
-  "common.assignedAgent": "담당 에이전트",
   "common.save": "저장",
-  "common.repeat": "반복",
-  "common.weekdaysFlexibleStart": "평일 · 유연한 시작",
-  "common.oneTimeSchedule": "일회성 예약",
-  "common.runDuration": "실행 시간",
-  "common.linkedEvent": "연결된 일정",
-  "common.linkedRun": "연결된 실행",
-  "common.originalSchedule": "원래 예약",
-  "common.output": "결과물",
-  "common.previewOutput": "결과 미리보기",
-  "details.externalEditHint":
-    "기존 일정의 수정·삭제는 원본 캘린더에서 해주세요.",
-  "details.externalOpenUnsupported":
-    "원본 캘린더 열기는 아직 지원하지 않습니다.",
-  "details.scheduleOpenUnsupported":
-    "Schedule에서 열기는 아직 지원하지 않습니다.",
-  "details.sessionOpenUnsupported": "세션 열기는 아직 지원하지 않습니다.",
-  "common.showWeekOf": "{date} 주간 보기",
+  "details.externalEditHint": "기존 일정의 수정·삭제는 원본 캘린더에서 해주세요.",
   "common.allDay": "종일",
   "calendar.dayOverflow": {
     one: "{date} 일정 {count}개 더 보기",
@@ -100,7 +77,6 @@ export const ko = {
   "calendar.clockChangeNotice":
     "시각 변경이 있는 주입니다. 각 날짜 열의 시각을 기준으로 확인하세요.",
   "calendar.dayLabel": "{month}월 {day}일 {weekday}요일",
-  "common.automatic": " · 자동",
   "common.now": "현재",
   "calendar.yearLegend":
     "점은 표시 조건에 맞는 일정이 있는 날입니다. 월을 눌러 자세히 보세요.",
@@ -113,13 +89,6 @@ export const ko = {
     other: "{count}건",
   },
   "common.event": "일정",
-  "common.aiSchedule": "AI 예약",
-  "common.run": "실제 실행",
-  "common.running": "실행 중",
-  "common.complete": "완료",
-  "common.failed": "실패",
-  "common.scheduled": "예약",
-  "common.approximately": " 부근",
   "common.checkTheDateAndTime": "날짜와 시간을 확인하세요.",
   "time.ambiguousOrMissing":
     "존재하지 않거나 시간 변경으로 두 번 존재하는 시각입니다. 다른 시각을 선택하세요.",
@@ -128,10 +97,8 @@ export const ko = {
   "time.invalid": "존재하지 않는 날짜·시각입니다. 다른 시각을 선택하세요.",
   "common.externalCalendarConnections": "외부 캘린더 연결",
   "common.refreshConnections": "연결 다시 확인",
-  "connections.empty":
-    "외부 연결이 없습니다. Crew Calendar는 계속 사용할 수 있습니다.",
+  "connections.empty": "외부 연결이 없습니다. Crew Calendar는 계속 사용할 수 있습니다.",
   "common.checkThePermissionPrompt": "접근 허용을 확인하세요…",
-  "common.checkConnectionPermissions": "연결 권한 확인",
   "common.chooseTheCalendarsToDisplay": "표시할 캘린더를 선택하세요.",
   "common.readOnly": "· 읽기 전용",
   "common.defaultCalendar": "기본 캘린더",
@@ -152,7 +119,6 @@ export const ko = {
   "common.checkSaveStatus": "저장 상태 확인",
   "common.originalConversation": "원래 대화",
   "common.dismiss": "넘기기",
-  "common.confirmExternalSave": "외부 저장 확인",
   "common.newEvent": "새 일정",
   "common.reviewSuggestion": "제안 검토",
   "common.saveAsEvent": "일정으로 저장",
@@ -177,7 +143,6 @@ export const ko = {
   "common.noDeletedEvents": "삭제한 일정이 없습니다.",
   "common.externalCalendar": "외부 캘린더",
   "common.closeSaveStatus": "저장 상태 닫기",
-  "common.selectedExternalCalendar": "선택한 외부 캘린더",
   "delivery.notSubmitted": "아직 외부 캘린더에 저장되지 않았습니다.",
   "delivery.reviewHint": "저장 준비가 완료되었습니다.",
   "common.checkingTheSaveResult": "저장 결과를 확인하고 있습니다.",
@@ -232,7 +197,8 @@ export const ko = {
   "common.connectSuggestions": "처음 한 번 연결하기",
   "suggestions.setupInstructions":
     "Crew의 에이전트 기능 → 훅에서 아래 명령을 UserPromptSubmit 이벤트로 등록해 주세요. 이름은 Crew Calendar · schedule suggestions, 조건은 비워두고 활성화합니다. 등록 후 설정 다시 확인을 누르세요.",
-  "suggestions.exampleUser": "나 · “금요일 마감인데 지원서 아직 못 썼네. 목요일 저녁 7시부터 30분은 비어.”",
+  "suggestions.exampleUser":
+    "나 · “금요일 마감인데 지원서 아직 못 썼네. 목요일 저녁 7시부터 30분은 비어.”",
   "suggestions.exampleAssistant":
     "Crew · “목요일 19:00–19:30에 지원서 작성 시간을 Crew Calendar에 추가할까요?” — 이대로 등록 / 시간 바꾸기 / 지금은 괜찮아",
   "suggestions.registered":
@@ -241,57 +207,44 @@ export const ko = {
     "최근 연결 실행이 시간 초과됐어요. Crew 훅 기록을 확인해 주세요.",
   "suggestions.runBlocked":
     "최근 연결 실행이 정책에 의해 차단됐어요. Crew 훅 기록을 확인해 주세요.",
-  "suggestions.runFailed":
-    "최근 연결 실행에 실패했어요. Crew 훅 기록을 확인해 주세요.",
-  "suggestions.runUnknown":
-    "연결은 등록됐지만 최근 실행 상태를 확인하지 못했어요.",
+  "suggestions.runFailed": "최근 연결 실행에 실패했어요. Crew 훅 기록을 확인해 주세요.",
+  "suggestions.runUnknown": "연결은 등록됐지만 최근 실행 상태를 확인하지 못했어요.",
   "editor.timezoneHint":
     "표시·입력 시간대: {zone}. 단일 일정만 저장하며 반복·초대는 추가하지 않습니다.",
   "trash.count": "삭제한 일정 · {count}개",
   "suggestions.conversationCount": "적용 대화 {count}개",
   "time.occurrenceOffset": "{occurrence}번째 · UTC{offset}",
   "common.moreEvents": "+{count}개 더",
-  "details.duration": "{minutes}분",
-  "details.elapsed": "{minutes}분 경과",
   "delivery.confirmInProvider": "캘린더 앱에서 확인",
   "delivery.confirmOnMac": "Mac에서 최종 확인",
   "delivery.providerPending":
     "캘린더 앱에서 일정을 확인하세요. 이 패널을 닫아도 확인 창은 취소되지 않습니다.",
   "connections.authorize": "캘린더 연결",
-  "connections.permissionRequired":
-    "일정 조회와 저장을 위해 캘린더 접근을 허용하세요.",
+  "connections.permissionRequired": "일정 조회와 저장을 위해 캘린더 접근을 허용하세요.",
   "connections.permissionDenied":
     "캘린더 접근이 거부되었습니다. 시스템 개인정보 보호 설정을 확인하세요.",
-  "connections.unsupported":
-    "이 기기에서는 이 캘린더 연결을 지원하지 않습니다.",
-  "connections.unavailable":
-    "캘린더 연결 상태를 확인하지 못했습니다. 다시 시도하세요.",
-  "errors.staleEvent":
-    "다른 곳에서 변경된 일정입니다. 다시 불러온 뒤 수정하세요.",
+  "connections.unsupported": "이 기기에서는 이 캘린더 연결을 지원하지 않습니다.",
+  "connections.unavailable": "캘린더 연결 상태를 확인하지 못했습니다. 다시 시도하세요.",
+  "errors.staleEvent": "다른 곳에서 변경된 일정입니다. 다시 불러온 뒤 수정하세요.",
   "errors.requestConflict":
     "같은 저장 요청의 내용이 달라졌습니다. 일정을 다시 불러오세요.",
   "errors.actionUnavailable": "계속하기 전에 현재 저장 상태를 확인하세요.",
-  "errors.operationChanged":
-    "이 저장 요청이 교체되었습니다. 현재 일정을 확인하세요.",
+  "errors.operationChanged": "이 저장 요청이 교체되었습니다. 현재 일정을 확인하세요.",
   "errors.storageUnavailable":
     "일정 데이터를 읽거나 저장하지 못했습니다. 다시 시도하세요.",
-  "errors.deliveryUnavailable":
-    "이 일정을 변경하려면 저장 기록을 복구해야 합니다.",
+  "errors.deliveryUnavailable": "이 일정을 변경하려면 저장 기록을 복구해야 합니다.",
   "errors.readOnly": "이 캘린더는 읽기 전용입니다. 다른 캘린더를 선택하세요.",
-  "errors.calendarMissing":
-    "선택한 캘린더에 접근할 수 없습니다. 연결을 확인하세요.",
+  "errors.calendarMissing": "선택한 캘린더에 접근할 수 없습니다. 연결을 확인하세요.",
   "errors.connectionMissing":
     "원래 연결에 접근할 수 없습니다. 저장 위치를 직접 선택하세요.",
-  "errors.connectionChanged":
-    "연결이 변경되었습니다. 저장 요청을 다시 검토하세요.",
+  "errors.connectionChanged": "연결이 변경되었습니다. 저장 요청을 다시 검토하세요.",
   "errors.helperMissing":
     "캘린더 연결 프로그램이 없습니다. Calendar 앱을 다시 설치하세요.",
   "errors.helperTimeout":
     "캘린더 연결 응답 시간이 초과됐습니다. 저장 상태를 확인하세요.",
   "errors.helperUnavailable":
     "캘린더 연결 프로그램에 접근하지 못했습니다. 연결을 확인하세요.",
-  "errors.appDisabled":
-    "Calendar가 비활성화되어 있습니다. 저장 전에 활성화하세요.",
+  "errors.appDisabled": "Calendar가 비활성화되어 있습니다. 저장 전에 활성화하세요.",
   "errors.providerResponse":
     "캘린더 응답을 확인하지 못했습니다. 연결과 저장 상태를 확인하세요.",
   "errors.itemUnavailable":
@@ -302,23 +255,21 @@ export const ko = {
   "connections.appleLocal": "Apple Calendar · 이 Mac",
   "errors.eventsTruncated": {
     one: "일정 {count}개까지만 표시됩니다. 전체 일정을 보려면 조회 기간을 줄이세요.",
-    other:
-      "일정 {count}개까지만 표시됩니다. 전체 일정을 보려면 조회 기간을 줄이세요.",
+    other: "일정 {count}개까지만 표시됩니다. 전체 일정을 보려면 조회 기간을 줄이세요.",
   },
   "errors.eventsIncomplete":
     "일부 일정이 표시되지 않았습니다. 조회 기간을 줄이고 다시 확인하세요.",
   "destination.unavailable": "캘린더 확인 필요",
   "delivery.statusLabel": "저장 상태",
   "common.source": "출처",
-"navigation.label": "캘린더 작업 공간",
-"navigation.proposals": "제안",
-"navigation.activity": "기록",
-"navigation.proposalSettings": "제안 설정",
-"common.viewDay": "일간",
-"common.thisDay": "이 날",
-"calendar.chooseDate": "날짜 선택",
-"calendar.goToDate": "이동",
-"calendar.openDay": "{date} 일간 보기",
-"calendar.addOnDate": "{date}에 일정 추가",
-"navigation.proposalCount":{"one":"제안, 검토할 항목 {count}개","other":"제안, 검토할 항목 {count}개"},
+  "navigation.label": "캘린더 작업 공간",
+  "navigation.proposals": "제안",
+  "navigation.activity": "기록",
+  "navigation.proposalSettings": "제안 설정",
+  "common.viewDay": "일간",
+  "common.thisDay": "이 날",
+  "calendar.chooseDate": "날짜 선택",
+  "calendar.goToDate": "이동",
+  "calendar.openDay": "{date} 일간 보기",
+  "calendar.addOnDate": "{date}에 일정 추가",
 } satisfies Messages;

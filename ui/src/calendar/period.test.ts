@@ -3,22 +3,10 @@ import { test } from "node:test";
 import { civilDate, dateKey, monday, shift } from "./dates.ts";
 import { calendarRange, monthDates, movePeriod } from "./period.ts";
 test("month navigation does not overflow from the 31st and crosses year", () => {
-  assert.equal(
-    dateKey(movePeriod(civilDate("2026-01-31"), "month", 1)),
-    "2026-02-01",
-  );
-  assert.equal(
-    dateKey(movePeriod(civilDate("2026-12-31"), "month", 1)),
-    "2027-01-01",
-  );
-  assert.equal(
-    dateKey(movePeriod(civilDate("2026-01-01"), "month", -1)),
-    "2025-12-01",
-  );
-  assert.equal(
-    dateKey(movePeriod(civilDate("2026-12-28"), "week", 1)),
-    "2027-01-04",
-  );
+  assert.equal(dateKey(movePeriod(civilDate("2026-01-31"), "month", 1)), "2026-02-01");
+  assert.equal(dateKey(movePeriod(civilDate("2026-12-31"), "month", 1)), "2027-01-01");
+  assert.equal(dateKey(movePeriod(civilDate("2026-01-01"), "month", -1)), "2025-12-01");
+  assert.equal(dateKey(movePeriod(civilDate("2026-12-28"), "week", 1)), "2027-01-04");
   const original = process.env.TZ;
   try {
     process.env.TZ = "Asia/Seoul";
@@ -42,10 +30,7 @@ test("month navigation does not overflow from the 31st and crosses year", () => 
 test("day navigation crosses leap days and range contains only the selected date", () => {
   const leap = civilDate("2028-02-28");
   assert.equal(dateKey(movePeriod(leap, "day", 1)), "2028-02-29");
-  assert.equal(
-    dateKey(movePeriod(civilDate("2028-03-01"), "day", -1)),
-    "2028-02-29",
-  );
+  assert.equal(dateKey(movePeriod(civilDate("2028-03-01"), "day", -1)), "2028-02-29");
   assert.deepEqual(calendarRange(civilDate("2028-02-29"), "day", leap), {
     first: 1,
     end: 2,

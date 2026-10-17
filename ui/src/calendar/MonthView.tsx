@@ -48,8 +48,7 @@ export function MonthView({
         {monthDates(date).map((day) => {
           const key = dateKey(day);
           const list = (byDate.get(key) ?? []).sort(
-            (a, b) =>
-              Number(!!b.allDay) - Number(!!a.allDay) || a.start - b.start,
+            (a, b) => Number(!!b.allDay) - Number(!!a.allDay) || a.start - b.start,
           );
           return (
             <section
@@ -82,15 +81,13 @@ export function MonthView({
                   selected={selectedId === item.id}
                   key={item.id}
                   style={calendarStyle(item.calendarColor)}
-                  className={`cc-month-item cc-${item.kind}`}
+                  className="cc-month-item cc-event"
                   aria-label={`${item.title}, ${timeLabel(item)}`}
                   title={`${item.title} · ${timeLabel(item)}`}
                   onClick={() => onSelect(item)}
                 >
                   <span className="cc-month-item-time">
-                    {item.allDay
-                      ? t("common.allDay")
-                      : timeLabel(item).split("–")[0]}
+                    {item.allDay ? t("common.allDay") : timeLabel(item).split("–")[0]}
                   </span>
                   <span>{item.title}</span>
                 </EventButton>
