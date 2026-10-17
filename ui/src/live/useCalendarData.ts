@@ -74,7 +74,9 @@ export function useCalendarData(
       }
     } catch (error) {
       if (seq === connectionSequence.current) {
-        setConnectionError(errorNotice(error));
+        setConnectionError(
+          notice("calendar.connectionLoadError", { error: errorNotice(error) }),
+        );
         setConnections([]);
       }
     }

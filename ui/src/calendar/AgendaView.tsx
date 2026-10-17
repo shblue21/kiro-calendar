@@ -1,7 +1,7 @@
 import type { RegisterEventButton } from "./EventButton";
 import { EventButton } from "./EventButton";
 import { calendarStyle } from "./color";
-import { sourceLabel, deliveryLabel } from "./format";
+import { sourceLabel, statusLabel } from "./format";
 import { Badge } from "@kirocrew/app-sdk/ui";
 import { Fragment } from "react";
 import { formatDate } from "../i18n/format.ts";
@@ -79,10 +79,8 @@ export function AgendaView({
                     {item.title}
                   </span>
                   <span className="cc-agenda-source">{sourceLabel(item)}</span>
-                  {item.deliveryState && (
-                    <span className="cc-agenda-delivery">
-                      {deliveryLabel(item.deliveryState)}
-                    </span>
+                  {statusLabel(item) && (
+                    <span className="cc-agenda-delivery">{statusLabel(item)}</span>
                   )}
                   <ChevronRight size={14} />
                 </EventButton>

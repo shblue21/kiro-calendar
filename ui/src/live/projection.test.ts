@@ -1,5 +1,5 @@
 import { bindLanguageSource } from "../i18n/locale.ts";
-import { deliveryLabel, sourceLabel } from "../calendar/format.ts";
+import { deliveryLabel, sourceLabel, statusLabel } from "../calendar/format.ts";
 import type { Connection } from "./types.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -178,6 +178,12 @@ test("proposal acceptance keeps display identity, local visibility never changes
     ),
   );
   assert.ok(local.every((i) => i.storage === "local"));
+  assert.ok(local.every((i) => statusLabel(i) === ""));
+  assert.ok(
+    calendarItems([d], base, { first: 0, end: 7 }, "Asia/Seoul", true).every(
+      (i) => statusLabel(i) === "Draft",
+    ),
+  );
   assert.equal(
     calendarItems([accepted], base, { first: 0, end: 7 }, "Asia/Seoul", false).length,
     0,
@@ -239,13 +245,14 @@ test("external delivery placeholders are not local events and disappear after pr
   for (const language of ["en", "ko"]) {
     const restore = bindLanguageSource(() => language);
     try {
-      for (const state of [
-        "unsubmitted",
-        "prepared",
-        "cancelled",
-        "failed",
-        "unknown",
-        "unavailable",
+      for (const [state, english, korean] of [
+        ["unsubmitted", "Pending", "저장 대기"],
+        ["prepared", "Pending", "저장 대기"],
+        ["awaiting_confirmation", "Confirming", "확인 대기"],
+        ["cancelled", "Save cancelled", "저장 취소"],
+        ["failed", "Save failed", "저장 실패"],
+        ["unknown", "Unverified", "확인 필요"],
+        ["unavailable", "Save record unavailable", "기록 확인 필요"],
       ] as const) {
         const value = {
           ...d,
@@ -269,6 +276,7 @@ test("external delivery placeholders are not local events and disappear after pr
             : "Apple Calendar · 이 Mac · Account · Work",
         );
         assert.equal(row.deliveryState, state);
+        assert.equal(statusLabel(row), language === "en" ? english : korean);
         assert.notEqual(row.calendarLocation, deliveryLabel(row.deliveryState));
         assert.equal(sourceLabel(row), row.calendarLocation);
       }

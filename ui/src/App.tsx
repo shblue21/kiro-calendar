@@ -383,10 +383,10 @@ function CalendarWorkspace({
           eventActions={actions}
           notice={
             <>
-              {(recordError || eventError) && (
+              {(recordError || eventError || connectionError) && (
                 <div className="cc-feedback cc-feedback--error" role="alert">
                   <AlertCircle size={16} aria-hidden="true" />
-                  {[recordError, eventError]
+                  {[recordError, eventError, connectionError]
                     .map(renderNotice)
                     .filter(Boolean)
                     .join(" ")}
@@ -422,7 +422,6 @@ function CalendarWorkspace({
             onSelect={selectDraft}
             onDismiss={(d) => void dismiss(d)}
             onOrigin={origin}
-            onConfigure={() => setPage("settings")}
           />
         </WorkspacePage>
       )}

@@ -166,15 +166,32 @@
   white-space: nowrap;
 }
 
+.cc-item-meta {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 3px;
+}
+
 .cc-item-time {
   display: block;
   font-size: var(--text-xs);
-  margin-top: 3px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cc-item-meta .cc-event-status {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* Keep HH:mm readable when a status shares a narrow card. */
+.cc-item-meta .cc-event-status + .cc-item-time {
+  min-width: min(5ch, 100%);
+  text-overflow: clip;
 }
 
 .cc-item-event {

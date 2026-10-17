@@ -7,7 +7,7 @@ import { t } from "../i18n/index.ts";
 import { DateBadge } from "./DateBadge";
 import { dateKey, shift } from "./dates";
 import type { CivilDate } from "./dates.ts";
-import { timeLabel } from "./format";
+import { statusLabel, timeLabel } from "./format";
 import { monthDates } from "./period";
 import type { CalendarViewItem } from "./types";
 type Props = {
@@ -74,24 +74,32 @@ export function MonthView({
               >
                 <Plus size={14} />
               </button>
-              {list.slice(0, 3).map((item) => (
-                <EventButton
-                  eventId={item.id}
-                  registerButton={registerButton}
-                  selected={selectedId === item.id}
-                  key={item.id}
-                  style={calendarStyle(item.calendarColor)}
-                  className="cc-month-item cc-event"
-                  aria-label={`${item.title}, ${timeLabel(item)}`}
-                  title={`${item.title} · ${timeLabel(item)}`}
-                  onClick={() => onSelect(item)}
-                >
-                  <span className="cc-month-item-time">
-                    {item.allDay ? t("common.allDay") : timeLabel(item).split("–")[0]}
-                  </span>
-                  <span>{item.title}</span>
-                </EventButton>
-              ))}
+              {list.slice(0, 3).map((item) => {
+                const status = statusLabel(item);
+                return (
+                  <EventButton
+                    eventId={item.id}
+                    registerButton={registerButton}
+                    selected={selectedId === item.id}
+                    key={item.id}
+                    style={calendarStyle(item.calendarColor)}
+                    className="cc-month-item cc-event"
+                    aria-label={[status, item.title, timeLabel(item)]
+                      .filter(Boolean)
+                      .join(", ")}
+                    title={[status, item.title, timeLabel(item)]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    onClick={() => onSelect(item)}
+                  >
+                    {status && <span className="cc-event-status">{status}</span>}
+                    <span className="cc-month-item-time">
+                      {item.allDay ? t("common.allDay") : timeLabel(item).split("–")[0]}
+                    </span>
+                    <span>{item.title}</span>
+                  </EventButton>
+                );
+              })}
               {list.length > 3 && (
                 <button
                   className="cc-month-more"

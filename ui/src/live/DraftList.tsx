@@ -14,9 +14,7 @@ export function DraftList({
   onSelect,
   onDismiss,
   onOrigin,
-  onConfigure,
 }: {
-  onConfigure: () => void;
   drafts: readonly CalendarItem[];
   timezone: string;
   error: Notice | null;
@@ -37,7 +35,7 @@ export function DraftList({
       {!drafts.length && (
         <div>
           <p>{t("common.noDraftsToReview")}</p>
-          <Btn onClick={onConfigure}>{t("navigation.proposalSettings")}</Btn>
+          <p className="cc-page-section-note">{t("drafts.emptyHint")}</p>
         </div>
       )}
       {drafts.map((d) => (

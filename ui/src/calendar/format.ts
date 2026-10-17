@@ -31,3 +31,24 @@ export function deliveryLabel(state: Item["deliveryState"]): string {
 export function sourceLabel(item: Item): string {
   return item.calendarLocation || item.source;
 }
+
+export function statusLabel(item: Pick<Item, "storage" | "deliveryState">): string {
+  if (item.storage === "draft") return t("common.draft");
+  switch (item.deliveryState) {
+    case "prepared":
+    case "unsubmitted":
+      return t("calendar.statusPending");
+    case "awaiting_confirmation":
+      return t("calendar.statusAwaiting");
+    case "unknown":
+      return t("calendar.statusUnknown");
+    case "unavailable":
+      return t("calendar.statusUnavailable");
+    case "failed":
+      return t("calendar.statusFailed");
+    case "cancelled":
+      return t("calendar.statusCancelled");
+    default:
+      return "";
+  }
+}

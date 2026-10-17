@@ -3,7 +3,7 @@ import { Input } from "@kirocrew/app-sdk/ui";
 import type { EventSeed } from "./creation";
 import { useElementWidth } from "./useElementWidth";
 import { VIEW_LAYOUT } from "./layout";
-import { sourceLabel, deliveryLabel } from "./format";
+import { sourceLabel, deliveryLabel, statusLabel } from "./format";
 import { Btn } from "@kirocrew/app-sdk/ui";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -93,7 +93,7 @@ export function CalendarPage({
   const matches = (item: CalendarViewItem) =>
     showEvents &&
     (!query.trim() ||
-      `${item.title} ${item.description} ${sourceLabel(item)} ${deliveryLabel(item.deliveryState)} `
+      `${item.title} ${item.description} ${sourceLabel(item)} ${deliveryLabel(item.deliveryState)} ${statusLabel(item)}`
         .toLowerCase()
         .includes(query.trim().toLowerCase()));
   const canonicalItems = periodItems.filter(matches);

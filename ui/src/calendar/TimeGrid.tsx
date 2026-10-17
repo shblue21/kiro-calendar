@@ -11,7 +11,7 @@ import { t } from "../i18n/index.ts";
 import { DateBadge } from "./DateBadge";
 import { dateKey } from "./dates";
 import type { CivilDate } from "./dates.ts";
-import { timeLabel } from "./format";
+import { statusLabel, timeLabel } from "./format";
 import { place, minuteOffset, WEEK_LAYOUT } from "./layout";
 import { dayTimeline, elapsedMinute, zonedInput } from "./time";
 import type { CalendarReferenceTime, CalendarViewItem } from "./types";
@@ -188,6 +188,7 @@ export function TimeGrid({
                 ))}
               {place(items.filter((x) => x.day === day)).map(
                 ({ item, lane, lanes, geometry }) => {
+                  const status = statusLabel(item);
                   const positioning = {
                     top: geometry.topPx,
                     left: `calc((100% - var(--cc-clock-gutter)) * ${lane / lanes} + 4px)`,
@@ -207,12 +208,18 @@ export function TimeGrid({
                         ...calendarStyle(item.calendarColor),
                       }}
                       onClick={() => onSelect(item)}
-                      aria-label={`${t("common.event")} ${item.title}, ${timeLabel(item)}`}
+                      aria-label={`${status || t("common.event")} ${item.title}, ${timeLabel(item)}`}
+                      title={[status, item.title, timeLabel(item)]
+                        .filter(Boolean)
+                        .join(" · ")}
                     >
                       <span className="cc-item-title">
                         <span>{item.title}</span>
                       </span>
-                      <span className="cc-item-time">{timeLabel(item)}</span>
+                      <span className="cc-item-meta">
+                        {status && <span className="cc-event-status">{status}</span>}
+                        <span className="cc-item-time">{timeLabel(item)}</span>
+                      </span>
                     </EventButton>
                   );
                 },

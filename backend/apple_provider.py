@@ -6,7 +6,7 @@ import platform
 import subprocess
 import uuid
 from pathlib import Path
-from .calendar_domain import CalendarError, delivery_result
+from .calendar_domain import CalendarError
 from .repository import atomic_json
 
 
@@ -67,10 +67,10 @@ class AppleCalendarProvider:
         )
 
     def create(self, operation: dict) -> dict:
-        return delivery_result(self._request("create", {"operation": operation}))
+        return self._request("create", {"operation": operation})
 
     def reconcile(self, operation: dict) -> dict:
-        return delivery_result(self._request("reconcile", {"operation": operation}))
+        return self._request("reconcile", {"operation": operation})
 
     def _command(self, action: str, payload: dict | None = None) -> dict:
         value = self._request(action, payload)
