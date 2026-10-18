@@ -164,6 +164,8 @@ export const ko = {
   "time.offsetLabel": "{field} UTC 오프셋",
   "common.chooseWhichOccurrence": "어느 시각인지 선택하세요",
   "errors.requestFailed": "요청을 완료하지 못했습니다. 다시 확인해 주세요.",
+  "errors.invalidResponse":
+    "서버 응답의 형식이 올바르지 않습니다. 새로고침 후 다시 시도하세요.",
   "common.draft": "초안",
   "calendar.statusPending": "저장 대기",
   "calendar.statusAwaiting": "확인 대기",

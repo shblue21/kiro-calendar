@@ -10,31 +10,13 @@ import { t } from "../i18n/index.ts";
 import type { Notice } from "../i18n/notice.ts";
 import { notice, renderNotice } from "../i18n/notice.ts";
 import { hookExecutionNotice } from "./proposalStatus";
-type Settings = {
-  suggestionsEnabled: boolean;
-  timezone: string;
-  revision: number;
-  sessionKeys: string[];
-};
-type Payload = {
-  settings: Settings;
-  hook: {
-    status: "ready" | "unconfigured" | "blocked" | "unknown";
-    command?: string;
-    lastStatus?: string;
-    executionStatus?: string;
-  };
-  chats: {
-    sessionKey: string;
-    title: string;
-  }[];
-};
+import { parseSettingsResponse, type SettingsResponse } from "../live/responses";
 export function ProposalSettings() {
   const client = useAppApi();
   const api = useRef(client);
   api.current = client;
   const { name } = useAppInfo();
-  const [data, setData] = useState<Payload>();
+  const [data, setData] = useState<SettingsResponse>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Notice | null>(null);
   const [chosen, setChosen] = useState("");
@@ -45,7 +27,7 @@ export function ProposalSettings() {
     setBusy(true);
     setError(null);
     try {
-      const next = await api.current.get<Payload>(path);
+      const next = parseSettingsResponse(await api.current.get(path));
       if (mounted.current) setData(next);
     } catch {
       if (mounted.current) setError(notice("suggestions.loadError"));
@@ -60,11 +42,11 @@ export function ProposalSettings() {
       mounted.current = false;
     };
   }, [load]);
-  async function save(changes: Partial<Settings>) {
+  async function save(changes: Partial<SettingsResponse["settings"]>) {
     setBusy(true);
     setError(null);
     try {
-      const next = await api.current.put<Payload>(path, changes);
+      const next = parseSettingsResponse(await api.current.put(path, changes));
       if (mounted.current) {
         setData(next);
         setChosen("");

@@ -164,6 +164,8 @@ export const en = {
   "time.offsetLabel": "{field} UTC offset",
   "common.chooseWhichOccurrence": "Choose which occurrence",
   "errors.requestFailed": "Could not complete the request. Try again.",
+  "errors.invalidResponse":
+    "The server returned an invalid response. Refresh and try again.",
   "common.draft": "Draft",
   "calendar.statusPending": "Pending",
   "calendar.statusAwaiting": "Confirming",

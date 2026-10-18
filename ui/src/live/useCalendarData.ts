@@ -4,6 +4,12 @@ import type { Notice } from "../i18n/notice.ts";
 import { notice } from "../i18n/notice.ts";
 import { collectionNotice, errorNotice } from "./api";
 import {
+  parseItemsResponse,
+  parseConnectionsResponse,
+  parsePreferencesResponse,
+  parseEventsResponse,
+} from "./responses";
+import {
   CREW_DESTINATION,
   type CalendarItem,
   type CalendarEvent,
@@ -45,12 +51,7 @@ export function useCalendarData(
   const loadRecords = useCallback(async () => {
     const seq = ++recordSequence.current;
     try {
-      const body = await api.current.get<{
-        items: CalendarItem[];
-        errors: {
-          message: string;
-        }[];
-      }>(`${base}/calendar/items`);
+      const body = parseItemsResponse(await api.current.get(`${base}/calendar/items`));
       if (seq === recordSequence.current) {
         setRecords(body.items);
         setRecordError(collectionNotice(body.errors));
@@ -65,9 +66,9 @@ export function useCalendarData(
   const loadConnection = useCallback(async () => {
     const seq = ++connectionSequence.current;
     try {
-      const body = await api.current.get<{
-        connections: Connection[];
-      }>(`${base}/calendar/connection`);
+      const body = parseConnectionsResponse(
+        await api.current.get(`${base}/calendar/connection`),
+      );
       if (seq === connectionSequence.current) {
         setConnections(body.connections);
         setConnectionError(null);
@@ -84,9 +85,9 @@ export function useCalendarData(
   const loadPreferences = useCallback(async () => {
     const seq = ++preferenceSequence.current;
     try {
-      const body = await api.current.get<{
-        preferences: Preferences;
-      }>(`${base}/calendar/preferences`);
+      const body = parsePreferencesResponse(
+        await api.current.get(`${base}/calendar/preferences`),
+      );
       if (seq === preferenceSequence.current) {
         setPreferences(body.preferences);
         setPreferencesReady(true);
@@ -107,13 +108,10 @@ export function useCalendarData(
       return;
     }
     try {
-      const body = await api.current.get<{
-        events: CalendarEvent[];
-        errors: {
-          message: string;
-        }[];
-      }>(
-        `${base}/calendar/events?start=${encodeURIComponent(rangeStart)}&end=${encodeURIComponent(rangeEnd)}`,
+      const body = parseEventsResponse(
+        await api.current.get(
+          `${base}/calendar/events?start=${encodeURIComponent(rangeStart)}&end=${encodeURIComponent(rangeEnd)}`,
+        ),
       );
       if (seq === eventSequence.current) {
         setEvents(body.events);

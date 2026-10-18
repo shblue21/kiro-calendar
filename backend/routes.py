@@ -1,4 +1,4 @@
-"""App-owned draft/settings endpoints. Hook registration remains a host owner action."""
+"""Owner-only settings endpoints and calendar route registration."""
 
 from __future__ import annotations
 import asyncio
@@ -29,6 +29,11 @@ def _services(ctx: Any):
 
 async def settings_get(request: Any, ctx: Any) -> Any:
     from aiohttp import web
+    from kiro_crew.dashboard.handlers._shared import require_owner_dashboard_request
+
+    denied = await require_owner_dashboard_request(request, "crew-calendar.settings")
+    if denied is not None:
+        return denied
 
     domain = _module("domain")
     try:
@@ -42,15 +47,21 @@ async def settings_get(request: Any, ctx: Any) -> Any:
 
 async def settings_put(request: Any, ctx: Any) -> Any:
     from aiohttp import web
+    from kiro_crew.dashboard.handlers._shared import require_owner_dashboard_request
+
+    denied = await require_owner_dashboard_request(request, "crew-calendar.settings")
+    if denied is not None:
+        return denied
 
     domain = _module("domain")
     try:
         body = await request.json()
         if not isinstance(body, dict):
             raise domain.DraftError("Invalid settings")
+        chats = _chats(request)
         keys = body.get("sessionKeys")
         if keys is not None:
-            allowed = {row["sessionKey"] for row in _chats(request)}
+            allowed = {row["sessionKey"] for row in chats}
             previous = await asyncio.to_thread(_services(ctx).settings.read)
             retained = set(previous["sessionKeys"])
             # Closed/private former selections must remain removable. Only NEW
@@ -71,9 +82,7 @@ async def settings_put(request: Any, ctx: Any) -> Any:
         return web.json_response({"error": str(exc)}, status=400)
     except (AttributeError, KeyError):
         return web.json_response({"error": "Settings were not saved"}, status=503)
-    return web.json_response(
-        {"settings": settings, "hook": hook, "chats": _chats(request)}
-    )
+    return web.json_response({"settings": settings, "hook": hook, "chats": chats})
 
 
 def register_routes(ctx: Any) -> list[Any]:

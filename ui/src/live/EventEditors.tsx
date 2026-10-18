@@ -8,6 +8,7 @@ import { DestinationSelect, destinationKey } from "./DestinationSelect";
 import { EventForm } from "./EventForm";
 import type { CalendarItem, Connection, Destination } from "./types";
 import { can } from "./types";
+import { parseItemResponse } from "./responses";
 type Common = {
   date: CivilDate;
   timezone: string;
@@ -40,13 +41,13 @@ export function NewEventEditor(props: Targeted & { initialTimes?: EventTimes }) 
         destinationKey(target) !== destinationKey(props.defaultDestination)
       }
       onSubmit={async (fields) => {
-        const result = await api.post<{
-          item: CalendarItem;
-        }>(`/api/apps/${name}/calendar/items`, {
-          ...fields,
-          destination: target,
-          requestId,
-        });
+        const result = parseItemResponse(
+          await api.post(`/api/apps/${name}/calendar/items`, {
+            ...fields,
+            destination: target,
+            requestId,
+          }),
+        );
         await props.onSaved(result.item);
       }}
     >
@@ -80,24 +81,24 @@ export function ProposalEditor(
       secondary={{
         label: t("common.saveDraftChanges"),
         action: async (fields) => {
-          const result = await api.put<{
-            item: CalendarItem;
-          }>(`${base}/items/${props.item.id}`, {
-            ...fields,
-            revision: props.item.revision,
-          });
+          const result = parseItemResponse(
+            await api.put(`${base}/items/${props.item.id}`, {
+              ...fields,
+              revision: props.item.revision,
+            }),
+          );
           await props.onSaved(result.item);
         },
       }}
       onSubmit={async (fields) => {
-        const result = await api.post<{
-          item: CalendarItem;
-        }>(`${base}/items/${props.item.id}/accept`, {
-          ...fields,
-          revision: props.item.revision,
-          destination: target,
-          requestId,
-        });
+        const result = parseItemResponse(
+          await api.post(`${base}/items/${props.item.id}/accept`, {
+            ...fields,
+            revision: props.item.revision,
+            destination: target,
+            requestId,
+          }),
+        );
         await props.onSaved(result.item);
       }}
     >
@@ -131,13 +132,13 @@ export function ConfirmedEventEditor(
       }
       targetChanged={destinationKey(target) !== destinationKey(props.item.destination)}
       onSubmit={async (fields) => {
-        const result = await api.put<{
-          item: CalendarItem;
-        }>(`/api/apps/${name}/calendar/items/${props.item.id}`, {
-          ...fields,
-          revision: props.item.revision,
-          ...(retarget ? { destination: target } : {}),
-        });
+        const result = parseItemResponse(
+          await api.put(`/api/apps/${name}/calendar/items/${props.item.id}`, {
+            ...fields,
+            revision: props.item.revision,
+            ...(retarget ? { destination: target } : {}),
+          }),
+        );
         await props.onSaved(result.item);
       }}
     >

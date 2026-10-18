@@ -9,7 +9,8 @@ import { t } from "../i18n/index.ts";
 import { renderNotice } from "../i18n/notice.ts";
 import { errorNotice } from "./api.ts";
 import { DeliverySession, deliveryState } from "./delivery";
-import type { CalendarItem, DeliveryResponse } from "./types";
+import { parseItemResponse, parseDeliveryResponse } from "./responses";
+import type { CalendarItem } from "./types";
 import { can } from "./types";
 export function ExternalSavePanel({
   item,
@@ -46,18 +47,17 @@ export function ExternalSavePanel({
         item,
         {
           read: async () =>
-            (
-              await api.current.get<{
-                item: CalendarItem;
-              }>(`/api/apps/${name}/calendar/items/${item.id}`)
+            parseItemResponse(
+              await api.current.get(`/api/apps/${name}/calendar/items/${item.id}`),
             ).item,
           prepare: async (revision) => {
             await refreshTimezone();
-            return api.current.post<DeliveryResponse>(base, { revision });
+            return parseDeliveryResponse(await api.current.post(base, { revision }));
           },
-          execute: (id) => api.current.post<DeliveryResponse>(`${base}/${id}/execute`),
-          reconcile: (id) =>
-            api.current.post<DeliveryResponse>(`${base}/${id}/reconcile`),
+          execute: async (id) =>
+            parseDeliveryResponse(await api.current.post(`${base}/${id}/execute`)),
+          reconcile: async (id) =>
+            parseDeliveryResponse(await api.current.post(`${base}/${id}/reconcile`)),
         },
         setSnapshot,
       ),

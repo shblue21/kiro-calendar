@@ -16,6 +16,7 @@ import type { Notice } from "./i18n/notice.ts";
 import { notice, NoticeError, renderNotice } from "./i18n/notice.ts";
 import { useLocale } from "./i18n/useLocale";
 import { errorNotice } from "./live/api";
+import { parseSettingsResponse, parseItemResponse } from "./live/responses";
 import { useCalendarData } from "./live/useCalendarData";
 import { CalendarConnections } from "./live/CalendarConnections";
 import { CalendarPreferences } from "./live/CalendarPreferences";
@@ -41,11 +42,9 @@ export default function CalendarApp() {
     [error, setError] = useState<Notice | null>(null);
   const load = useCallback(async () => {
     try {
-      const body = await api.current.get<{
-        settings: {
-          timezone: string;
-        };
-      }>(`/api/apps/${name}/settings`);
+      const body = parseSettingsResponse(
+        await api.current.get(`/api/apps/${name}/settings`),
+      );
       setZone(body.settings.timezone);
       setError(null);
       return body.settings.timezone;
@@ -216,9 +215,11 @@ function CalendarWorkspace({
     await changed();
   }
   async function remove(item: CalendarItem) {
-    const result = await api.current.post<{
-      item: CalendarItem;
-    }>(`${base}/calendar/items/${item.id}/delete`, { revision: item.revision });
+    const result = parseItemResponse(
+      await api.current.post(`${base}/calendar/items/${item.id}/delete`, {
+        revision: item.revision,
+      }),
+    );
     setUndo(result.item);
     setFeedback(notice("common.eventDeleted"));
     setEditor((current) => (current?.key === editor?.key ? null : current));

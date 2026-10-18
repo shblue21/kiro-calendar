@@ -160,6 +160,7 @@ Tests cover date boundaries, DST, overlap layout, localization, packaging, event
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | [`ui/src/App.tsx`](ui/src/App.tsx)                                     | Workspace tabs, editors and app-level actions                     |
 | [`ui/src/live/useCalendarData.ts`](ui/src/live/useCalendarData.ts)     | Queries and refreshes                                             |
+| [`ui/src/live/responses.ts`](ui/src/live/responses.ts)                 | Runtime checks before API data enters UI state                    |
 | [`ui/src/layout/`](ui/src/layout/)                                     | Shared sections, disclosures, popovers and inline errors          |
 | [`ui/src/calendar/time.ts`](ui/src/calendar/time.ts)                   | Local dates, UTC offsets and elapsed time                         |
 | [`backend/event_service.py`](backend/event_service.py)                 | Event creation, edits, draft acceptance, deletion and restoration |
