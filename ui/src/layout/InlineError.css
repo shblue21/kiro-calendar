@@ -1,0 +1,6 @@
+.cc-inline-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+}

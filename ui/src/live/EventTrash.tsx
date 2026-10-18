@@ -1,3 +1,5 @@
+import { InlineError } from "../layout/InlineError";
+import { Disclosure } from "../layout/WorkspacePage";
 import { Btn } from "@kirocrew/app-sdk/ui";
 import { useState } from "react";
 import { t } from "../i18n/index.ts";
@@ -16,29 +18,32 @@ export function EventTrash({
   const [busy, setBusy] = useState(""),
     [error, setError] = useState<Notice | null>(null);
   return (
-    <section className="cc-page-section">
-      <details>
-        <summary>{t("trash.count", { count: items.length })}</summary>
-        {items.map((item) => (
-          <div className="cc-draft-row" key={item.id}>
-            <strong>{item.title}</strong>
-            <Btn
-              disabled={!!busy || !can(item, "restore")}
-              onClick={() => {
-                setBusy(item.id);
-                setError(null);
-                void onRestore(item)
-                  .catch((e) => setError(errorNotice(e)))
-                  .finally(() => setBusy(""));
-              }}
-            >
-              {t("common.restore")}
-            </Btn>
+    <section className="cc-section">
+      <Disclosure title={t("trash.count", { count: items.length })}>
+        {items.length > 0 && (
+          <div>
+            {items.map((item) => (
+              <div className="cc-list-row" key={item.id}>
+                <strong>{item.title}</strong>
+                <Btn
+                  disabled={!!busy || !can(item, "restore")}
+                  onClick={() => {
+                    setBusy(item.id);
+                    setError(null);
+                    void onRestore(item)
+                      .catch((e) => setError(errorNotice(e)))
+                      .finally(() => setBusy(""));
+                  }}
+                >
+                  {t("common.restore")}
+                </Btn>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
         {!items.length && <p>{t("common.noDeletedEvents")}</p>}
-        {error && <p role="alert">{renderNotice(error)}</p>}
-      </details>
+        {error && <InlineError>{renderNotice(error)}</InlineError>}
+      </Disclosure>
     </section>
   );
 }

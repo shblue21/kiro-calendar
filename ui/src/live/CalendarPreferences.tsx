@@ -1,4 +1,6 @@
-import { SettingsSection } from "../settings/SettingsLayout";
+import { NativeCheckbox } from "../platform/kiro/NativeControls";
+import { InlineError } from "../layout/InlineError";
+import { Section } from "../layout/WorkspacePage";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
 import { useState } from "react";
 import { t } from "../i18n/index.ts";
@@ -33,7 +35,7 @@ export function CalendarPreferences({
     }
   }
   return (
-    <SettingsSection
+    <Section
       title={t("common.defaultCalendar")}
       description={t("settings.localStorageDescription")}
     >
@@ -44,16 +46,14 @@ export function CalendarPreferences({
         value={value.defaultDestination}
         onChange={(target) => void update({ defaultDestination: target })}
       />
-      <label className="cc-checkbox">
-        <input
-          type="checkbox"
-          disabled={busy}
-          checked={value.showCrew}
-          onChange={(e) => void update({ showCrew: e.target.checked })}
-        />
+      <NativeCheckbox
+        disabled={busy}
+        checked={value.showCrew}
+        onChange={(e) => void update({ showCrew: e.target.checked })}
+      >
         {t("common.showCrewCalendar")}
-      </label>
-      {error && <p role="alert">{renderNotice(error)}</p>}
-    </SettingsSection>
+      </NativeCheckbox>
+      {error && <InlineError>{renderNotice(error)}</InlineError>}
+    </Section>
   );
 }

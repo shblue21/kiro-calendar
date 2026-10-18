@@ -21,37 +21,7 @@
   gap: var(--cc-space-field);
 }
 
-.cc-form-error {
-  color: var(--danger);
-  font-size: var(--text-xs);
-  line-height: 1.7;
-}
-
-@media (max-width: 600px) {
-  .cc-field-pair {
-    gap: 8px;
-  }
-}
-
 .cc-field > input {
   width: 100%;
   flex: none;
-}
-.cc-field label {
-  display: grid;
-  gap: calc(var(--spacing) * 2);
-  min-width: 0;
-}
-
-.cc-checkbox {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--spacing) * 2);
-  padding: calc(var(--spacing) * 1.5) 0;
-  margin: 0;
-  font-size: var(--text-sm);
-}
-
-.cc-checkbox input {
-  accent-color: var(--accent);
 }

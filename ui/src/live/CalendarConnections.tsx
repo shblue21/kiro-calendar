@@ -1,4 +1,6 @@
-import { SettingsSection } from "../settings/SettingsLayout";
+import { NativeCheckbox } from "../platform/kiro/NativeControls";
+import { InlineError } from "../layout/InlineError";
+import { Section } from "../layout/WorkspacePage";
 import { calendarColor } from "./location";
 import { connectionName } from "../i18n/delivery.ts";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
@@ -20,17 +22,13 @@ export function CalendarConnections({
   onRefresh: () => Promise<void>;
 }) {
   return (
-    <SettingsSection
+    <Section
       title={t("common.externalCalendarConnections")}
       actions={
         <Btn onClick={() => void onRefresh()}>{t("common.refreshConnections")}</Btn>
       }
     >
-      {error && (
-        <p role="alert" className="cc-form-error">
-          {renderNotice(error)}
-        </p>
-      )}
+      {error && <InlineError>{renderNotice(error)}</InlineError>}
       {connections.map((connection) => (
         <ConnectionCard
           key={connection.id}
@@ -39,7 +37,7 @@ export function CalendarConnections({
         />
       ))}
       {!connections.length && !error && <p>{t("connections.empty")}</p>}
-    </SettingsSection>
+    </Section>
   );
 }
 function ConnectionCard({
@@ -81,11 +79,7 @@ function ConnectionCard({
       {c.state !== "ready" && (
         <p className="cc-page-section-note">{connectionNotice(c.state)}</p>
       )}
-      {error && (
-        <p role="alert" className="cc-form-error">
-          {renderNotice(error)}
-        </p>
-      )}
+      {error && <InlineError>{renderNotice(error)}</InlineError>}
       {["needs_authorization", "denied"].includes(c.state) && (
         <Btn
           disabled={busy}
@@ -103,19 +97,18 @@ function ConnectionCard({
           </p>
           <div className="cc-calendar-choices">
             {c.calendars.map((cal) => (
-              <label className="cc-checkbox" key={cal.id}>
-                <input
-                  type="checkbox"
-                  disabled={busy}
-                  checked={c.selectedCalendarIds.includes(cal.id)}
-                  onChange={(e) =>
-                    select(
-                      e.target.checked
-                        ? [...c.selectedCalendarIds, cal.id]
-                        : c.selectedCalendarIds.filter((id) => id !== cal.id),
-                    )
-                  }
-                />
+              <NativeCheckbox
+                key={cal.id}
+                disabled={busy}
+                checked={c.selectedCalendarIds.includes(cal.id)}
+                onChange={(e) =>
+                  select(
+                    e.target.checked
+                      ? [...c.selectedCalendarIds, cal.id]
+                      : c.selectedCalendarIds.filter((id) => id !== cal.id),
+                  )
+                }
+              >
                 <span>
                   <span
                     className="cc-calendar-dot"
@@ -125,7 +118,7 @@ function ConnectionCard({
                   {cal.sourceTitle} · {cal.title}
                   {!cal.writable && <small>{t("common.readOnly")}</small>}
                 </span>
-              </label>
+              </NativeCheckbox>
             ))}
           </div>
         </>

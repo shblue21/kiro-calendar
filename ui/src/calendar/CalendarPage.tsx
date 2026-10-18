@@ -139,7 +139,7 @@ export function CalendarPage({
   }
   function toggleEvents() {
     setShowEvents((value) => !value);
-    if (selected) closeDetail();
+    setSelectedId(null);
   }
   function closeSearch() {
     setQuery("");

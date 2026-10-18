@@ -1,3 +1,4 @@
+import { InlineError } from "../layout/InlineError";
 import { NativeTextarea } from "../platform/kiro/NativeControls";
 import { Input } from "@kirocrew/app-sdk/ui";
 import { defaultEventWallTimes, type EventTimes } from "../calendar/creation";
@@ -208,11 +209,7 @@ export function EventForm({
               </Btn>
             </div>
           )}
-          {error && (
-            <p role="alert" className="cc-form-error">
-              {renderNotice(error)}
-            </p>
-          )}
+          {error && <InlineError>{renderNotice(error)}</InlineError>}
         </div>
         <footer className="cc-editor-footer">
           <Btn type="button" disabled={busy} onClick={close}>

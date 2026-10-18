@@ -7,6 +7,10 @@
   padding: calc(var(--spacing) * 4) var(--cc-space-page) calc(var(--spacing) * 6);
 }
 
+.cc-workspace-page > .cc-inline-error {
+  margin-block-end: calc(var(--spacing) * 3);
+}
+
 .cc-page-heading {
   margin: 0 0 calc(var(--spacing) * 4);
 }
@@ -16,26 +20,6 @@
   font-weight: 600;
   letter-spacing: var(--tracking-tight);
   margin: 0;
-}
-
-.cc-page-section {
-  margin-bottom: calc(var(--spacing) * 6);
-  padding-bottom: calc(var(--spacing) * 4);
-  border-bottom: 1px solid var(--border);
-}
-
-.cc-page-section:last-child {
-  border: 0;
-  margin-bottom: 0;
-}
-
-.cc-page-section > h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--text-base);
-  font-weight: 600;
-  margin: 0 0 var(--spacing);
 }
 
 .cc-page-section-note {
@@ -48,5 +32,94 @@
 @container calendar (max-width: 760px) {
   .cc-workspace-page {
     padding-bottom: calc(var(--spacing) * 4);
+  }
+}
+
+.cc-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.cc-list-content {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--text-xs);
+}
+
+.cc-list-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.cc-list-row small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.cc-section + .cc-section {
+  margin-block-start: calc(var(--spacing) * 6);
+  padding-block-start: calc(var(--spacing) * 6);
+  border-block-start: 1px solid var(--border);
+}
+.cc-section {
+  container: section / inline-size;
+}
+.cc-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing) * 4);
+  min-block-size: calc(var(--spacing) * 8);
+  margin-block-end: calc(var(--spacing) * 3);
+}
+.cc-section-header h3 {
+  min-inline-size: 0;
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+.cc-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing) * 2);
+}
+.cc-section-body,
+.cc-disclosure-body {
+  display: grid;
+  gap: calc(var(--spacing) * 3);
+}
+.cc-section-body > p,
+.cc-disclosure-body > p {
+  margin: 0;
+}
+.cc-section-body > button {
+  justify-self: start;
+}
+.cc-disclosure {
+  min-inline-size: 0;
+}
+.cc-disclosure > summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.cc-disclosure-body {
+  padding-block-start: calc(var(--spacing) * 3);
+}
+@container section (max-width: 540px) {
+  .cc-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 2);
   }
 }

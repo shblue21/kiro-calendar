@@ -1,3 +1,4 @@
+import { InlineError } from "../layout/InlineError";
 import { itemLocation } from "./location.ts";
 import { useAppApi, useAppInfo } from "@kirocrew/app-sdk";
 import { Btn, Badge } from "@kirocrew/app-sdk/ui";
@@ -112,7 +113,7 @@ export function ExternalSavePanel({
         <p>
           {label(current.start)} – {current.end ? label(current.end) : ""}
         </p>
-        <p>{current.notes}</p>
+        {current.notes && <p>{current.notes}</p>}
         <p>{itemLocation(current, connections)}</p>
         <div className="cc-operation-state" role="status">
           {!state && <p>{t("delivery.notSubmitted")}</p>}
@@ -123,44 +124,44 @@ export function ExternalSavePanel({
           {state === "confirmed" && <p>{t("delivery.confirmed")}</p>}
           {state === "cancelled" && <p>{t("delivery.cancelled")}</p>}
           {state === "failed" && (
-            <p>
+            <InlineError>
               {op?.error ? renderNotice(errorNotice(op.error)) : t("delivery.failed")}
-            </p>
+            </InlineError>
           )}
           {state === "unknown" && <p>{t("delivery.unknown")}</p>}
           {current.delivery?.state === "unavailable" && (
-            <p role="alert">{renderNotice(errorNotice(current.delivery.error))}</p>
+            <InlineError>
+              {renderNotice(errorNotice(current.delivery.error))}
+            </InlineError>
           )}
           {op?.verification && op.verification.state !== "confirmed" && (
-            <p role="alert">
+            <InlineError>
               {op.verification.error
                 ? renderNotice(errorNotice(op.verification.error))
                 : t("delivery.eventChanged")}
-            </p>
+            </InlineError>
           )}
         </div>
         {checking && <p role="status">{t("delivery.checking")}</p>}
-        {error && (
-          <p role="alert" className="cc-form-error">
-            {renderNotice(error)}
-          </p>
+        {error && <InlineError>{renderNotice(error)}</InlineError>}
+        {!checking && (can(current, "edit") || can(current, "delete")) && (
+          <div className="cc-inline-actions">
+            {can(current, "edit") && (
+              <Btn disabled={busy} onClick={() => onEdit(current)}>
+                {t("common.editDetails")}
+              </Btn>
+            )}
+            {can(current, "delete") && (
+              <Btn
+                danger
+                disabled={busy}
+                onClick={() => void perform(() => session.run(() => onDelete(current)))}
+              >
+                {t("common.deleteRequest")}
+              </Btn>
+            )}
+          </div>
         )}
-        <div className="cc-inline-actions">
-          {!checking && can(current, "edit") && (
-            <Btn disabled={busy} onClick={() => onEdit(current)}>
-              {t("common.editDetails")}
-            </Btn>
-          )}
-          {!checking && can(current, "delete") && (
-            <Btn
-              danger
-              disabled={busy}
-              onClick={() => void perform(() => session.run(() => onDelete(current)))}
-            >
-              {t("common.deleteRequest")}
-            </Btn>
-          )}
-        </div>
       </div>
       <footer className="cc-editor-footer">
         <Btn disabled={busy} onClick={onClose}>

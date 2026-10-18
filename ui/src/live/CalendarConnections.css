@@ -1,7 +1,15 @@
 .cc-calendar-choices {
   display: grid;
   gap: var(--spacing);
-  padding-block: calc(var(--spacing) * 2);
+}
+
+.cc-connection-group {
+  display: grid;
+  gap: calc(var(--spacing) * 2);
+}
+
+.cc-connection-group > button {
+  justify-self: start;
 }
 
 .cc-connection-group + .cc-connection-group {
@@ -12,5 +20,5 @@
 .cc-connection-group h4 {
   font-size: var(--text-sm);
   font-weight: 500;
-  margin: 0 0 var(--spacing);
+  margin: 0;
 }

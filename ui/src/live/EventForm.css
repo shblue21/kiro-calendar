@@ -1,4 +1,5 @@
 .cc-editor {
+  container: editor / inline-size;
   padding: 0;
   position: fixed;
   inset: 0 0 0 auto;
@@ -38,7 +39,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 23px;
+  padding: calc(var(--spacing) * 6);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -53,7 +54,11 @@
 }
 
 .cc-editor-body {
-  padding: 23px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--cc-space-field);
+  padding: calc(var(--spacing) * 6);
   flex: 1;
   overflow-y: auto;
   min-height: 0;
@@ -62,13 +67,17 @@
 .cc-editor-body > h3 {
   font-size: var(--text-base);
   font-weight: 600;
-  margin: 16px 0;
+  margin: 0;
+}
+
+.cc-editor-body > p {
+  margin: 0;
 }
 
 .cc-editor-footer {
   position: static;
   bottom: 0;
-  padding: 16px 23px;
+  padding: calc(var(--spacing) * 4) calc(var(--spacing) * 6);
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
@@ -91,7 +100,6 @@
   background: var(--accent-subtle);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  margin-top: 14px;
 }
 
 .cc-editor-confirm p {
@@ -101,6 +109,8 @@
 }
 
 .cc-operation-state {
+  display: grid;
+  gap: calc(var(--spacing) * 2);
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -108,21 +118,21 @@
   line-height: 1.6;
 }
 
-.cc-operation-state p {
-  margin: 0 0 8px;
+.cc-operation-state > p {
+  margin: 0;
 }
 
-@media (max-width: 600px) {
+@container editor (max-width: 400px) {
   .cc-editor-header {
-    padding: 18px;
+    padding: calc(var(--spacing) * 4);
   }
 
   .cc-editor-body {
-    padding: 18px;
+    padding: calc(var(--spacing) * 4);
   }
 
   .cc-editor-footer {
-    padding: 14px 18px;
+    padding: calc(var(--spacing) * 4);
   }
 }
 
@@ -132,13 +142,19 @@
   margin: 0;
   min-width: 0;
   display: grid;
-  gap: 16px;
+  gap: var(--cc-space-field);
+}
+
+.cc-time-field {
+  display: grid;
+  gap: calc(var(--spacing) * 1.5);
+  min-width: 0;
 }
 
 .cc-time-choice {
   display: grid;
-  gap: 4px;
-  margin-top: 6px;
+  gap: var(--spacing);
+  margin: 0;
   font-size: var(--text-xs);
   color: var(--muted);
 }

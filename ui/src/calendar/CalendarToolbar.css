@@ -25,48 +25,36 @@
   flex-wrap: wrap;
 }
 
-.cc-display-popover {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 7px);
-  padding: 18px;
-  width: 225px;
-  max-width: calc(100vw - 40px);
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  z-index: 25;
-}
-
-.cc-display-popover h3 {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  margin: 0 0 10px;
-}
-
-.cc-display-menu {
-  position: relative;
-}
-
-.cc-display-popover label {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 0;
-  font-size: var(--text-xs);
-  cursor: pointer;
-}
-
-.cc-display-popover input {
-  accent-color: var(--accent);
-}
-
 @container calendar (max-width: 760px) {
+  /* Wrapped controls anchor their panels to the toolbar's available width. */
+  .cc-toolbar .cc-popover {
+    position: static;
+  }
   .cc-toolbar {
     gap: 9px;
   }
   .cc-toolbar-actions {
     margin-left: auto;
+  }
+}
+
+.cc-date-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  cursor: pointer;
+  padding: calc(var(--spacing) * 1.5);
+  border-radius: var(--radius-md);
+}
+@container calendar (max-width: 760px) {
+  .cc-date-trigger {
+    font-size: var(--text-sm);
   }
 }

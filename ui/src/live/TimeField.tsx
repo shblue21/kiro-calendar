@@ -16,8 +16,8 @@ export function TimeField({
 }) {
   const choices = timeChoices(value.wall, zone);
   return (
-    <div className="cc-field">
-      <label>
+    <div className="cc-time-field">
+      <label className="cc-field">
         {label}
         <Input
           type="datetime-local"

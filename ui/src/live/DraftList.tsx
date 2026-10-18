@@ -1,3 +1,5 @@
+import { InlineError } from "../layout/InlineError";
+import { Section } from "../layout/WorkspacePage";
 import { Btn } from "@kirocrew/app-sdk/ui";
 import { formatDateTime } from "../i18n/format.ts";
 import { t } from "../i18n/index.ts";
@@ -24,51 +26,54 @@ export function DraftList({
   onOrigin: (key: string) => void;
 }) {
   return (
-    <section className="cc-page-section" aria-labelledby="cc-live-drafts">
-      <div className="cc-draft-header">
-        <div>
-          <h3 id="cc-live-drafts">{t("common.eventDrafts")}</h3>
-        </div>
-        <Btn onClick={onRefresh}>{t("common.refreshDrafts")}</Btn>
-      </div>
-      {error && <p role="alert">{renderNotice(error)}</p>}
+    <Section
+      title={t("common.eventDrafts")}
+      actions={<Btn onClick={onRefresh}>{t("common.refreshDrafts")}</Btn>}
+    >
+      {error && <InlineError>{renderNotice(error)}</InlineError>}
       {!drafts.length && (
-        <div>
+        <>
           <p>{t("common.noDraftsToReview")}</p>
           <p className="cc-page-section-note">{t("drafts.emptyHint")}</p>
+        </>
+      )}
+      {drafts.length > 0 && (
+        <div>
+          {drafts.map((d) => (
+            <div className="cc-list-row" key={d.id}>
+              <div className="cc-list-content">
+                <strong>{d.title}</strong>
+                <span>
+                  {formatDateTime(d.start, timezone)} ·{" "}
+                  {d.delivery?.state === "confirmed"
+                    ? t("common.saveConfirmed")
+                    : d.delivery?.state === "awaiting_confirmation"
+                      ? t("common.awaitingSaveConfirmation")
+                      : d.delivery?.state === "unknown"
+                        ? t("common.saveNeedsVerification")
+                        : t("common.draftForReview")}
+                </span>
+                {d.reason && <small>{d.reason}</small>}
+              </div>
+              <div className="cc-inline-actions">
+                <Btn primary onClick={() => onSelect(d)}>
+                  {can(d, "edit")
+                    ? t("common.reviewAndEdit")
+                    : t("common.checkSaveStatus")}
+                </Btn>
+                {d.origin.sessionKey.startsWith("dashboard:") && (
+                  <Btn onClick={() => onOrigin(d.origin.sessionKey)}>
+                    {t("common.originalConversation")}
+                  </Btn>
+                )}
+                {can(d, "dismiss") && (
+                  <Btn onClick={() => onDismiss(d)}>{t("common.dismiss")}</Btn>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
-      {drafts.map((d) => (
-        <div className="cc-draft-row" key={d.id}>
-          <div>
-            <strong>{d.title}</strong>
-            <span>
-              {formatDateTime(d.start, timezone)} ·{" "}
-              {d.delivery?.state === "confirmed"
-                ? t("common.saveConfirmed")
-                : d.delivery?.state === "awaiting_confirmation"
-                  ? t("common.awaitingSaveConfirmation")
-                  : d.delivery?.state === "unknown"
-                    ? t("common.saveNeedsVerification")
-                    : t("common.draftForReview")}
-            </span>
-            {d.reason && <small>{d.reason}</small>}
-          </div>
-          <div className="cc-inline-actions">
-            <Btn primary onClick={() => onSelect(d)}>
-              {can(d, "edit") ? t("common.reviewAndEdit") : t("common.checkSaveStatus")}
-            </Btn>
-            {d.origin.sessionKey.startsWith("dashboard:") && (
-              <Btn onClick={() => onOrigin(d.origin.sessionKey)}>
-                {t("common.originalConversation")}
-              </Btn>
-            )}
-            {can(d, "dismiss") && (
-              <Btn onClick={() => onDismiss(d)}>{t("common.dismiss")}</Btn>
-            )}
-          </div>
-        </div>
-      ))}
-    </section>
+    </Section>
   );
 }

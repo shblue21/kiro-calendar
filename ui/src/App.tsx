@@ -1,6 +1,7 @@
+import { InlineError } from "./layout/InlineError";
 import { SettingsPage } from "./settings/SettingsLayout";
 import { ControlCell } from "./layout/Controls";
-import { WorkspacePage } from "./layout/WorkspacePage";
+import { WorkspacePage, Section } from "./layout/WorkspacePage";
 import type { EventSeed } from "./calendar/creation";
 import { useAppApi, useAppInfo, useChatLauncher } from "@kirocrew/app-sdk";
 import { Btn, PageHeader, SegmentedControl } from "@kirocrew/app-sdk/ui";
@@ -427,27 +428,24 @@ function CalendarWorkspace({
       )}
       {page === "activity" && (
         <WorkspacePage label={t("navigation.activity")}>
-          {recordError && (
-            <p role="alert" className="cc-form-error">
-              {renderNotice(recordError)}
-            </p>
-          )}
-          <section className="cc-page-section">
-            <h3>{t("common.externalSaveHistory")}</h3>
-            {records
-              .filter(
-                (d) =>
-                  d.status === "confirmed" &&
-                  d.destination?.connectionId !== "crew" &&
-                  !d.deletedAt,
-              )
-              .map((d) => (
-                <div className="cc-draft-row" key={d.id}>
-                  <strong>{d.title}</strong>
-                  <Btn onClick={() => openDelivery(d)}>{t("common.saveStatus")}</Btn>
-                </div>
-              ))}
-          </section>
+          {recordError && <InlineError>{renderNotice(recordError)}</InlineError>}
+          <Section title={t("common.externalSaveHistory")}>
+            <div>
+              {records
+                .filter(
+                  (d) =>
+                    d.status === "confirmed" &&
+                    d.destination?.connectionId !== "crew" &&
+                    !d.deletedAt,
+                )
+                .map((d) => (
+                  <div className="cc-list-row" key={d.id}>
+                    <strong>{d.title}</strong>
+                    <Btn onClick={() => openDelivery(d)}>{t("common.saveStatus")}</Btn>
+                  </div>
+                ))}
+            </div>
+          </Section>
           <EventTrash
             items={records.filter((d) => !!d.deletedAt)}
             onRestore={restore}

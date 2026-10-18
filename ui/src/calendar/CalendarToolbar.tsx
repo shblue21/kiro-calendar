@@ -1,9 +1,10 @@
 import { ControlCell } from "../layout/Controls";
-import { NativeSelect } from "../platform/kiro/NativeControls";
+import { NativeSelect, NativeCheckbox } from "../platform/kiro/NativeControls";
 import { DateJump } from "./DateJump";
 import type { CivilDate } from "./dates";
 import { Btn, SegmentedControl } from "@kirocrew/app-sdk/ui";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId } from "react";
+import { Popover } from "../layout/Popover";
 import { t } from "../i18n/index.ts";
 import {
   CalendarDays,
@@ -57,26 +58,6 @@ export function CalendarToolbar({
         : view === "year"
           ? t("common.periodYear")
           : t("common.week");
-  const [open, setOpen] = useState(false);
-  const menu = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const outside = (event: PointerEvent) => {
-      if (!menu.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        menu.current?.querySelector("button")?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", outside);
-      document.removeEventListener("keydown", escape);
-    };
-  }, [open]);
   return (
     <div className="cc-toolbar">
       <div className="cc-date-nav">
@@ -135,29 +116,29 @@ export function CalendarToolbar({
             ]}
           />
         </ControlCell>
-        <div className="cc-display-menu" ref={menu}>
-          <ControlCell>
-            <Btn
-              aria-expanded={open}
-              aria-controls="cc-display-options"
-              onClick={() => setOpen((value) => !value)}
-            >
-              <SlidersHorizontal size={14} />
-              {t("common.show")}
-              <ChevronDown size={13} />
-            </Btn>
-          </ControlCell>
-          {open && (
-            <div id="cc-display-options" className="cc-display-popover">
+        <Popover
+          label={t("common.itemsToDisplay")}
+          align="end"
+          trigger={(props) => (
+            <ControlCell>
+              <Btn {...props}>
+                <SlidersHorizontal size={14} />
+                {t("common.show")}
+                <ChevronDown size={13} />
+              </Btn>
+            </ControlCell>
+          )}
+        >
+          {() => (
+            <>
               <h3>{t("common.itemsToDisplay")}</h3>
-              <label>
-                <input type="checkbox" checked={showEvents} onChange={onToggle} />
+              <NativeCheckbox checked={showEvents} onChange={onToggle}>
                 <CalendarDays size={14} />
                 {t("common.eventsAndDrafts")}
-              </label>
-            </div>
+              </NativeCheckbox>
+            </>
           )}
-        </div>
+        </Popover>
       </div>
     </div>
   );

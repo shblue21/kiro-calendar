@@ -18,25 +18,6 @@
   line-height: 1.7;
 }
 
-.cc-proposal-actions {
-  margin-top: 16px;
-}
-
-.cc-settings-fold {
-  min-inline-size: 0;
-}
-
-.cc-settings-fold .cc-settings-row {
-  padding-block: calc(var(--spacing) * 2);
-}
-
-.cc-settings-fold > summary {
-  cursor: pointer;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  padding: 6px 0;
-}
-
 .cc-hook-command {
   font-size: var(--text-xs);
   white-space: pre-wrap;
