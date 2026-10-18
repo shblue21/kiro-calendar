@@ -102,7 +102,7 @@ export const ko = {
   "common.readOnly": "· 읽기 전용",
   "common.defaultCalendar": "기본 캘린더",
   "settings.localStorageDescription":
-    "Crew Calendar는 이 Crew의 저장소에 보관됩니다. 외부 계정 연결 없이 사용할 수 있습니다.",
+    "일정은 이 Crew 설치의 저장소에 보관됩니다. 외부 계정 없이 사용할 수 있으며, 다른 Crew 설치와 동기화되지 않습니다.",
   "common.defaultSaveCalendar": "기본 저장 캘린더",
   "common.showCrewCalendar": "Crew Calendar 표시",
   "common.saveToCalendar": "저장할 캘린더",
@@ -179,7 +179,8 @@ export const ko = {
   "common.externalSaveCancelled": "외부 저장 취소됨",
   "common.externalSavePending": "외부 저장 대기",
   "suggestions.loadError": "설정을 확인하지 못했어요. 다시 시도해 주세요.",
-  "suggestions.saveError": "변경을 저장하지 못했어요. 이전 설정을 유지합니다.",
+  "suggestions.saveError":
+    "변경 사항이 저장됐는지 확인하지 못했어요. 설정을 다시 확인한 뒤 시도해 주세요.",
   "common.eventSuggestionsInConversations": "대화 중 일정 제안",
   "suggestions.showExample": "대화 예시 보기",
   "suggestions.hideExample": "대화 예시 닫기",
@@ -217,7 +218,7 @@ export const ko = {
   "suggestions.runFailed": "최근 연결 실행에 실패했어요. Crew 훅 기록을 확인해 주세요.",
   "suggestions.runUnknown": "연결은 등록됐지만 최근 실행 상태를 확인하지 못했어요.",
   "editor.timezoneHint":
-    "표시·입력 시간대: {zone}. 단일 일정만 저장하며 반복·초대는 추가하지 않습니다.",
+    "표시·입력 시간대: {zone}. 단일 일정만 저장하며 반복·초대는 추가하지 않습니다. 이 앱은 알림을 보내지 않습니다.",
   "trash.count": "삭제한 일정 · {count}개",
   "suggestions.conversationCount": "적용 대화 {count}개",
   "time.occurrenceOffset": "{occurrence}번째 · UTC{offset}",

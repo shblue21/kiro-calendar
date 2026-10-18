@@ -1,201 +1,177 @@
 # Crew Calendar
 
-Crew Calendar를 기본 저장 위치로 사용하는 캘린더 앱입니다. 직접 입력한 일정은 바로 확정되고, 대화 중 AI 제안은 기존 선택지로 조율한 뒤 사용자가 동의하면 Crew Calendar에 등록합니다. 명시적으로 보관한 초안은 앱에서 검토할 수 있습니다. Crew 일정은 외부 계정 없이 생성·수정·삭제·복원할 수 있습니다.
+A calendar for [Kiro Crew](https://github.com/kirodotdev/KiroCrew), with local events and optional scheduling suggestions in chat.
 
-현재 지원: 기본 Crew Calendar, 기본 저장 위치와 표시 여부 설정, AI 초안 수정·수락·넘기기, 선택한 대화의 opt-in 일정 제안, 주간·월간·연간·목록 보기, macOS Apple Calendar 연결·범위 조회·단일 일정 생성. 기존 외부 일정의 수정·삭제, 캘린더 간 이동·복사·자동 동기화, 참석자 초대, 반복 일정 생성, 알림·Crew 작업 예약은 지원하지 않습니다. 외부의 여러 날·종일·반복 일정은 조회할 수 있습니다.
+Create an event yourself, agree on a time during a conversation, or keep a draft to review later. Crew Calendar works without an external account. On macOS, you can also view Apple Calendar events and save new ones after confirming them on your Mac.
 
-## Crew Calendar 사용
+[See it in action](#see-it-in-action) · [Install from source](#install-from-source)
 
-- **일정 추가 → 저장**은 확정 일정을 바로 만듭니다. 직접 추가에는 초안 보관 단계가 없습니다.
-- 대화 중 제안은 **이대로 등록 / 시간 바꾸기 / 지금은 괜찮아** 같은 Crew의 기존 선택지로 답합니다. 동의 전에는 초안이나 일정이 생성되지 않습니다.
-- 따로 보관한 초안과 기존 제안 목록은 **초안 수정 저장** 또는 **일정으로 저장**을 선택합니다. 수락해도 ID와 원래 대화 연결이 유지됩니다.
-- Crew 일정의 상세에서 **수정**, **삭제**할 수 있습니다. 삭제 직후 **실행 취소**, 설정의 **삭제한 일정 → 복원**을 제공합니다.
-- 기본 저장 캘린더와 표시할 캘린더는 독립적입니다. 표시를 꺼도 저장 위치는 바뀌지 않습니다. 접근 불가능한 기본 위치를 다른 캘린더로 자동 대체하지 않습니다.
-- 데이터는 Crew 설치의 저장소에 보관됩니다. 브라우저를 닫거나 앱을 다시 열어도 유지되며, 다른 컴퓨터와 자동으로 동기화하지 않습니다.
-- 직접 생성 요청의 식별자는 중복 생성 방지에 사용합니다. 수정·삭제·복원은 revision이 일치해야 적용됩니다.
+## See it in action
 
-## 개발 및 로컬 설치
+Ask for help getting started, accept a suggested time, and open the event in Calendar.
 
-공통 기능의 대상 OS는 Windows·macOS·Linux입니다. 실제 실행 검증은 Apple Silicon Mac의 Crew `0.9.0-nightly.20261003t172902`에서 했으며 Windows·Linux 실기 검증은 아직 하지 않았습니다. Node.js 22.18 이상이 필요하고, macOS의 Apple Calendar 연결 프로그램을 빌드할 때만 macOS 14 이상과 Swift 컴파일러가 필요합니다.
+![A real conversation suggests rehearsal time, the user agrees, and the saved event appears in Crew Calendar](assets/readme/conversation-demo.gif)
+
+Recorded in Kiro Crew with a demo conversation and a test event. The replies and registration are real; waiting time is shortened.
+
+- Browse events in day, week, month, year or list views.
+- Edit Crew events and recover deleted ones.
+- Enable suggestions for selected conversations. Suggestions stay in chat until you agree to save them.
+- Choose your default save calendar separately from the calendars you display.
+
+This is a preview release. Installed-app testing has covered Apple Silicon macOS. Windows and Linux are declared targets but have not been verified on devices.
+
+## Install from source
+
+You need Kiro Crew and Node.js 22.18 or later. See [`app.json`](app.json) for the declared minimum Crew version. On macOS, building the Apple Calendar helper also requires macOS 14 or later and the Swift compiler.
+
+Run these commands from the repository root:
 
 ```sh
+npm ci --ignore-scripts
 npm --prefix ui ci --ignore-scripts
-npm test
 npm run package
 kirocrew app install "$PWD/.build/crew-calendar"
 ```
 
-이 앱은 Python 백엔드와 일정 제안 훅을 실행합니다. Crew의 **Settings → Security → Trusted apps**에서 `crew-calendar`에 앱별 실행 신뢰를 허용한 다음 활성화합니다. 전체 서드파티 앱 허용(`agent.apps_allow_third_party`)을 켤 필요는 없습니다. 로컬 설치는 신뢰 허용 전에 파일 복사까지 성공할 수 있지만 실행 등록·활성화는 `app_execution_denied`로 차단됩니다.
+In Crew, open **Settings > Security > Trusted apps** and allow `crew-calendar` to run. Then enable it:
 
 ```sh
 kirocrew app enable crew-calendar
 ```
 
-사이드바의 **Calendar**를 엽니다. 앱 경로는 `/apps/crew-calendar`입니다. 기존 설치는 Crew의 앱 업데이트에서 `.build/crew-calendar`를 소스로 지정합니다. 새 API 경로가 추가된 업데이트는 이 앱을 비활성화한 뒤 다시 활성화해야 할 수 있습니다. 게이트웨이나 다른 대화를 재시작할 필요는 없습니다.
+Open **Calendar** in the sidebar. Its route is `/apps/crew-calendar`.
 
-프로젝트 루트에서 직접 설치하지 않습니다. 설치기는 Git 제외 규칙을 패키지 필터로 사용하지 않으므로 실행 파일만 모은 `.build/crew-calendar`를 사용합니다.
+Always install `.build/crew-calendar`, not the repository root. The package contains the runtime files; the installer does not filter files using `.gitignore`. If installation succeeds but activation reports `app_execution_denied`, check the app-specific trust setting.
 
-`npm run package`는 UI와 해당 OS용 패키지를 빌드하고, macOS에서는 네이티브 연결 프로그램도 빌드합니다. 패키지는 `app.json`, `ui/dist/`, `ui/assets/`, `backend/*.py`, 연결 프로그램의 서명된 앱 번들(macOS만)을 모읍니다. 개발 문서·테스트·소스·의존성 폴더를 포함하지 않습니다. 현재 네이티브 번들은 로컬 개발용 ad-hoc 서명입니다. 공개 배포용 서명·공증·배포 아키텍처 검증은 별도 작업입니다. 빌드가 바뀌면 macOS가 접근 동의를 다시 요구할 수 있습니다.
+For an existing installation, use Crew's app update action with `.build/crew-calendar` as the source. Updates that add API permissions may require disabling and re-enabling Calendar.
 
-## Apple Calendar 연결과 저장
+The macOS helper is built for the build machine's architecture and uses a local ad-hoc signature. Public distribution still needs signing, notarization and target-architecture validation. Rebuilding the helper may cause macOS to request calendar access again.
 
-1. 앱 설정에서 **Apple Calendar 연결**을 누릅니다.
-2. macOS가 표시하는 **Crew Calendar 연결**의 캘린더 전체 접근 요청을 확인합니다. 기존 일정 조회에는 이 권한이 필요합니다. 읽기 전용 권한이라고 안내하지 않습니다.
-3. 표시할 캘린더를 선택합니다. 같은 이름이어도 원본 소스와 ID가 다른 캘린더를 별개로 취급합니다. 앱의 기본 저장 위치는 별도 기본 캘린더 설정에서 선택합니다.
-4. 달력이나 설정에서 초안을 열어 제목·시작·종료·설명을 검토합니다. 시간은 Crew가 실행되는 OS의 시스템 시간대 기준입니다. 화면·일정 입력·자동 제안이 이 기준 하나를 사용하며 별도의 시간대 설정은 없습니다. **초안 수정 저장**은 제안 내용만 갱신합니다.
-5. 저장할 캘린더를 선택하고 **Mac에서 최종 확인**을 누릅니다. Mac의 연결 창에서 정확한 내용과 저장 위치를 보고 **이 캘린더에 저장**을 눌러야 실제 쓰기가 발생합니다.
-6. 저장 후 EventKit 재조회가 일치하면 저장 완료와 캘린더 위치를 표시합니다. iCloud나 다른 기기까지 동기화되었다는 의미는 아닙니다.
+## Create your first event
 
-Crew가 실행되는 Mac에 연결됩니다. 원격 게이트웨이를 다른 기기의 브라우저로 보고 있는 경우 그 브라우저 기기의 Calendar에 연결되는 것이 아닙니다. 접근 거부·철회는 시스템 설정 → 개인정보 보호 및 보안 → 캘린더에서 확인합니다.
+![Crew Calendar week view with sample events and a saved draft](assets/readme/calendar-week.png)
 
-권한이 있어도 조회 대상은 사용자가 선택한 캘린더뿐입니다. 쓰기 직전에 대상의 수정 가능 여부를 다시 확인하며, 읽기 전용이거나 사라진 캘린더를 다른 대상으로 자동 대체하지 않습니다. 조회는 최대 370일, 응답은 최대 5,000개이며 한도를 넘으면 표시가 일부임을 안내합니다.
+Week view with sample events.
 
-확인 창이 열린 동안에는 해당 초안의 편집·중복 저장이 잠깁니다. 웹 패널을 닫아도 Mac의 확인 창은 취소되지 않습니다. Mac 확인 창에서 취소하거나 2분이 지나면 실제 저장 없이 종료합니다. 앱이 비활성화·제거되면 연결 프로그램도 저장 직전에 실행 가능 상태를 확인합니다.
+1. Choose **Add event**.
+2. Enter a title, start time and end time.
+3. Leave **Save to calendar** set to **Crew Calendar**, then choose **Save**.
 
-시간 초과나 응답 유실은 실패로 단정하지 않고 **저장 결과 확인 필요**로 남깁니다. **저장 결과 다시 확인**으로 같은 요청을 재조회하며 자동으로 새 일정을 만들지 않습니다. 원본 일정이 삭제·변경된 경우에도 임의로 다시 생성하지 않습니다. 생성한 일정의 URL에는 재조회 식별용 `crew-calendar://operation/...`이 들어가며 대화 원문·인증 정보는 포함하지 않습니다.
+Select the event to edit its details or delete it. Deletion can be undone immediately with **Undo**, or later through **History > Deleted events > Restore**.
 
-## 대화 중 일정 제안
+Use the date picker to jump to a date. Clicking an empty time slot opens an editor with that time filled in. Search and display filters apply to the current view.
 
-- 훅은 현재 날짜·제안 시점·동의 전 미저장만 짧게 안내합니다. 등록·재시도·기존 초안 수락·결과 안내의 세부 규칙은 MCP 도구 설명에서 제공합니다. 스킬이나 별도 분석 에이전트는 사용하지 않습니다.
-- ON인 선택 대화에서 원래 질문에 먼저 답한 뒤, 실행 의도가 뚜렷하고 시간 확보가 도움이 될 때만 짧게 제안합니다. Crew의 기존 `[OPTIONS: ...]` 버튼을 사용하며 제안 자체는 대화에만 남습니다. 거절·무응답·화제 변경은 등록하지 않고 그대로 대화로 돌아갑니다.
-- 제목·날짜·시작/종료·Crew Calendar 저장 위치를 보여준 뒤 동의받습니다. 시간이 모호하면 필요한 정보만 조율합니다. 이미 구체적으로 등록을 요청했다면 같은 확인을 반복하지 않습니다.
-- 동의 후 `get_schedule_context`를 한 번 호출해 등록 작업의 새 요청 ID와 시각·시간대를 받습니다. 조회는 아무것도 저장하지 않습니다. 재시도할 때는 이 ID와 등록 인자를 그대로 사용하며, 새 ID를 발급받지 않습니다.
-- `register_schedule`는 일정과 요청 처리 기록을 같은 레코드에 원자적으로 저장합니다. 같은 ID·같은 내용은 기존 항목을 반환하고, 같은 ID·다른 내용 또는 대상은 충돌입니다. 새 ID는 내용이 같아도 별개의 등록입니다. 내용 해시로 다른 요청을 합치지 않습니다.
-- 보관한 초안은 `get_schedule_context(draftId)`로 현재 버전을 확인한 뒤, `register_schedule`에 해당 `draftId`와 `revision`을 포함합니다. 새 일정을 만들지 않고 같은 초안을 확정합니다. 요청 중복 검사·초안 소유 대화/버전/상태 검사·저장은 `EventService.save`의 한 잠금 안에서 처리합니다.
-- 재시도 결과에는 `replayed`와 현재 항목을 반환합니다. 이후 수정·삭제된 일정은 덮어쓰거나 복원하지 않으며 새 등록 완료로 안내하지 않습니다. 불확실한 저장 결과 이후 요청 ID를 잃었다면 Calendar에서 먼저 확인합니다.
-- `create_schedule_draft`는 사용자가 **나중에 검토할 초안 보관**을 명시적으로 요청했을 때만 사용합니다. 자동 제안에서는 초안을 만들지 않습니다.
-- 등록 위치는 **Crew Calendar**입니다. Apple Calendar 저장은 기존 앱·Mac 최종 확인 경로를 사용합니다. 외부 저장·알림·반복 일정·등록된 일정의 대화 수정은 이 도구에 포함되지 않습니다.
-- 자동 제안의 ON/OFF·선택 대화·훅은 제안 지침에만 관여합니다. 명시적인 등록 요청은 활성 앱의 일반 대화에서 처리하며, 다른 대화의 훅 오류나 전역 `last_status`에 의존하지 않습니다.
-- 설정은 `data/settings.json`, 초안과 확정 일정은 `data/calendar/entries/`에 저장됩니다. 별도 요청 저장소·대화 원문·미승인 일정은 만들지 않습니다. 기존 훅 적용 기록은 마지막 안내 상태를 기억합니다. ON을 안내한 대화가 OFF·적용 제외·비활성 상태가 되면 다음 훅 실행에서 OFF를 한 번 반환하고, 이후에는 생략합니다. ON인 동안에는 현재 시각과 짧은 지침을 계속 전달합니다.
-- Crew의 에이전트 기능 → 훅에서 `UserPromptSubmit` 훅을 한 번 연결합니다. 앱 설정의 ‘처음 한 번 연결하기’에 현재 설치 위치의 명령이 있습니다. 이름은 `Crew Calendar · schedule suggestions`, 매처는 비우고 제한 시간은 5초를 권장합니다. 현재 호스트의 `session_key`로 호출 대화를 식별합니다. 앱은 전역 훅 설정을 덮어쓰지 않습니다.
+Times use the system time zone of the machine running Crew. During daylight-saving transitions, repeated times require an explicit UTC offset, and nonexistent times cannot be saved. If the system time zone changes while you are editing, review the updated times before saving.
 
-### 보장 범위
+Crew events remain in this Crew installation after you close the app. They do not sync between Crew installations, and the app does not send reminders.
 
-설치 호스트의 선택지는 일반 채팅 경로에서 문구만 전송합니다. OPTIONS 클릭 자체를 승인 토큰으로 취급하지 않으며, 어떤 일정에 대한 동의인지는 대화 에이전트가 판단합니다. 모호하면 정확한 내용을 한 번 확인합니다.
+## Schedule from a conversation
 
-요청 ID는 사용자 메시지나 모델 실행의 ID가 아니라 **등록 작업의 멱등성 키**입니다. 같은 키의 재시도는 한 번만 저장하지만, 모델이 재생성 중 기존 키를 잊고 새 키로 다시 등록하는 경우까지 자동으로 구분하지 않습니다. 이를 위해 호스트 수정, 내용 해시 추정, 실행 세대 관리나 별도 승인 저장소를 추가하지 않습니다.
+You can explicitly ask Crew to register an event in a regular conversation while Calendar is enabled. Automatic suggestions are optional and need separate setup.
 
-## 비활성화·제거
+### Enable suggestions
 
-앱 신뢰를 철회하면 앱도 비활성화됩니다. 다시 사용하려면 신뢰를 허용한 뒤 앱을 다시 활성화합니다. 제거하면 앱별 신뢰도 제거되므로 재설치 후 다시 허용해야 합니다.
+1. Open **Calendar settings > Event suggestions in conversations**.
+2. If setup is required, expand **Connect suggestions**. In Crew's agent features, add the displayed command as a `UserPromptSubmit` hook. Name it `Crew Calendar · schedule suggestions`, leave the condition empty, enable it and set a five-second timeout.
+3. Return to Calendar and choose **Refresh settings**.
+4. Expand **Enabled conversations**, select a conversation and choose **Add**. Turn suggestions on.
 
-앱을 제거하기 **전에** Crew에서 수동 등록한 일정 제안 훅을 비활성화·삭제하세요. 사용자 훅은 앱 제거 시 자동으로 삭제되지 않아 삭제된 스크립트를 호출할 수 있습니다. 앱 비활성화 중에는 ON 지침을 전달하지 않습니다. 진행 중인 Mac 저장 확인 창도 먼저 취소하세요.
+Suggestions apply from the next message in selected regular conversations and may use additional tokens. Private, temporary and subagent conversations are excluded. You can turn suggestions off without disabling explicit registration requests.
 
-Crew의 기본 제거는 앱 데이터를 보존합니다. 실제 Apple Calendar에 저장된 일정은 앱 제거로 삭제되지 않습니다. 연결 권한도 macOS 설정에서 따로 관리합니다.
+Crew should show the title, exact date, start/end times and destination before asking you to agree. You can accept, change the time or decline. A clear registration request does not need another confirmation. Ignoring or declining a suggestion does not save an event.
 
-## 구조와 검증
+Chat registration saves to **Crew Calendar**. Use Calendar's editor to change a registered event or save to Apple Calendar.
 
-- `backend/domain.py`: 초안 값과 일정 입력 검증.
-- `backend/application.py`, `settings.py`, `hook_context.py`: 명시적 초안 보관·설정·대화 제안 지침.
-- `backend/conversation_schedule.py`: 등록 요청 ID 발급과 대화 등록 어댑터. 저장은 기존 `EventService`를 사용합니다.
-- `backend/repository.py`: JSON 저장 계약과 공통 프로세스 잠금. transaction은 배타 구간이며 여러 쓰기의 롤백을 보장하지 않습니다.
-- `backend/entry_policy.py`, `event_service.py`: 단일 일정 레코드의 생명주기와 저장 정책.
-- `backend/calendar_domain.py`, `calendar_service.py`, `calendar_storage.py`: 공급자 중립 대상·저장 준비·실행 상태·결과 기록. 외부 호출은 로컬 잠금 밖에서 수행합니다.
-- `backend/apple_provider.py`, `native/CrewCalendarBridge.swift`: 독립 EventKit 연결 앱. OS 접근 허용, 캘린더 조회, 네이티브 확인, 저장·재조회를 담당합니다.
-- `backend/host.py`, `routes.py`, `calendar_routes.py`, `mcp_server.py`, `proposal_hook.py`: Crew 어댑터와 입출력 경계. Calendar API는 호스트의 소유자 요청 검사를 사용합니다.
-- `ui/src/live/`: 실제 데이터 투영, 연결 선택, 초안 검토. 기존 달력 레이아웃에 절대 날짜의 데이터를 투영합니다.
+### Keep a draft
 
-앱별 신뢰는 앱 코드를 Crew 권한으로 실행하도록 허용합니다. `permissions.network: false`가 내부 Python 코드의 네트워크 접근을 OS 수준에서 차단하지는 않습니다. 앱 실행 신뢰, macOS 전체 접근, 개별 일정 저장 확인은 각각 별개의 절차입니다.
+Ask Crew to keep an event as a draft for later review. Open **Saved drafts > Review and edit**, then choose:
 
-`npm test`는 날짜·범위·패키징·저장 정책·동시 실행·불명확한 결과·API 접근 테스트를 실행합니다. 현재 테스트는 UI 20개·패키징 3개·Python 31개로 총 54개입니다. 기존 검증을 동작별로 분리했으며, 가짜 공급자와 입력 생성은 `tests/support.py`에서 공유합니다. 일반 일정 입력은 실행 환경에서 감지한 시간대와 그 날짜의 UTC offset을 사용하며, 제품의 시간대 감지 함수를 고정값으로 대체하지 않습니다. `npm test`와 `TZ=UTC npm test`가 모두 통과해야 합니다. 제품에서 사용하지 않는 미리보기 모델, 중복된 계층별 검증, 단순 문구·플랫폼 모의 호출·이전 API의 세부 검증은 별도로 유지하지 않습니다. 세부 분기를 모두 다루기보다 생성·수락·복원, 권한·대화 출처, 외부 중복 저장 방지와 실제로 수정한 시간 계산 버그를 검증하는 작은 시나리오 세트로 유지합니다. aiohttp가 없는 Python에서는 API 테스트가 skip될 수 있으므로 설치된 Crew Python으로도 실행합니다. 로컬 초안과 모의 공급자 테스트의 성공은 실제 EventKit 저장 성공을 뜻하지 않습니다. 실제 연결과 저장 결과는 별도로 검증해야 합니다.
+- **Save draft changes** to keep editing later.
+- **Save as event** to accept it into Crew Calendar.
 
-코드 포맷은 `npm run format`, 검사만 할 때는 `npm run format:check`를 사용합니다. 루트의 `npm install`로 Prettier를 설치하며 Python은 Ruff, Swift는 Xcode의 `swift-format`이 필요합니다. `useCalendarData`가 현재 조회 범위와 갱신을 소유하고, 편집창·탭·선택 상태는 App이 관리합니다. 화면 모델은 실제 일정만 표현하며 초안·확정 일정은 같은 변환 경로를 사용합니다. 저장 스키마와 기존 초안 출처는 유지합니다. 네이티브 확인창은 macOS 언어에 따라 한국어 또는 영어로 표시합니다.
+Accepting a draft preserves its identity and link to the original conversation. Automatic suggestions do not create saved drafts.
 
-2026-10-04 실기 검증: 사용자가 macOS 전체 접근과 네이티브 저장 확인 창을 승인한 뒤, 선택한 캘린더에 5분짜리 테스트 일정을 생성했습니다. 별도 EventKit 범위 조회와 저장 요청 재조회에서 제목·시간·대상 캘린더가 일치했고, 앱 상세에도 외부 일정으로 표시됐습니다. 같은 저장 요청을 다시 실행해도 일정은 1개였습니다. UI 25개, 패키징 5개, Python 55개 테스트가 통과했습니다. 다른 기기까지의 동기화와 공개 스토어 배포는 검증 범위에 포함하지 않습니다.
+## Connect Apple Calendar
 
-공통 시간대는 OS 설정에서 읽습니다. Windows는 Crew에 포함된 `tzlocal`의 Windows→IANA 매핑을 사용하고, POSIX는 `TZ` 또는 시스템 zoneinfo 설정을 사용합니다. 감지 실패를 서울이나 UTC로 조용히 바꾸지 않습니다. Windows 파일 잠금은 Crew의 필수 잠금 API를 사용합니다. Apple 연결을 지원하지 않는 OS에서도 Crew 일정과 초안 기능을 유지하고 외부 연결만 사용할 수 없다고 표시합니다.
+The connection uses the Mac running Crew, including when you access Crew remotely from another device.
 
-## 새 캘린더 공급자 연결
+1. Open **Calendar settings > External calendar connections > Connect calendar**.
+2. Review the macOS request for full calendar access. This access is required to read existing events.
+3. Select the calendars you want to display. Set a default save destination separately if needed.
+4. Add an event or open a saved draft, then choose a writable calendar under **Save to calendar**.
+5. Choose **Confirm on Mac**. Review the contents and destination in the native window, then choose **Save to this calendar**.
 
-공통 서비스는 `CalendarProvider`의 `status`, `authorize`, `calendars`, `events`, `create`, `reconcile` 계약을 사용합니다. 공급자의 인증 상태는 어댑터에서 공통 상태(`ready`, `needs_authorization`, `denied`, `unsupported`, `unavailable`)와 읽기·생성·결과 확인 기능으로 변환합니다. Apple의 `fullAccess` 같은 원시 상태는 공통 서비스와 화면에 전달하지 않습니다.
+A confirmed save means EventKit returned a matching event. It does not confirm synchronization to iCloud or another device. Existing external events must be edited or deleted in their original calendar.
 
-새 공급자는 어댑터를 구현하고 composition에서 `CalendarConnection`으로 등록합니다. 연결 인스턴스 ID, 공급자 종류, 표시 이름, 어댑터를 각각 지정하므로 같은 공급자의 여러 계정을 등록할 수 있습니다. 실제 OAuth 인증·자격 증명 보관·연결 등록 과정은 각 공급자를 구현할 때 추가해야 하며, 현재 실제 연결은 Apple 하나입니다.
+Closing the web panel leaves the Mac confirmation window open. Cancel in that window to stop the save; an unanswered confirmation expires after two minutes. While a save is pending or its outcome is uncertain, editing and duplicate submission are locked. Use the status actions in **History > Save status** to check the existing request.
 
-외부 캘린더의 표시 선택은 연결별로, 기본 저장 위치와 Crew 표시 여부는 `calendar/preferences.json`에 보관하고, 일정 및 저장 결과는 연결 ID·캘린더 ID·일정 ID로 구분합니다. 저장은 지정한 연결로만 보내며 다른 연결로 대체하지 않습니다. 기존 Apple 연결 ID와 저장 기록은 유지하고, 이전 `calendar/connection.json`의 선택값은 Apple 연결에 한해 읽습니다. 새 선택 변경은 `calendar/connections.json`에 기록합니다.
+The app reads selected calendars and checks that a destination is writable before saving. It never substitutes another destination automatically. Queries are limited to 370 days and 5,000 returned events, with a notice when results are incomplete.
 
-저장 확인 계약은 공급자 창에서 확인하는 `provider` 방식과 앱의 준비된 내용 화면에서 확인하는 `app` 방식입니다. 확인 방식·정확한 대상·내용은 저장 준비 기록에 고정됩니다. 현재 Apple 어댑터는 기존 네이티브 확인 창을 유지합니다. 다른 공급자의 실제 연결이나 저장이 구현됐다는 의미는 아닙니다.
+## Supported behavior
 
-## UI 스타일 구조
+| Action                         | Crew Calendar                            | Apple Calendar connection        |
+| ------------------------------ | ---------------------------------------- | -------------------------------- |
+| Create a timed event           | Save directly in the app or through chat | Confirm each save on the Mac     |
+| Edit or delete an event        | Supported                                | Use the original calendar        |
+| Recover a deleted event        | Use Undo or the deleted-events list      | Use the original calendar        |
+| Browse calendar and list views | Supported                                | Supported for selected calendars |
 
-`ui/src/styles.css`는 `@import`만 모으는 진입점입니다. Vite의 `?inline`으로 한 번만 JS 번들에 포함하므로, 컴포넌트에서 일반 CSS import를 추가해 별도 CSS 파일 로딩에 의존하지 않습니다.
+The Apple connection can display existing all-day, multi-day and recurring events. The app does not create recurring events or all-day events, invite attendees, send reminders, move events between calendars or schedule Crew tasks. Apple Calendar is the only external connection currently implemented. Provider-managed synchronization is outside this app's control.
 
-- `styles/theme.css`, `base.css`: 캘린더 크기·배치 변수와 앱 범위의 기본 규칙. 색상·폰트·포커스는 호스트 테마를 직접 사용합니다.
-- `styles/forms.css`: 편집창·연결 설정의 필드 배치. 입력 외형은 SDK `Input`과 `platform/kiro/NativeControls`가 담당합니다.
-- `App.css`, `calendar/*.css`, `live/*.css`, `settings/*.css`: 각 화면과 컴포넌트의 배치·상태·반응형 규칙. 다른 컴포넌트의 스타일을 파일 끝에서 덮어쓰지 않습니다.
-- `calendar/DateBadge.tsx`: 숫자·오늘 원형만 표시하는 span. 클릭과 키보드 동작은 기존 날짜/월 버튼이 담당합니다.
-- `live/DraftList.tsx`: 목록 표시와 전달받은 콜백만 담당합니다. API 호출과 전체 새로고침은 App에서 관리합니다.
+## Troubleshooting
 
-760px 주간→목록 전환은 JavaScript와 CSS의 공통 계약입니다. 시간 격자의 시간당 높이·일정 종류별 표시 높이는 `calendar/layout.ts`의 `WEEK_LAYOUT`이 소유합니다. 배치 결과가 그릴 높이·기간 표시·겹침 범위를 함께 제공하며, CSS는 별도의 최소 일정 높이를 정하지 않습니다. CSS 변경 검증은 타입·계산 테스트와 별도로 실제 Crew의 넓은/좁은 화면, 편집창 스크롤, 키보드 포커스, 테마를 확인합니다.
+| What you see                       | What to check                                                                                                                                            |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| An event is missing                | Check the date range, search, display filters and selected calendars. Use **Refresh events** if the view was already open when another window saved it.  |
+| Suggestions cannot be enabled      | Register the hook, select at least one eligible conversation and choose **Refresh settings**. Follow any setup or execution notice shown there.          |
+| Calendar access is denied          | Open **System Settings > Privacy & Security > Calendars** on the Mac running Crew.                                                                       |
+| The save result is uncertain       | Open **History > Save status** and use **Check current save status** or **Verify save result**. Check the existing request before starting another save. |
+| An external event cannot be edited | Open it in its original calendar. The connection supports reading and creating events, not editing existing external events.                             |
+| Settings could not be confirmed    | Choose **Refresh settings** before retrying. A lost response does not establish whether the change was saved.                                            |
 
-시간 계산은 `calendar/time.ts`가 담당합니다. Temporal을 사용해 사용자 입력(중복·누락 시각은 거부), 조회용 날짜 경계(해당 날짜의 첫 실제 시각), 일정의 실제 경과 시간을 구분합니다. 일정은 날짜별 실제 UTC 구간으로 나누므로 23·25시간 날짜에서도 기간과 식별자가 유지됩니다. 시간 변경이 있는 주는 날짜마다 현지 시각 눈금을 표시하고 반복 시각에는 UTC 오프셋을 붙입니다. `layout.ts`는 절대 시작·종료 위치를 1/64px 정수 좌표로 변환하고 같은 좌표로 렌더링과 겹침을 계산합니다. 맞닿는 구간의 부동소수점 오차를 별도 허용치로 처리하지 않습니다. 핵심 회귀는 맞닿는 구간, 반복 자정 조회 경계, 서머타임 경과 시간과 편집 시각 보존을 확인합니다.
+## Data and permissions
 
-## 일정 저장 구조와 기존 데이터 전환
+Saved events and drafts live in the app's `data/calendar/entries/` directory. Display choices and default destinations are in `data/calendar/`; suggestion settings are in `data/settings.json`. Calendar writes use a shared process lock. Unreadable event files are preserved and reported without preventing readable events from loading.
 
-`EventService`는 직접 생성·제안 수락·수정·삭제·복원을 담당합니다. 사용자 결정 상태(`proposed`, `confirmed`, `dismissed`)와 외부 저장 요청 상태는 별개입니다. 외부 저장 실패 시 Crew 일정으로 자동 전환하지 않습니다. 조회 시 외부 저장 완료 항목은 공급자 원본으로 표시하고, 대기·실패·불명 상태만 저장 상태가 있는 항목으로 표시합니다.
+App trust allows Calendar's Python code to run with Crew's authority. The manifest's `permissions.network: false` is not an OS-level network sandbox. macOS calendar access and per-event native confirmation are separate from app trust. External save URLs contain a `crew-calendar://operation/...` identifier for result verification, without conversation text or credentials.
 
-첫 공개 버전의 앱·UI·MCP·네이티브 연결 프로그램은 `0.1.0`, 일정 저장 형식은 `schemaVersion: 1`입니다. 초안과 확정 일정, 현재 외부 저장 요청은 `data/calendar/entries/`의 같은 레코드에 저장합니다. 연결 선택은 `calendar/connections.json`이 소유하고, 쓰기 잠금은 `calendar/.lock`을 사용합니다. 개발 중 사용한 이전 형식의 자동 변환·호환 읽기 코드는 배포하지 않습니다. 기존 개발 데이터는 내용·ID·수정 번호·외부 저장 식별자를 유지하여 한 번 전환하고, 옛 원본은 앱 데이터 폴더 밖의 백업에 보관합니다.
+Before uninstalling, remove or disable the manually registered suggestion hook and cancel any open Mac confirmation window. Crew's default uninstall preserves app data. Uninstalling Calendar does not delete events already saved to Apple Calendar or revoke macOS calendar access. Reinstallation requires app trust again.
 
-`entry_policy.py`가 수정·수락·삭제·복원·제출·재조회의 가능 여부를 결정하고, API와 화면이 이 정책을 함께 사용합니다. 외부 저장의 준비·취소·확실한 실패 상태에서는 내용을 수정하거나 요청을 삭제하고, 필요하면 Crew Calendar로 바꿀 수 있습니다. 저장 중·결과 불명·외부 저장 완료 상태는 수정·삭제가 잠깁니다. 공급자의 `create`·`reconcile` 응답은 오류 설명과 저장 상태를 함께 전달합니다. 쓰기 호출 전 검사 실패는 `failed`, 호출 후 예외나 잘못된 응답은 `unknown`으로 기록하며, 오류 코드로 저장 여부를 추정하지 않습니다. 수정으로 폐기된 요청 ID는 다시 실행할 수 없습니다.
+## Development
 
-목록 조회는 읽을 수 있는 일정과 오류 목록을 함께 반환합니다. 손상된 항목은 원본을 보존하며, 다른 정상 일정의 조회를 막지 않습니다. 손상된 외부 저장 메타데이터는 `unavailable`로 표시하고 해당 일정의 쓰기만 잠급니다. 외부 일정 연결에는 `externalRef`의 연결·캘린더·일정 ID를 사용하고, 변경 가능한 시작 시간은 동일성 판단에 사용하지 않습니다.
-
-일정 시각의 공통 정밀도는 초 단위이며 소수 초는 입력·조회·공급자 직렬화에서 내림해 정규화합니다. 정규화 후 시작과 종료가 같아지면 저장을 거부합니다. 편집 시각은 표시 문자열과 실제 시각을 함께 보관합니다. 제목만 수정할 때는 기존 오프셋과 초 단위 값을 유지합니다. 새로 입력한 반복 시각은 두 UTC 오프셋 중 하나를 명시적으로 선택하고, 존재하지 않는 시각은 저장하지 않습니다.
-
-확정된 저장·취소·실패 결과는 늦게 도착한 조회가 덮어쓰지 못합니다. 내부 새로고침·창 포커스 복귀·저장 전 확인에서 시스템 시간대를 갱신합니다. 제목·설명은 유지하고 확정 시각은 같은 순간으로 변환하며, 미확정 입력은 그대로 남깁니다. 저장 직전에 시간대 변경을 발견하면 재검토 후 다시 저장합니다. 이 경계들은 기존 테스트를 보강해 총 28개로 검증하며, 실제 입력 컴포넌트에서도 뉴욕→UTC 전환 후 내용과 초 단위 시각 보존을 확인했습니다(검증용 화면, OS 설정 변경 없음).
-
-2026-10-10 기본 캘린더 검증: UI 52개·패키징 6개·Python 82개 테스트, UTC 환경 UI 52개, 타입 검사와 빌드 통과. 실제 Crew 앱에서 직접 생성, 제목·시간 수정, 삭제·실행 취소, 삭제 목록 복원, 재로딩 후 유지, 검증용 초안 수정·동일 ID 수락, 월간·연간 집계, 표시 설정 분리, 기존 Apple 저장 결과 재조회를 확인했습니다. 새 외부 일정은 만들지 않았으며 검증용 Crew 일정 2개는 복원 가능한 삭제 상태로 정리했습니다. 기존 4개 레코드의 ID·내용·대화 연결은 유지됐습니다. 설치된 웹 화면에서는 550×500 크기의 입력창 스크롤과 하단 버튼 배치도 확인했습니다.
-
-2026-10-11 상태 경계 검증: 핵심 테스트는 27개를 유지했습니다. 실제 Crew에서 Mac 저장 확인을 취소한 뒤 내용 수정·Crew 저장 위치 전환·삭제를 확인했고, 기존 Apple 일정의 저장 결과 재조회도 성공했습니다. 반복 시각 편집은 별도 컴포넌트 화면에서 기존 시각 보존과 두 번째 오프셋 선택을 확인했습니다. 외부 시간 변경 후 연결 유지와 손상 데이터 격리는 임시 저장소·공급자 응답으로 검증했습니다.
-
-2026-10-11 후속 회귀 검증: 공급자 응답부터 저장 정책까지 이어지는 테스트 1개를 추가하고 기존 격리·마이그레이션 테스트를 보강했습니다(총 28개). 오류가 포함된 불명 결과의 재저장 차단, 확실한 실패·취소의 재시도, 확정 후 변경 진단 보존, 손상된 정렬 필드 격리, 오래된 미저장 기록과 읽을 수 없는 후속 기록의 동시 전환을 확인했습니다. 네이티브 브리지도 동일한 결과 계약으로 빌드·서명 검증했습니다.
-
-달력의 날짜 기준·선택 날짜·주월연 이동은 `Temporal.PlainDate`로 관리합니다. OS 시간대가 바뀌어도 날짜와 요일은 유지되고, 일정의 실제 시각만 선택한 시간대로 투영합니다. 외부 저장 버튼은 항상 최신 시스템 시간대와 내용으로 `prepare`한 뒤 실행합니다. 앱 확인 방식은 준비 요청이 달라지면 새 내용을 표시하고 다음 클릭에서 실행하며, 공급자 확인 방식은 새 요청을 공급자의 최종 확인 창으로 전달합니다. 날짜 회귀는 기존 기간 이동 테스트에 포함했고 준비·실행 흐름 테스트 하나를 추가했습니다. 총 29개 테스트, UTC UI 12개, 타입 검사와 빌드가 통과했습니다.
-
-외부 저장 패널은 `DeliverySession`이 명령과 조회를 직렬화합니다. 준비 요청은 실행 전에 보존하고, 통신 실패 시 항목 단위 GET으로 현재 서버 상태를 확인합니다. 조회까지 실패하면 확인 상태를 유지하며 새 제출·수정·삭제는 열지 않습니다. 다음 확인은 조회만 수행하고, 서버가 미제출을 확인한 경우에만 재준비할 수 있습니다. 실행 중·확정 상태에서는 저장 버튼을 재호출해도 새 외부 쓰기를 하지 않습니다. 준비 응답 유실·요청 미도달·실행 접수 후 응답 유실·복구 조회 실패·연속 클릭을 기존 핵심 테스트에 포함했습니다.
-
-2026-10-11 실제 앱 통합 검증: 현재 패키지의 런타임 파일 28개를 설치 후 바이트 비교했습니다. 앱 종료·재실행 후 전용 Crew 일정 1개와 Default · Calendar의 EventKit 일정 1개를 실제 화면에서 생성했습니다. 다시 종료·재실행한 뒤 두 일정 유지, EventKit ID·제목·설명·시각 일치, 결과 재조회 confirmed를 확인했습니다. 확정된 같은 요청을 두 번 재호출해도 외부 일정은 1건이었습니다. 기존 로컬 레코드 7개는 백업과 바이트 단위로 같고, 10월 조회 범위의 기존 외부 일정 1개도 내용·수정 시각이 동일했습니다. 검증 후 요청에 따라 `통합 검증 … 전용 20261011-2012` 테스트 일정 2개만 정리했습니다. EventKit 일정은 원본 캘린더에서 삭제했고, 두 테스트의 앱 저장 기록은 활성 저장소 밖에 복구 가능하게 보관했습니다. 정리 후 기존 로컬 7개와 조회 범위의 기존 외부 일정이 검증 전과 동일함을 다시 확인했습니다. 네이티브 재빌드 후 기존 캘린더 접근은 앱의 연결 버튼으로 재확인했습니다.
-
-## UI languages and copy
-
-English is the source catalog in `ui/src/i18n/en.ts`; `ko.ts` must provide the same keys. UI code accesses copy through `t()` in `index.ts`. Message substitutions are checked against the English template at compile time. Keep complete sentences in the catalog instead of assembling translated fragments. `format.ts` owns locale-dependent dates, numbers and weekday labels. The host SDK's `activeLocale` and `useLanguageGeneration` provide the language and change notifications; unsupported locales fall back to English. Editors are not remounted on a language change.
-
-When editing copy, update English first, then Korean. The core i18n test checks catalog keys, substitutions, English fallback, Korean weekday switching and accidental hardcoded Korean UI text. Backend/provider diagnostic messages, user-authored titles/descriptions and macOS native confirmation dialogs are not translated by this UI catalog; their contracts remain separate. The current core test count is 33 (16 UI, 3 packaging, 14 Python).
-
-UI confirmation actions and connection notices are selected from semantic provider fields (`confirmation.mode`, `provider`, connection state); server-supplied labels never override the UI catalog. Translation keys use feature names such as `delivery.confirmOnMac` and `calendar.eventCount`, with named substitutions such as `{count}` and `{zone}`. Counted messages declare `one`/`other` forms in both catalogs and are selected centrally through `Intl.PluralRules`. Locale-specific formatters and immutable weekday arrays are cached; calendar date arithmetic has no translation dependency. Native dialog wording and transport diagnostics remain separate from UI-owned action and status copy.
-
-Notifications are locale-independent descriptors (`notice(key, values)`) until rendered. Error state, delivery sessions and nested notices preserve descriptors rather than translated strings. `NoticeError` carries local validation semantics; the common API adapter decodes the host SDK's `AppApiError.status/body` and provider error codes. Known failures map to catalog keys; unknown or malformed responses use a safe translated default, never raw server prose. Collection errors retain their item IDs and structured codes. The core test covers an unchanged notice across Korean → English → Korean, SDK JSON errors, unknown responses and collection errors.
-
-Connection display names are semantic data: `system` names carry a stable key (for example `appleLocal`), while `custom` names carry user text. Connections expose `displayName`; event and delivery snapshots carry `connectionName`. All UI surfaces use the same resolver, and legacy delivery snapshots use the current connection descriptor without rewriting stored events. Calendar names, account/source names and conversation titles remain user/provider data. Partial EventKit reads emit `calendar_missing` or `events_truncated` with `limit`; these codes and parameters survive the service boundary and are rendered as actionable translated notices alongside the returned events. Existing core tests cover descriptor propagation, partial results, the limit notice in both languages and custom-name preservation.
-
-Calendar view items keep `calendarLocation` separate from `deliveryState`; `source` is only an origin/agent label. A shared destination resolver is used by selection, list/detail projection and the external save panel. Local and externally read events show their calendar once, without a redundant saved/read row. Unsubmitted external intents show the destination and a separate status. Search includes both fields. Drafts retain their origin without claiming a final destination before acceptance. Existing projection tests cover both languages across unsubmitted, prepared, cancelled, failed, unknown and unavailable states.
-
-## Calendar layout behavior
-
-Week layout retains the original event geometry and identity. Overlapping events remain individually visible in parallel lanes; no grouped-count button or intermediate list is used. Selecting an event uses the existing detail/editor flow. Date headers and the time grid share one scrolling container. Card contents align at the top regardless of duration. Available component width (ResizeObserver), rather than window width, determines list fallback and docked/overlay details; thresholds live in `VIEW_LAYOUT`. Agenda rows own their native button styles and group source/status near the title. Core layout tests include five overlapping lanes and a following non-overlapping event; browser checks covered 600, 1050 and 1600px containers.
-
-
-Calendar, proposals and activity are separate workspaces. Proposals expose a count independent of the displayed date range; activity contains external save history and deleted events. Settings, proposals and activity use the full-width `WorkspacePage`, which owns page gutters and scrolling. Shared page sections and preference rows have separate style ownership.
-
-Day and week views share `TimeGrid`. Date navigation supports direct date selection; clicking an empty time slot seeds the editor with that date and elapsed-time position, preserving repeated DST hours. Month cells offer date-specific creation. Editor fields reflow into one column when space is limited. Provider calendar colors decorate events while calendar labels and delivery states remain textual.
-
-All selectable calendar items use `EventButton`: `aria-pressed` drives a shared inset selection border, hover only changes the background, and keyboard focus retains its separate outline. `CalendarPage` owns the selected item ID and a registry of currently mounted event buttons. Callback refs register and remove buttons as views change, so closing details focuses the matching button in the current view rather than retaining the original opener DOM node.
-
-
-## Host UI and theme contract
-
-The app uses the installed Kiro Crew public UI entry point (`@kirocrew/app-sdk/ui`) for `PageHeader`, `Btn`, `Badge`, `Input`, `Toggle` and `SegmentedControl`. Host components own common control styling, keyboard behavior and theme transitions; calendar CSS does not override their button appearance. The declaration subset in `platform/kiro/sdk.d.ts` matches the exports and props inspected in Kiro Crew 0.10.0-nightly.20261013t091113.
-
-Calendar styles consume the host semantic tokens directly: `--bg`, `--bg-elevated`, `--card`, `--text`, `--muted`, `--border`, `--accent`, `--accent-subtle`, status colors, `--font-body`, the `--text-*`/`--radius-*` scales and `--shadow-lg`. Local variables describe calendar geometry or provider event colors, not a parallel theme. Fixed hex colors, CSS token fallbacks and `!important` overrides are not used in the app styles.
-
-The public SDK does not expose a standalone native select or textarea with all required form attributes. `NativeSelect` and `NativeTextarea` retain native validation, disabled options and controlled values while sharing the verified host control tokens and `focus-ring`. The existing native dialog retains the editor's focus isolation, busy guard and unsaved-change flow; its surface, backdrop and shadow use host theme tokens. Time-grid geometry, overlap lanes, date cells and responsive layout remain calendar-owned.
-
-Host verification covered Kiro light/dark, Emerald light, 550px editor layout, SDK focus styling, and unsaved-input cancellation without creating events. The user's original theme/mode is restored after checks.
-
-
-Style ownership follows the UI role: `CalendarToolbar.css` owns toolbar placement, `layout/Popover` owns the date and display popup surface, outside-click/focus dismissal, Escape handling and trigger focus return, and `styles/forms.css` owns field layout. `NativeSelect`, `NativeTextarea` and `NativeCheckbox` share native control styling in `platform/kiro/NativeControls.css`. `InlineError` owns the typography, color and alert semantics of inline failures. Field labels own their layout directly; no ancestor label selector overrides the time-offset choice. Editor spacing responds to the actual dialog container width. The editor body owns the gaps between fields, feedback and actions; its children do not add competing outer margins. Input values, time-zone conversion and the unsaved-change guard remain owned by `EventForm`.
-
-
-Page gutters share the host `PageHeader` breakpoint and spacing: 16px by default, 24px from 48rem, expressed through the host spacing token. Calendar content, workspace tabs, settings and feedback consume the same gutter value. Agenda uses the full available width. `SettingsLayout` owns the left-aligned 800px settings body and preference rows. `WorkspacePage` owns scrolling and page gutters; its shared `Section` owns headers, optional actions, descriptions, body spacing and section dividers for settings, saved drafts and history. `Disclosure` owns expandable headings and body spacing for conversation selection, hook instructions and deleted events. Record rows share the list styles in the same layout stylesheet. Event suggestions appear first in settings, followed by the default calendar and external connections; provider group layout remains local to `CalendarConnections`.
-
-
-`layout/Controls` owns shared control geometry. `ControlCell` sets a single outer block size of ten host spacing units (40px at the default scale) for header and toolbar controls. `ControlRow` combines a flexible field, optional metadata and an action, used by calendar search and conversation selection. SDK colors, borders, padding, focus and interaction behavior remain host-owned. No descendant selectors or per-button height overrides are used; page styles own only the row's placement. Conversation-example actions use complete locale messages for both expanded and collapsed states.
+The UI uses React and TypeScript; the backend uses Python. The macOS helper uses Swift and EventKit. Local Python tests need `aiohttp`; run them with Crew's bundled Python as well so API tests are not skipped.
+
+```sh
+npm test
+npm run build
+```
+
+On macOS, also check UTC behavior and formatting. The formatting command requires Ruff and `swift-format` in addition to the installed Prettier dependency.
+
+```sh
+TZ=UTC npm test
+npm run format:check
+```
+
+Tests cover date boundaries, DST, overlap layout, localization, packaging, event lifecycle rules, concurrent requests, uncertain saves and API access. Use the installed app to check chat registration and native EventKit writes. For UI changes, check narrow containers, scrolling, keyboard focus and host themes.
+
+| Start here                                                             | Responsibility                                                    |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`ui/src/App.tsx`](ui/src/App.tsx)                                     | Workspace tabs, editors and app-level actions                     |
+| [`ui/src/live/useCalendarData.ts`](ui/src/live/useCalendarData.ts)     | Queries and refreshes                                             |
+| [`ui/src/layout/`](ui/src/layout/)                                     | Shared sections, disclosures, popovers and inline errors          |
+| [`ui/src/calendar/time.ts`](ui/src/calendar/time.ts)                   | Local dates, UTC offsets and elapsed time                         |
+| [`backend/event_service.py`](backend/event_service.py)                 | Event creation, edits, draft acceptance, deletion and restoration |
+| [`backend/entry_policy.py`](backend/entry_policy.py)                   | Actions permitted for each event and save state                   |
+| [`backend/calendar_service.py`](backend/calendar_service.py)           | Provider operations and external save results                     |
+| [`backend/conversation_schedule.py`](backend/conversation_schedule.py) | Chat registration and request IDs                                 |
+| [`native/CrewCalendarBridge.swift`](native/CrewCalendarBridge.swift)   | macOS authorization, confirmation and EventKit access             |
+
+Keep these contracts when changing the app:
+
+- The API and UI share event action policy. Mutations check revisions; accepting a draft updates the existing record.
+- A registration request ID is reused for retries. The same ID and contents return the existing item; a new ID represents a new operation. A replay cannot overwrite later edits or restore a deleted event.
+- Failures before a provider write are distinct from unknown outcomes after dispatch. Uncertain saves are verified before another submission is allowed. An external failure never silently becomes a Crew event.
+- Host SDK components own common controls and theme styling. Shared layout components own spacing; individual pages should not override their internals.
+- Write project documentation in English. Update UI copy in [`en.ts`](ui/src/i18n/en.ts) first, then keep [`ko.ts`](ui/src/i18n/ko.ts) aligned. Preserve user input when the language or time zone changes.

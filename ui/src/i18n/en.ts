@@ -102,7 +102,7 @@ export const en = {
   "common.readOnly": "· Read-only",
   "common.defaultCalendar": "Default calendar",
   "settings.localStorageDescription":
-    "Crew Calendar stores events locally in this Crew. No external account is required.",
+    "Crew Calendar stores events in this Crew installation without an external account. Events do not sync between Crew installations.",
   "common.defaultSaveCalendar": "Default save calendar",
   "common.showCrewCalendar": "Show Crew Calendar",
   "common.saveToCalendar": "Save to calendar",
@@ -179,7 +179,8 @@ export const en = {
   "common.externalSaveCancelled": "External save cancelled",
   "common.externalSavePending": "External save pending",
   "suggestions.loadError": "Could not load settings. Try again.",
-  "suggestions.saveError": "Could not save changes. Previous settings are unchanged.",
+  "suggestions.saveError":
+    "Could not confirm the change. Refresh settings before trying again.",
   "common.eventSuggestionsInConversations": "Event suggestions in conversations",
   "suggestions.showExample": "View conversation example",
   "suggestions.hideExample": "Hide conversation example",
@@ -217,7 +218,7 @@ export const en = {
   "suggestions.runUnknown":
     "The hook is registered, but its recent run status is unavailable.",
   "editor.timezoneHint":
-    "Time zone: {zone}. Saves a single event without repeats or invitations.",
+    "Time zone: {zone}. Saves a single event without repeats or invitations. This app does not send reminders.",
   "trash.count": "Deleted events · {count}",
   "suggestions.conversationCount": "Enabled conversations · {count}",
   "time.occurrenceOffset": "Occurrence {occurrence} · UTC{offset}",
