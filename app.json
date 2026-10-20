@@ -2,7 +2,7 @@
   "name": "crew-calendar",
   "version": "0.1.0",
   "displayName": "Calendar",
-  "description": "Create and manage events in Crew Calendar. Discuss suggestions in chat and register after agreeing. Keep drafts only when requested. Apple Calendar saves require native confirmation on macOS.",
+  "description": "Create events in Crew, agree on a time in chat, or keep a draft for later. Browse your schedule by day, week, month or year. Scheduling suggestions are optional and apply to the conversations you choose. On macOS, view Apple Calendar events and confirm new saves in a native window.",
   "tags": [
     "calendar",
     "productivity",
@@ -57,5 +57,14 @@
     ],
     "arch": []
   },
-  "minKiroCrewVersion": "0.9.0-nightly.20261003t172902"
+  "minKiroCrewVersion": "0.9.0-nightly.20261003t172902",
+  "author": "Jihun Kim",
+  "iconPath": "ui/assets/store/icon.png",
+  "heroImage": "ui/assets/store/hero.jpg",
+  "heroImageDetail": "ui/assets/store/hero-detail.jpg",
+  "screenshots": [
+    "ui/assets/store/screenshot-week.png",
+    "ui/assets/store/screenshot-conversation.png",
+    "ui/assets/store/screenshot-event.png"
+  ]
 }
