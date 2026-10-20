@@ -7,6 +7,7 @@ import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
+from support import use_timezone
 from support import FIELDS, external_calendar, load
 
 routes = load("calendar_routes")
@@ -29,6 +30,7 @@ class Request:
 @unittest.skipUnless(web, "aiohttp required")
 class CalendarRouteTest(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        use_timezone(self)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.ctx = SimpleNamespace(data_dir=Path(self.tmp.name))

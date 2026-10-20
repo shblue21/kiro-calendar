@@ -37,6 +37,7 @@ class CalendarConnection:
             )
         return {
             **state,
+            "confirmation": {"mode": confirmation["mode"]},
             "id": self.id,
             "provider": self.provider_key,
             "displayName": self.display_name(),

@@ -7,6 +7,8 @@ export const en = {
     "Could not load calendar connections. External events may be missing from this view. {error}",
   "settings.loadError": "Could not load calendar preferences. {error}",
   "calendar.lookupError": "Event lookup failed. {error}",
+  "editor.titleTooLong": "Use no more than 120 characters for the title.",
+  "editor.notesTooLong": "Use no more than 2,000 characters for the description.",
   "editor.destinationLoading": "Wait for the default calendar to load, then try again.",
   "common.eventDeleted": "Event deleted.",
   "common.eventRestored": "Event restored.",

@@ -44,9 +44,7 @@ def delivery(item):
         and _connection_name(value.get("connectionName"))
         and _strings(value, "calendarTitle", "sourceTitle")
         and _strings(value.get("error", {}), "code", "message")
-        and _strings(
-            value.get("confirmation", {}), "mode", "actionLabel", "pendingMessage"
-        )
+        and _strings(value.get("confirmation", {}), "mode")
         and _strings(value.get("verification", {}), "state")
         and _strings(value.get("verification", {}).get("error", {}), "code", "message")
         and type(value.get("canReconcile")) is bool

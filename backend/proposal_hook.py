@@ -55,4 +55,8 @@ def run(data_dir: str) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(run(sys.argv[1]) if len(sys.argv) == 2 else 2)
+    if len(sys.argv) != 2:
+        # This hook supplies context; invocation errors must never signal a deny.
+        print("Usage: proposal_hook.py DATA_DIR", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(run(sys.argv[1]))

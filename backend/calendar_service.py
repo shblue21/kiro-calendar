@@ -73,24 +73,32 @@ class CalendarService:
                 )
         return {"connections": result}
 
-    def validate_target(self, target):
-        if target == CREW:
-            return dict(CREW)
+    def _external_target(self, target):
         if not isinstance(target, dict) or set(target) != {
             "connectionId",
             "calendarId",
         }:
             raise DraftError("저장할 캘린더를 선택하세요.")
-        binding = self.connections.get(target.get("connectionId"))
-        binding.require("create")
-        if not any(
-            c["id"] == target.get("calendarId") and c["writable"]
-            for c in binding.adapter.calendars()
-        ):
+        binding = self.connections.get(target["connectionId"])
+        state = binding.require("create")
+        chosen = next(
+            (
+                c
+                for c in binding.adapter.calendars()
+                if c["id"] == target["calendarId"] and c["writable"]
+            ),
+            None,
+        )
+        if chosen is None:
             raise CalendarError(
                 "read_only",
                 "저장 위치에 접근할 수 없습니다. 다른 캘린더를 직접 선택하세요.",
             )
+        return binding, state, chosen
+
+    def validate_target(self, target):
+        if target != CREW:
+            self._external_target(target)
         return dict(target)
 
     def preferences(self, fields):
@@ -203,12 +211,8 @@ class CalendarService:
         snapshot = self.repository.get_item(item_id)
         require_revision(snapshot, revision)
         require_action(snapshot, "submit")
-        target = self.validate_target(snapshot["destination"])
-        binding = self.connections.get(target["connectionId"])
-        state = binding.require("create")
-        chosen = next(
-            c for c in binding.adapter.calendars() if c["id"] == target["calendarId"]
-        )
+        target = dict(snapshot["destination"])
+        binding, state, chosen = self._external_target(target)
         with self.repository.transaction():
             item = self.repository.get_item(item_id)
             require_revision(item, revision)
@@ -229,7 +233,7 @@ class CalendarService:
                 and current["itemRevision"] == revision
                 and current["payload"] == payload
                 and current["provider"] == binding.provider_key
-                and current["confirmation"] == state["confirmation"]
+                and current["confirmation"].get("mode") == state["confirmation"]["mode"]
             ):
                 return current
             op = {
@@ -255,6 +259,7 @@ class CalendarService:
             return op
 
     def claim(self, item_id, operation_id):
+        # Freeze the intent and dispatch once. The provider ledger owns write evidence.
         with self.repository.transaction():
             item = self.repository.get_item(item_id)
             op = self.operation_for(item, operation_id)
@@ -274,12 +279,14 @@ class CalendarService:
 
     def execute_claimed(self, item_id, operation_id):
         op = self.get_operation(item_id, operation_id)
+        if op["state"] != "awaiting_confirmation":
+            return op
         try:
             binding = self.connections.get(op["target"]["connectionId"])
             state = binding.require("create")
             if (
                 op["provider"] != binding.provider_key
-                or op["confirmation"] != state["confirmation"]
+                or op["confirmation"].get("mode") != state["confirmation"]["mode"]
             ):
                 raise CalendarError(
                     "connection_changed",

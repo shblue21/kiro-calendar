@@ -44,12 +44,7 @@ class AppleCalendarProvider:
                 if state != "ready"
                 else ""
             ),
-            "authorizationLabel": "Apple Calendar 연결",
-            "confirmation": {
-                "mode": "provider",
-                "actionLabel": "Mac에서 최종 확인",
-                "pendingMessage": "Mac의 Crew Calendar 연결 창에서 내용을 확인하세요. 이 패널을 닫아도 확인 창은 취소되지 않습니다.",
-            },
+            "confirmation": {"mode": "provider"},
         }
 
     def status(self) -> dict:
@@ -106,50 +101,66 @@ class AppleCalendarProvider:
         folder = self.data_dir / "native-requests" / uuid.uuid4().hex
         folder.mkdir(parents=True, mode=0o700)
         request_path, response_path = folder / "request.json", folder / "response.json"
-        atomic_json(request_path, {"action": action, **(payload or {})})
-        try:
-            subprocess.run(
-                [
-                    "/usr/bin/open",
-                    "-n",
-                    "-W",
-                    str(self.bundle),
-                    "--args",
-                    str(request_path),
-                ],
-                capture_output=True,
-                timeout=INTERACTIVE_TIMEOUT_SECONDS
-                if action in {"create", "authorize"}
-                else QUERY_TIMEOUT_SECONDS,
-            )
-            if not response_path.is_file():
+        # Only macOS launches this helper. A shared lock marks an active response reader.
+        import fcntl
+
+        with (folder / ".waiter.lock").open("wb") as waiter:
+            fcntl.flock(waiter, fcntl.LOCK_SH)
+            timed_out = False
+            try:
+                atomic_json(request_path, {"action": action, **(payload or {})})
+                subprocess.run(
+                    [
+                        "/usr/bin/open",
+                        "-n",
+                        "-W",
+                        str(self.bundle),
+                        "--args",
+                        str(request_path),
+                    ],
+                    capture_output=True,
+                    timeout=INTERACTIVE_TIMEOUT_SECONDS
+                    if action in {"create", "authorize"}
+                    else QUERY_TIMEOUT_SECONDS,
+                )
+                if not response_path.is_file():
+                    raise CalendarError(
+                        "outcome_unknown"
+                        if action == "create"
+                        else "helper_unavailable",
+                        "연결 프로그램의 응답을 확인하지 못했습니다. 저장을 다시 실행하지 말고 결과를 확인하세요."
+                        if action == "create"
+                        else "Mac의 캘린더 연결 프로그램을 실행하지 못했습니다.",
+                    )
+                value = json.loads(response_path.read_text(encoding="utf-8"))
+                if not isinstance(value, dict):
+                    raise ValueError()
+                return value
+            except subprocess.TimeoutExpired as exc:
+                timed_out = True
+                # The native window may still be open. A create is NEVER automatically repeated.
+                raise CalendarError(
+                    "outcome_unknown" if action == "create" else "helper_timeout",
+                    "Mac 연결 창을 확인하세요. 완료 여부를 확인하기 전에는 다시 저장하지 않습니다.",
+                ) from exc
+            except (ValueError, OSError) as exc:
                 raise CalendarError(
                     "outcome_unknown" if action == "create" else "helper_unavailable",
-                    "연결 프로그램의 응답을 확인하지 못했습니다. 저장을 다시 실행하지 말고 결과를 확인하세요."
-                    if action == "create"
-                    else "Mac의 캘린더 연결 프로그램을 실행하지 못했습니다.",
-                )
-            value = json.loads(response_path.read_text(encoding="utf-8"))
-            if not isinstance(value, dict):
-                raise ValueError()
-            return value
-        except subprocess.TimeoutExpired as exc:
-            # The native window may still be open. A create is NEVER automatically repeated.
-            raise CalendarError(
-                "outcome_unknown" if action == "create" else "helper_timeout",
-                "Mac 연결 창을 확인하세요. 완료 여부를 확인하기 전에는 다시 저장하지 않습니다.",
-            ) from exc
-        except (ValueError, OSError) as exc:
-            raise CalendarError(
-                "outcome_unknown" if action == "create" else "helper_unavailable",
-                "캘린더 연결 결과를 읽지 못했습니다.",
-            ) from exc
-        finally:
-            # Leave a pending create's request alive for its native confirmation window.
-            if response_path.exists():
-                request_path.unlink(missing_ok=True)
-                response_path.unlink(missing_ok=True)
+                    "캘린더 연결 결과를 읽지 못했습니다.",
+                ) from exc
+            finally:
+                # The helper reads once before showing UI. A delayed, unread request
+                # may no longer start after timeout; a running save keeps its journal.
                 try:
-                    folder.rmdir()
-                except OSError:
-                    pass
+                    request_path.unlink(missing_ok=True)
+                finally:
+                    fcntl.flock(waiter, fcntl.LOCK_UN)
+                # Release BEFORE checking: either this reader or the finishing helper
+                # must observe the completed response after the reader has departed.
+                if not timed_out or response_path.exists():
+                    for name in ("response.json", ".waiter.lock"):
+                        (folder / name).unlink(missing_ok=True)
+                    try:
+                        folder.rmdir()
+                    except FileNotFoundError:
+                        pass  # The helper may have completed the same cleanup.

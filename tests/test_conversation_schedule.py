@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
+from support import use_timezone
 from support import TEST_TIMEZONE, local_time, Services, load
 
 ConversationSchedule = load("conversation_schedule").ConversationSchedule
@@ -30,6 +31,7 @@ FIELDS = {
 
 class ConversationScheduleTest(unittest.TestCase):
     def setUp(self):
+        use_timezone(self)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.services = Services(self.tmp.name)

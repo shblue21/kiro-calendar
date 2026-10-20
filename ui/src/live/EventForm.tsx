@@ -13,7 +13,12 @@ import { notice, NoticeError, renderNotice } from "../i18n/notice.ts";
 import { errorNotice } from "./api";
 import { TimeField } from "./TimeField";
 import type { CalendarItem } from "./types";
-import { eventEnd, TITLE_LIMIT, NOTES_LIMIT, type EventFields } from "./eventFields";
+import {
+  eventEnd,
+  eventTextError,
+  normalizeTitle,
+  type EventFields,
+} from "./eventFields";
 type Props = {
   item?: CalendarItem;
   initialTimes?: EventTimes;
@@ -119,8 +124,13 @@ export function EventForm({
         start: resolveTime(values.start, timezone),
         end: resolveTime(values.end, timezone),
       };
-      if (!fields.title.trim() || Date.parse(fields.end) <= Date.parse(fields.start))
+      if (
+        !normalizeTitle(fields.title) ||
+        Date.parse(fields.end) <= Date.parse(fields.start)
+      )
         throw new NoticeError(notice("editor.invalidFields"));
+      const textError = eventTextError(fields);
+      if (textError) throw new NoticeError(notice(textError));
       await action(fields);
     } catch (e) {
       setError(errorNotice(e));
@@ -165,7 +175,6 @@ export function EventForm({
               <Input
                 autoFocus
                 required
-                maxLength={TITLE_LIMIT}
                 value={values.title}
                 onChange={(e) => set("title", e.target.value)}
               />
@@ -191,7 +200,6 @@ export function EventForm({
               {t("common.description")}
               <NativeTextarea
                 rows={3}
-                maxLength={NOTES_LIMIT}
                 value={values.notes}
                 onChange={(e) => set("notes", e.target.value)}
               />

@@ -11,6 +11,7 @@ from threading import Event
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
+from support import use_timezone
 from support import (
     Services,
     CalendarService,
@@ -26,6 +27,7 @@ from support import (
 
 class CalendarTest(unittest.TestCase):
     def setUp(self):
+        use_timezone(self)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.services, self.service, self.provider = external_calendar(self.tmp.name)
@@ -69,6 +71,68 @@ class CalendarTest(unittest.TestCase):
                     storage.save_connection("primary", {"selectedCalendarIds": []})
                 self.assertEqual(path.read_text(), original)
 
+    def test_prepare_resolves_provider_once_and_execute_rechecks_permission(self):
+        with (
+            patch.object(self.provider, "status", wraps=self.provider.status) as status,
+            patch.object(
+                self.provider, "calendars", wraps=self.provider.calendars
+            ) as calendars,
+        ):
+            op = self.prepare()
+            self.assertEqual(status.call_count, 1)
+            self.assertEqual(calendars.call_count, 1)
+        self.service.claim(self.item["id"], op["id"])
+        denied = {**self.provider.status(), "state": "denied"}
+        with patch.object(self.provider, "status", return_value=denied) as status:
+            result = self.service.execute_claimed(self.item["id"], op["id"])
+            self.assertEqual(status.call_count, 1)
+        self.assertEqual(result["state"], "failed")
+        self.assertEqual(self.provider.created, 0)
+
+    def test_confirmation_copy_is_not_part_of_execution_identity(self):
+        op = self.prepare()
+        self.assertEqual(op["confirmation"], {"mode": "app"})
+        # Existing stored requests can contain display fields; only mode is semantic.
+        item = self.service.repository.get_item(self.item["id"])
+        item["delivery"]["confirmation"].update(
+            actionLabel="Old label", pendingMessage="Old copy"
+        )
+        self.service.repository.save_item(item)
+        state = self.provider.status()
+        state["confirmation"].update(actionLabel="New label", pendingMessage="New copy")
+        with patch.object(self.provider, "status", return_value=state):
+            self.assertEqual(self.prepare()["id"], op["id"])
+            self.service.claim(self.item["id"], op["id"])
+            self.assertEqual(
+                self.service.execute_claimed(self.item["id"], op["id"])["state"],
+                "confirmed",
+            )
+        self.assertEqual(self.provider.created, 1)
+
+    def test_confirmation_mode_change_still_blocks_execution(self):
+        op = self.prepare()
+        self.service.claim(self.item["id"], op["id"])
+        state = self.provider.status()
+        state["confirmation"] = {"mode": "provider"}
+        with patch.object(self.provider, "status", return_value=state):
+            result = self.service.execute_claimed(self.item["id"], op["id"])
+        self.assertEqual(result["state"], "failed")
+        self.assertEqual(result["error"]["code"], "connection_changed")
+        self.assertEqual(self.provider.created, 0)
+
+    def test_text_limits_count_code_points(self):
+        domain = load("calendar_domain")
+        for title in ["a" * 120, "😀" * 120, "e\u0301" * 60]:
+            with self.subTest(title=title):
+                value = domain.event_payload(
+                    {**FIELDS, "title": title, "notes": "😀" * 2000}
+                )
+                self.assertEqual(value["title"], title)
+                with self.assertRaises(ValueError):
+                    domain.event_payload({**FIELDS, "title": title + "a"})
+        with self.assertRaises(ValueError):
+            domain.event_payload({**FIELDS, "notes": "😀" * 2001})
+
     def test_concurrent_claims_only_one_executes(self):
         op = self.prepare()
         with ThreadPoolExecutor(max_workers=4) as pool:
@@ -87,6 +151,36 @@ class CalendarTest(unittest.TestCase):
                 self.item["id"], {"revision": self.item["revision"]}
             )
         self.assertFalse(self.service.claim(self.item["id"], op["id"])[1])
+        self.assertEqual(self.provider.created, 1)
+
+    def test_interrupted_claim_recovers_only_after_provider_seals_old_operation(self):
+        op = self.prepare()
+        self.assertTrue(self.service.claim(self.item["id"], op["id"])[1])
+        # Restart after claim, before dispatch. The frozen intent remains immutable.
+        self.service = CalendarService(
+            Services(self.tmp.name).repository,
+            CalendarStorage(self.tmp.name),
+            registry(self.provider),
+        )
+        self.assertFalse(self.service.claim(self.item["id"], op["id"])[1])
+        with self.assertRaises(CalendarError):
+            self.prepare()
+        self.provider.verify = {"state": "cancelled"}
+        result = self.service.reconcile(self.item["id"], op["id"])
+        self.assertEqual(result["state"], "cancelled")
+        # A delayed worker does not dispatch an already cancelled operation.
+        self.assertEqual(
+            self.service.execute_claimed(self.item["id"], op["id"])["state"],
+            "cancelled",
+        )
+        self.assertEqual(self.provider.created, 0)
+        fresh = self.prepare()
+        self.assertNotEqual(fresh["id"], op["id"])
+        self.assertTrue(self.service.claim(self.item["id"], fresh["id"])[1])
+        self.assertEqual(
+            self.service.execute_claimed(self.item["id"], fresh["id"])["state"],
+            "confirmed",
+        )
         self.assertEqual(self.provider.created, 1)
 
     def test_external_event_projection_preserves_origin_and_partial_warnings(self):

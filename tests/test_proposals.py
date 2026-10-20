@@ -7,6 +7,7 @@ import unittest
 import uuid
 from pathlib import Path
 
+from support import use_timezone
 from support import TEST_TIMEZONE, local_time, ROOT, Services, load
 
 A = {
@@ -26,6 +27,7 @@ FIELDS = {
 
 class ProposalTest(unittest.TestCase):
     def setUp(self):
+        use_timezone(self)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
@@ -128,6 +130,50 @@ def call(msg_id: int, args: dict, session_key: str | None) -> dict:
             }
         }
     return {"jsonrpc": "2.0", "id": msg_id, "method": "tools/call", "params": params}
+
+
+class HookProcessTest(unittest.TestCase):
+    def test_invalid_argument_count_is_an_error_not_a_deny(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for args in ([], [tmp, "extra"]):
+                with self.subTest(args=args):
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            "-I",
+                            str(ROOT / "backend" / "proposal_hook.py"),
+                            *args,
+                        ],
+                        input="{}",
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    self.assertEqual(result.returncode, 1)
+                    self.assertEqual(result.stdout, "")
+                    self.assertIn("Usage:", result.stderr)
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+
+    def test_valid_invocation_preserves_success_and_invalid_input_behavior(self):
+        with tempfile.TemporaryDirectory(prefix="calendar hook ") as tmp:
+            for event, expected in (("{}", 0), ("not json", 1)):
+                with self.subTest(event=event):
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            "-I",
+                            str(ROOT / "backend" / "proposal_hook.py"),
+                            tmp,
+                        ],
+                        input=event,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    self.assertEqual(result.returncode, expected)
+                    self.assertEqual(result.stdout, "")
+                    self.assertEqual(bool(result.stderr), expected == 1)
+            self.assertEqual(list(Path(tmp).iterdir()), [])
 
 
 class McpServerTest(unittest.TestCase):

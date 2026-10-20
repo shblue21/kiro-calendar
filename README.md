@@ -147,10 +147,9 @@ npm test
 npm run build
 ```
 
-On macOS, also check UTC behavior and formatting. The formatting command requires Ruff and `swift-format` in addition to the installed Prettier dependency.
+Tests select their time zones explicitly, independently of the host environment. On macOS, also check formatting. The formatting command requires Ruff and `swift-format` in addition to the installed Prettier dependency.
 
 ```sh
-TZ=UTC npm test
 npm run format:check
 ```
 

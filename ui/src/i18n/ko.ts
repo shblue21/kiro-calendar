@@ -8,6 +8,8 @@ export const ko = {
     "캘린더 연결 정보를 불러오지 못했습니다. 외부 일정이 이 화면에 표시되지 않을 수 있습니다. {error}",
   "settings.loadError": "기본 캘린더 설정을 불러오지 못했습니다. {error}",
   "calendar.lookupError": "일정 조회 실패. {error}",
+  "editor.titleTooLong": "제목은 120자 이내로 입력하세요.",
+  "editor.notesTooLong": "설명은 2,000자 이내로 입력하세요.",
   "editor.destinationLoading": "기본 저장 위치를 불러온 뒤 다시 시도하세요.",
   "common.eventDeleted": "일정을 삭제했습니다.",
   "common.eventRestored": "일정을 복원했습니다.",

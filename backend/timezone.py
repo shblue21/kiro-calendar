@@ -1,6 +1,5 @@
 """One clock zone: the operating system running the Crew gateway."""
 
-import os
 import platform
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -15,13 +14,11 @@ def system_timezone() -> str:
 
             name = get_localzone_name()
         else:
-            name = os.environ.get("TZ", "").lstrip(":")
-            if not name or name.startswith("/"):
-                target = str(Path(name or "/etc/localtime").resolve(strict=True))
-                if "/zoneinfo/" in target:
-                    name = target.split("/zoneinfo/", 1)[1]
-                else:
-                    name = Path("/etc/timezone").read_text(encoding="utf-8").strip()
+            target = str(Path("/etc/localtime").resolve(strict=True))
+            if "/zoneinfo/" in target:
+                name = target.split("/zoneinfo/", 1)[1]
+            else:
+                name = Path("/etc/timezone").read_text(encoding="utf-8").strip()
         ZoneInfo(name)
         return name
     except (ImportError, OSError, ValueError, TypeError, KeyError) as exc:

@@ -46,7 +46,74 @@ func read(_ url: URL) throws -> Object {
     return value
 }
 
+/// Called only after publishing the response. An active Python reader owns a shared lock.
+func removeAbandonedResponse(_ response: URL) {
+    let folder = response.deletingLastPathComponent()
+    let fd = Darwin.open(folder.appendingPathComponent(".waiter.lock").path, O_RDWR)
+    guard fd >= 0 else { return }  // The reader may already have removed the folder.
+    defer { Darwin.close(fd) }
+    guard flock(fd, LOCK_EX | LOCK_NB) == 0 else { return }
+    defer { flock(fd, LOCK_UN) }
+    for name in ["request.json", "response.json", ".waiter.lock"] {
+        try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
+    }
+    // Never remove a nonempty folder or touch the separate native save journal.
+    _ = Darwin.rmdir(folder.path)
+}
+
+/// One lock covers confirmation, EventKit writes, and reconciliation of an operation.
+final class SaveJournal {
+    let url: URL
+    private let fd: Int32
+
+    init?(_ url: URL) throws {
+        self.url = url
+        let descriptor = Darwin.open(url.path + ".lock", O_CREAT | O_RDWR, 0o600)
+        guard descriptor >= 0 else {
+            throw BridgeError(
+                code: "storage_unavailable", message: "저장 기록을 준비하지 못했습니다.")
+        }
+        guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
+            Darwin.close(descriptor)
+            return nil
+        }
+        fd = descriptor
+    }
+    deinit {
+        flock(fd, LOCK_UN)
+        Darwin.close(fd)
+    }
+    func load() throws -> Object? {
+        do { return try read(url) } catch let error as CocoaError
+            where error.code == .fileReadNoSuchFile
+        {
+            return nil
+        }
+    }
+    func save(_ value: Object) throws { try atomic(value, at: url) }
+
+    func reconcileUnwritten(_ journal: Object?) throws -> Object? {
+        if journal == nil || journal?["state"] as? String == "awaiting_confirmation" {
+            // Seal before releasing the lock: a delayed create must see cancellation.
+            let result: Object = ["state": "cancelled"]
+            try save(result)
+            return result
+        }
+        if let state = journal?["state"] as? String,
+            ["cancelled", "failed"].contains(state)
+        {
+            return journal
+        }
+        return nil
+    }
+}
+
 private let maximumTitleLength = 120
+private let maximumNotesLength = 2000
+func validEventText(title: String, notes: String) -> Bool {
+    title.unicodeScalars.count <= maximumTitleLength
+        && notes.unicodeScalars.count <= maximumNotesLength
+}
 private let confirmationTimeout: TimeInterval = 120
 struct SaveOperation {
     let id: String
@@ -137,7 +204,10 @@ final class Bridge: NSObject, NSApplicationDelegate {
         finish(result)
     }
     func finish(_ value: Object) {
-        if let url = responseURL { try? atomic(value, at: url) }
+        if let url = responseURL {
+            try? atomic(value, at: url)
+            removeAbandonedResponse(url)
+        }
         NSApp.terminate(nil)
     }
     func status() -> Object {
@@ -249,6 +319,16 @@ final class Bridge: NSObject, NSApplicationDelegate {
         }
         return ["events": rows, "errors": errors, "truncated": false]
     }
+    func journalURL(_ id: String) throws -> URL {
+        guard id.range(of: "^[0-9a-f]{32}$", options: .regularExpression) != nil else {
+            throw BridgeError(code: "invalid_request", message: "잘못된 저장 요청입니다.")
+        }
+        let journal = dataRoot.appendingPathComponent("native-ledger")
+        try FileManager.default.createDirectory(
+            at: journal, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
+        return journal.appendingPathComponent(id + ".json")
+    }
     func operation() throws -> SaveOperation {
         try requireAccess()
         guard let op = request["operation"] as? Object,
@@ -256,9 +336,7 @@ final class Bridge: NSObject, NSApplicationDelegate {
             let target = op["target"] as? Object
         else { throw BridgeError(code: "invalid_request", message: "저장 내용을 읽지 못했습니다.") }
         let id = try string(op, "id")
-        guard id.range(of: "^[0-9a-f]{32}$", options: .regularExpression) != nil else {
-            throw BridgeError(code: "invalid_request", message: "잘못된 저장 요청입니다.")
-        }
+        let journalURL = try journalURL(id)
         guard
             let calendar = store.calendar(
                 withIdentifier: try string(target, "calendarId"))
@@ -268,20 +346,17 @@ final class Bridge: NSObject, NSApplicationDelegate {
         let first = try date(string(payload, "start"))
         let last = try date(string(payload, "end"))
         let title = try string(payload, "title")
+        let notes = payload["notes"] as? String ?? ""
         guard first < last, last.timeIntervalSince(first) <= 7 * 86400,
             let timeZone = TimeZone(identifier: try string(payload, "timezone")),
-            title.count <= maximumTitleLength
+            validEventText(title: title, notes: notes)
         else {
             throw BridgeError(code: "invalid_request", message: "제목·시간·시간대를 확인하세요.")
         }
-        let journal = dataRoot.appendingPathComponent("native-ledger")
-        try FileManager.default.createDirectory(
-            at: journal, withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700])
         return SaveOperation(
-            id: id, title: title, notes: payload["notes"] as? String ?? "",
+            id: id, title: title, notes: notes,
             timeZone: timeZone, calendar: calendar, start: first, end: last,
-            journalURL: journal.appendingPathComponent(id + ".json"))
+            journalURL: journalURL)
     }
     func matches(_ event: EKEvent, _ op: SaveOperation) -> Bool {
         event.calendar.calendarIdentifier == op.calendar.calendarIdentifier
@@ -324,18 +399,28 @@ final class Bridge: NSObject, NSApplicationDelegate {
         ]
     }
     func reconcile() throws -> Object {
-        let op = try operation()
-        let journal = try? read(op.journalURL)
-        if let journal, let state = journal["state"] as? String,
-            ["cancelled", "failed"].contains(state)
-        {
-            return journal
+        guard let operation = request["operation"] as? Object else {
+            throw BridgeError(code: "invalid_request", message: "저장 내용을 읽지 못했습니다.")
         }
-        let result = readBack(op, journal)
-        if result["state"] as? String == "confirmed" {
-            try atomic(result, at: op.journalURL)
+        let path = try journalURL(string(operation, "id"))
+        guard let ledger = try SaveJournal(path) else {
+            return ["state": "awaiting_confirmation"]
         }
-        return result
+        return try withExtendedLifetime(ledger) {
+            let journal = try ledger.load()
+            // A confirmed receipt is never reclassified as unwritten.
+            if operation["state"] as? String != "confirmed",
+                let result = try ledger.reconcileUnwritten(journal)
+            {
+                return result
+            }
+            let op = try self.operation()
+            let result = readBack(op, journal)
+            if result["state"] as? String == "confirmed" {
+                try ledger.save(result)
+            }
+            return result
+        }
     }
     func requireActive() throws {
         let metadata = dataRoot.deletingLastPathComponent().appendingPathComponent(
@@ -354,114 +439,112 @@ final class Bridge: NSObject, NSApplicationDelegate {
         guard op.calendar.allowsContentModifications else {
             throw BridgeError(code: "read_only", message: "이 캘린더는 읽기 전용입니다.")
         }
-        let fd = Darwin.open(path.path + ".lock", O_CREAT | O_RDWR, 0o600)
-        guard fd >= 0 else {
-            throw BridgeError(
-                code: "storage_unavailable", message: "저장 기록을 준비하지 못했습니다.")
-        }
-        defer {
-            flock(fd, LOCK_UN)
-            Darwin.close(fd)
-        }
-        guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
+        guard let ledger = try SaveJournal(path) else {
             return ["state": "awaiting_confirmation"]
         }
-        if FileManager.default.fileExists(atPath: path.path) {
+        return try withExtendedLifetime(ledger) {
             writeMayHaveHappened = true
-            let journal = try read(path)
-            if let state = journal["state"] as? String,
-                ["cancelled", "failed"].contains(state)
-            {
-                return journal
+            if let journal = try ledger.load() {
+                if let state = journal["state"] as? String,
+                    ["cancelled", "failed"].contains(state)
+                {
+                    return journal
+                }
+                return readBack(op, journal)
             }
-            return readBack(op, journal)
-        }
-        try atomic(["state": "awaiting_confirmation"], at: path)
-        let alert = NSAlert()
-        alert.messageText = nativeText(
-            "Save this event to Apple Calendar?", "이 일정을 Apple Calendar에 저장할까요?")
-        let f = DateFormatter()
-        f.locale = .current
-        f.dateStyle = .full
-        f.timeStyle = .short
-        f.timeZone = op.timeZone
-        let destination = nativeText("Calendar", "저장 위치")
-        let scope = nativeText(
-            "Creates one event. No attendees or recurrence will be added.",
-            "단일 일정만 생성합니다. 참석자 초대와 반복은 추가하지 않습니다.")
-        alert.informativeText =
-            "\(op.title)\n\n\(f.string(from: op.start))\n~ \(f.string(from: op.end))\n\(op.timeZone.identifier)\n\n\(destination): \(op.calendar.source.title) · \(op.calendar.title)\n\n\(op.notes)\n\n\(scope)"
-        alert.addButton(withTitle: nativeText("Save to this calendar", "이 캘린더에 저장"))
-        alert.addButton(withTitle: nativeText("Cancel", "취소"))
-        // Return is deliberately not a save shortcut; confirmation must be deliberate.
-        alert.buttons[0].keyEquivalent = ""
-        alert.buttons[1].keyEquivalent = "\u{1b}"
-        NSApp.activate(ignoringOtherApps: true)
-        let timer = Timer(timeInterval: confirmationTimeout, repeats: false) { _ in
-            NSApp.abortModal()
-        }
-        RunLoop.main.add(timer, forMode: .modalPanel)
-        let answer = alert.runModal()
-        timer.invalidate()
-        guard answer == .alertFirstButtonReturn else {
-            let result: Object = ["state": "cancelled"]
-            try atomic(result, at: path)
+            writeMayHaveHappened = false
+            try ledger.save(["state": "awaiting_confirmation"])
+            let alert = NSAlert()
+            alert.messageText = nativeText(
+                "Save this event to Apple Calendar?", "이 일정을 Apple Calendar에 저장할까요?")
+            let f = DateFormatter()
+            f.locale = .current
+            f.dateStyle = .full
+            f.timeStyle = .short
+            f.timeZone = op.timeZone
+            let destination = nativeText("Calendar", "저장 위치")
+            let scope = nativeText(
+                "Creates one event. No attendees or recurrence will be added.",
+                "단일 일정만 생성합니다. 참석자 초대와 반복은 추가하지 않습니다.")
+            alert.informativeText =
+                "\(op.title)\n\n\(f.string(from: op.start))\n~ \(f.string(from: op.end))\n\(op.timeZone.identifier)\n\n\(destination): \(op.calendar.source.title) · \(op.calendar.title)\n\n\(op.notes)\n\n\(scope)"
+            alert.addButton(withTitle: nativeText("Save to this calendar", "이 캘린더에 저장"))
+            alert.addButton(withTitle: nativeText("Cancel", "취소"))
+            // Return is deliberately not a save shortcut; confirmation must be deliberate.
+            alert.buttons[0].keyEquivalent = ""
+            alert.buttons[1].keyEquivalent = "\u{1b}"
+            NSApp.activate(ignoringOtherApps: true)
+            let timer = Timer(timeInterval: confirmationTimeout, repeats: false) { _ in
+                NSApp.abortModal()
+            }
+            RunLoop.main.add(timer, forMode: .modalPanel)
+            let answer = alert.runModal()
+            timer.invalidate()
+            guard answer == .alertFirstButtonReturn else {
+                let result: Object = ["state": "cancelled"]
+                try ledger.save(result)
+                return result
+            }
+            try requireAccess()
+            try requireActive()
+            guard
+                let current = store.calendar(
+                    withIdentifier: op.calendar.calendarIdentifier),
+                current.allowsContentModifications
+            else {
+                let result: Object = [
+                    "state": "failed",
+                    "error": [
+                        "code": "read_only", "message": "캘린더 권한이 변경되어 저장하지 않았습니다.",
+                    ],
+                ]
+                try ledger.save(result)
+                return result
+            }
+            // Journal is committed BEFORE EventKit. An uncertain save is never replayed.
+            try ledger.save(["state": "writing"])
+            let event = EKEvent(eventStore: store)
+            event.calendar = current
+            event.title = op.title
+            event.startDate = op.start
+            event.endDate = op.end
+            event.timeZone = op.timeZone
+            event.notes = op.notes
+            event.url = op.marker
+            writeMayHaveHappened = true
+            do { try store.save(event, span: .thisEvent, commit: true) } catch {
+                let result: Object = [
+                    "state": "unknown",
+                    "error": [
+                        "code": "outcome_unknown",
+                        "message": "저장 결과를 확인해야 합니다. 다시 생성하지 마세요.",
+                    ],
+                ]
+                try? ledger.save(result)
+                return result
+            }
+            let receipt: Object = ["state": "written", "event": eventView(event)]
+            try ledger.save(receipt)
+            store.reset()
+            guard let fresh = store.calendar(withIdentifier: current.calendarIdentifier)
+            else { return ["state": "unknown"] }
+            op.calendar = fresh
+            let result = readBack(op, receipt)
+            try ledger.save(result)
             return result
         }
-        try requireAccess()
-        try requireActive()
-        guard
-            let current = store.calendar(
-                withIdentifier: op.calendar.calendarIdentifier),
-            current.allowsContentModifications
-        else {
-            let result: Object = [
-                "state": "failed",
-                "error": ["code": "read_only", "message": "캘린더 권한이 변경되어 저장하지 않았습니다."],
-            ]
-            try atomic(result, at: path)
-            return result
-        }
-        // Journal is committed BEFORE EventKit. An uncertain save is never replayed.
-        try atomic(["state": "writing"], at: path)
-        let event = EKEvent(eventStore: store)
-        event.calendar = current
-        event.title = op.title
-        event.startDate = op.start
-        event.endDate = op.end
-        event.timeZone = op.timeZone
-        event.notes = op.notes
-        event.url = op.marker
-        writeMayHaveHappened = true
-        do { try store.save(event, span: .thisEvent, commit: true) } catch {
-            let result: Object = [
-                "state": "unknown",
-                "error": [
-                    "code": "outcome_unknown",
-                    "message": "저장 결과를 확인해야 합니다. 다시 생성하지 마세요.",
-                ],
-            ]
-            try? atomic(result, at: path)
-            return result
-        }
-        let receipt: Object = ["state": "written", "event": eventView(event)]
-        try atomic(receipt, at: path)
-        store.reset()
-        guard let fresh = store.calendar(withIdentifier: current.calendarIdentifier)
-        else { return ["state": "unknown"] }
-        op.calendar = fresh
-        let result = readBack(op, receipt)
-        try atomic(result, at: path)
-        return result
     }
 }
-@main
-struct Main {
-    @MainActor static func main() {
-        let app = NSApplication.shared
-        app.setActivationPolicy(.accessory)
-        let delegate = Bridge()
-        app.delegate = delegate
-        withExtendedLifetime(delegate) { app.run() }
+#if !LEDGER_TEST
+    @main
+    struct Main {
+        @MainActor static func main() {
+            let app = NSApplication.shared
+            app.setActivationPolicy(.accessory)
+            let delegate = Bridge()
+            app.delegate = delegate
+            withExtendedLifetime(delegate) { app.run() }
+        }
     }
-}
+
+#endif

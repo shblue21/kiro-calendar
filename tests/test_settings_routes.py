@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
+from support import use_timezone
 from support import Services, load
 
 routes = load("routes")
@@ -19,6 +20,7 @@ except ImportError:
 @unittest.skipUnless(web, "aiohttp required")
 class SettingsRouteTest(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        use_timezone(self)
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.ctx = SimpleNamespace(data_dir=Path(tmp.name))
