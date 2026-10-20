@@ -26,6 +26,7 @@ async function fixture(t) {
     "tests",
   ])
     await mkdir(path.join(root, dir), { recursive: true });
+  await writeFile(path.join(root, "LICENSE"), "Test license\n");
   await writeFile(
     path.join(root, "app.json"),
     JSON.stringify({
@@ -58,7 +59,9 @@ async function fixture(t) {
 test("package includes runtime only, ignoring documents and source", async (t) => {
   const root = await fixture(t);
   const output = await packageApp(root, path.join(root, ".build"));
+  assert.equal(await readFile(path.join(output, "LICENSE"), "utf8"), "Test license\n");
   assert.deepEqual((await readdir(output, { recursive: true })).sort(), [
+    "LICENSE",
     "app.json",
     "backend",
     "backend/routes.py",

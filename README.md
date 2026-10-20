@@ -175,3 +175,7 @@ Keep these contracts when changing the app:
 - Failures before a provider write are distinct from unknown outcomes after dispatch. Uncertain saves are verified before another submission is allowed. An external failure never silently becomes a Crew event.
 - Host SDK components own common controls and theme styling. Shared layout components own spacing; individual pages should not override their internals.
 - Write project documentation in English. Update UI copy in [`en.ts`](ui/src/i18n/en.ts) first, then keep [`ko.ts`](ui/src/i18n/ko.ts) aligned. Preserve user input when the language or time zone changes.
+
+## License
+
+MIT. See [LICENSE](LICENSE). Third-party dependencies retain their own licenses.

@@ -66,5 +66,6 @@
     "ui/assets/store/screenshot-week.png",
     "ui/assets/store/screenshot-conversation.png",
     "ui/assets/store/screenshot-event.png"
-  ]
+  ],
+  "license": "MIT"
 }
