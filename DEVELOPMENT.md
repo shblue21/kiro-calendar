@@ -29,6 +29,18 @@ Tests cover date boundaries, DST, overlap layout, localization, packaging, event
 
 GitHub Actions runs tests, Python lint, UI builds and packaging on Ubuntu, Apple Silicon macOS and Intel macOS. Both macOS jobs check formatting and build the Universal helper with Xcode 26.3, then verify both architectures and signatures in the package. The Apple Silicon job uploads the shared Universal package, preserving executable permissions and using a local ad-hoc signature. It is a verification artifact, not a signed public release.
 
+## Release
+
+Set the release version in `app.json`, push the source changes to `main`, and wait for CI to pass. In GitHub Actions, run **Release** from `main`.
+
+The workflow requires successful CI for that exact source commit. It builds the UI and Universal macOS helper, packages the runtime files and licenses, and creates `release-v<version>` and an annotated `v<version>` tag. Both point to the deployment commit. That commit contains only the package contents and records the source commit as its parent, so a catalog install needs no npm build.
+
+The branch and tag are pushed together. Existing release refs are never replaced; bump the version for the next release. The source branch and its checkout remain unchanged. Use the deployment tag or commit SHA in the marketplace catalog entry.
+
+This workflow publishes Git refs. GitHub Release downloads and marketplace registration are separate steps. The helper retains its local ad-hoc signature; the workflow does not add Developer ID signing or notarization.
+
+## Code structure
+
 | Start here                                                             | Responsibility                                                    |
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | [`ui/src/App.tsx`](ui/src/App.tsx)                                     | Workspace tabs, editors and app-level actions                     |
