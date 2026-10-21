@@ -2,9 +2,11 @@
 
 [Back to README](README.md)
 
-The UI uses React and TypeScript; the backend uses Python. The macOS helper uses Swift and EventKit. Run these commands from the repository root. Install the test tools below; `aiohttp` is required for API tests.
+The UI uses React and TypeScript; the backend uses Python. The macOS helper uses Swift and EventKit. CI uses Node.js 22.18 and Python 3.12. From the repository root, install the UI and test dependencies, then run the checks. `aiohttp` is required for API tests.
 
 ```sh
+npm ci --ignore-scripts
+npm --prefix ui ci --ignore-scripts
 python3 -m pip install -r .github/requirements-ci.txt
 npm test
 npm run build
@@ -42,6 +44,7 @@ GitHub Actions runs tests, Python lint, UI builds and packaging on Ubuntu, Apple
 
 Keep these contracts when changing the app:
 
+- When changing bundled dependencies, update [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) with their versions and full license texts. The runtime package includes this file alongside the project license.
 - The API and UI share event action policy. Mutations check revisions; accepting a draft updates the existing record.
 - A registration request ID is reused for retries. The same ID and contents return the existing item; a new ID represents a new operation. A replay cannot overwrite later edits or restore a deleted event.
 - Failures before a provider write are distinct from unknown outcomes after dispatch. Uncertain saves are verified before another submission is allowed. An external failure never silently becomes a Crew event.

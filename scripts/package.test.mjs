@@ -28,6 +28,10 @@ async function fixture(t) {
     await mkdir(path.join(root, dir), { recursive: true });
   await writeFile(path.join(root, "LICENSE"), "Test license\n");
   await writeFile(
+    path.join(root, "THIRD_PARTY_NOTICES.txt"),
+    "Test third-party notices\n",
+  );
+  await writeFile(
     path.join(root, "app.json"),
     JSON.stringify({
       name: "crew-calendar",
@@ -60,8 +64,13 @@ test("package includes runtime only, ignoring documents and source", async (t) =
   const root = await fixture(t);
   const output = await packageApp(root, path.join(root, ".build"));
   assert.equal(await readFile(path.join(output, "LICENSE"), "utf8"), "Test license\n");
+  assert.equal(
+    await readFile(path.join(output, "THIRD_PARTY_NOTICES.txt"), "utf8"),
+    "Test third-party notices\n",
+  );
   assert.deepEqual((await readdir(output, { recursive: true })).sort(), [
     "LICENSE",
+    "THIRD_PARTY_NOTICES.txt",
     "app.json",
     "backend",
     "backend/routes.py",

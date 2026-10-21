@@ -88,7 +88,8 @@ export async function packageApp(
   const staging = await mkdtemp(path.join(buildRoot, ".crew-calendar-"));
   try {
     await copyFile(manifestPath, path.join(staging, "app.json"));
-    await copyFile(path.join(sourceRoot, "LICENSE"), path.join(staging, "LICENSE"));
+    for (const file of ["LICENSE", "THIRD_PARTY_NOTICES.txt"])
+      await copyFile(path.join(sourceRoot, file), path.join(staging, file));
     for (const directory of ["dist", "assets"]) {
       await copyRuntimeTree(
         path.join(sourceRoot, "ui", directory),

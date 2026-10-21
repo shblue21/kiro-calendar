@@ -82,4 +82,4 @@ Crew events stay in this installation and do not sync between installations. The
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Third-party dependencies retain their own licenses.
+MIT. See [LICENSE](LICENSE). Bundled dependencies retain their own licenses, listed in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
