@@ -167,7 +167,7 @@ final class Bridge: NSObject, NSApplicationDelegate {
             let action = try string(request, "action")
             let result: Object
             switch action {
-            case "status": result = status()
+            case "status": result = try status()
             case "authorize":
                 NSApp.activate(ignoringOtherApps: true)
                 if EKEventStore.authorizationStatus(for: .event) == .notDetermined
@@ -175,7 +175,7 @@ final class Bridge: NSObject, NSApplicationDelegate {
                 {
                     _ = try await store.requestFullAccessToEvents()
                 }
-                result = status()
+                result = try status()
             case "calendars":
                 try requireAccess()
                 result = ["calendars": store.calendars(for: .event).map(calendarView)]
@@ -210,7 +210,14 @@ final class Bridge: NSObject, NSApplicationDelegate {
         }
         NSApp.terminate(nil)
     }
-    func status() -> Object {
+    func status() throws -> Object {
+        guard
+            let version = Bundle.main.object(
+                forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+            !version.isEmpty
+        else {
+            throw BridgeError(code: "provider_error", message: "앱 버전 정보를 읽지 못했습니다.")
+        }
         let value: String
         switch EKEventStore.authorizationStatus(for: .event) {
         case .notDetermined: value = "notDetermined"
@@ -220,7 +227,7 @@ final class Bridge: NSObject, NSApplicationDelegate {
         case .writeOnly: value = "writeOnly"
         @unknown default: value = "unknown"
         }
-        return ["authorization": value, "host": "이 Mac", "helperVersion": "0.1.0"]
+        return ["authorization": value, "host": "이 Mac", "helperVersion": version]
     }
     func requireAccess() throws {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else {

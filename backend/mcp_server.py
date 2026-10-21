@@ -30,6 +30,9 @@ CalendarError = load("calendar_domain").CalendarError
 _host = load("host")
 caller_from_meta, caller_from_host = _host.caller_from_meta, _host.caller_from_host
 Services = load("composition").Services
+APP_VERSION = json.loads(
+    (Path(__file__).resolve().parents[1] / "app.json").read_text(encoding="utf-8")
+)["version"]
 
 CALLER_META_KEY = "kirocrew.caller"
 CALLER_CAPABILITY = {"kirocrew.caller-identity": {"schemaVersion": 1}}
@@ -249,7 +252,7 @@ def handle(store, message: dict[str, Any]) -> dict[str, Any] | None:
                 "experimental": CALLER_CAPABILITY,
             },
             # MCP reports the app release version, like the UI and native helper.
-            "serverInfo": {"name": "crew-calendar-drafts", "version": "0.1.0"},
+            "serverInfo": {"name": "crew-calendar-drafts", "version": APP_VERSION},
         }
     elif method == "tools/list":
         result = {"tools": [CONTEXT_TOOL, REGISTER_TOOL, TOOL]}

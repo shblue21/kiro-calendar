@@ -1,15 +1,13 @@
 """Small test fixtures: real storage, one fake provider, an explicitly selected timezone."""
 
 from __future__ import annotations
-import sys
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
+from backend.runtime import load
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "backend"))
-from runtime import load
 
 Services = load("composition").Services
 CalendarService = load("calendar_service").CalendarService

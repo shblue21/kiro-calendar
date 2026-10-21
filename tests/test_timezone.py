@@ -2,7 +2,7 @@ import os
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from support import load
+from tests.support import load
 
 module = load("timezone")
 

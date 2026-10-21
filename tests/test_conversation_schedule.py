@@ -6,8 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-from support import use_timezone
-from support import TEST_TIMEZONE, local_time, Services, load
+from tests.support import use_timezone, TEST_TIMEZONE, local_time, Services, load
 
 ConversationSchedule = load("conversation_schedule").ConversationSchedule
 CalendarError = load("calendar_domain").CalendarError

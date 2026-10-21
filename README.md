@@ -12,7 +12,7 @@ Ask for help getting started, accept a suggested time, and open the event in Cal
 
 ![A real conversation suggests rehearsal time, the user agrees, and the saved event appears in Crew Calendar](assets/readme/conversation-demo.gif)
 
-Recorded in Kiro Crew with a demo conversation and a test event. The replies and registration are real; waiting time is shortened.
+Recorded in Kiro Crew with a demo conversation and a test event. The replies and event save are real; pauses have been shortened for the demo.
 
 - Browse events in day, week, month, year or list views.
 - Edit Crew events and recover deleted ones.
@@ -23,7 +23,7 @@ This is a preview release. Installed-app testing has covered Apple Silicon macOS
 
 ## Install from source
 
-You need Kiro Crew and Node.js 22.18 or later. See [`app.json`](app.json) for the declared minimum Crew version. On macOS, building the Apple Calendar helper also requires macOS 14 or later and the Swift compiler.
+You need Kiro Crew and Node.js 22.18 or later. On macOS, building the Apple Calendar helper also requires macOS 14 or later and the Swift compiler.
 
 Run these commands from the repository root:
 
@@ -46,7 +46,7 @@ Always install `.build/crew-calendar`, not the repository root. The package cont
 
 For an existing installation, use Crew's app update action with `.build/crew-calendar` as the source. Updates that add API permissions may require disabling and re-enabling Calendar.
 
-The macOS helper is built for the build machine's architecture and uses a local ad-hoc signature. Public distribution still needs signing, notarization and target-architecture validation. Rebuilding the helper may cause macOS to request calendar access again.
+The macOS helper is a Universal binary containing Apple Silicon (arm64) and Intel (x86_64) code for macOS 14 or later. It uses a local ad-hoc signature; Developer ID signing and notarization are not configured. Rebuilding the helper may cause macOS to request calendar access again.
 
 ## Create your first event
 
@@ -79,7 +79,7 @@ You can explicitly ask Crew to register an event in a regular conversation while
 
 Suggestions apply from the next message in selected regular conversations and may use additional tokens. Private, temporary and subagent conversations are excluded. You can turn suggestions off without disabling explicit registration requests.
 
-Crew should show the title, exact date, start/end times and destination before asking you to agree. You can accept, change the time or decline. A clear registration request does not need another confirmation. Ignoring or declining a suggestion does not save an event.
+Crew should show the title, exact date, start/end times and destination before asking you to agree. You can accept, change the time or decline. When you explicitly ask Crew to register an event, Crew treats that request as confirmation to save it. Ignoring or declining a suggestion does not save an event.
 
 Chat registration saves to **Crew Calendar**. Use Calendar's editor to change a registered event or save to Apple Calendar.
 
@@ -90,7 +90,7 @@ Ask Crew to keep an event as a draft for later review. Open **Saved drafts > Rev
 - **Save draft changes** to keep editing later.
 - **Save as event** to accept it into Crew Calendar.
 
-Accepting a draft preserves its identity and link to the original conversation. Automatic suggestions do not create saved drafts.
+Saving a draft as an event updates the existing draft and keeps its link to the original conversation. Automatic suggestions do not create saved drafts.
 
 ## Connect Apple Calendar
 
@@ -104,7 +104,7 @@ The connection uses the Mac running Crew, including when you access Crew remotel
 
 A confirmed save means EventKit returned a matching event. It does not confirm synchronization to iCloud or another device. Existing external events must be edited or deleted in their original calendar.
 
-Closing the web panel leaves the Mac confirmation window open. Cancel in that window to stop the save; an unanswered confirmation expires after two minutes. While a save is pending or its outcome is uncertain, editing and duplicate submission are locked. Use the status actions in **History > Save status** to check the existing request.
+Closing the web panel leaves the Mac confirmation window open. Cancel in that window to stop the save; an unanswered confirmation expires after two minutes. While a save is pending or its outcome is uncertain, you cannot edit the event or submit it again. Use the status actions in **History > Save status** to check the existing request.
 
 The app reads selected calendars and checks that a destination is writable before saving. It never substitutes another destination automatically. Queries are limited to 370 days and 5,000 returned events, with a notice when results are incomplete.
 
@@ -132,19 +132,27 @@ The Apple connection can display existing all-day, multi-day and recurring event
 
 ## Data and permissions
 
-Saved events and drafts live in the app's `data/calendar/entries/` directory. Display choices and default destinations are in `data/calendar/`; suggestion settings are in `data/settings.json`. Calendar writes use a shared process lock. Unreadable event files are preserved and reported without preventing readable events from loading.
+Saved events and drafts live in the app's `data/calendar/entries/` directory. Display choices and default destinations are in `data/calendar/`; suggestion settings are in `data/settings.json`. Writes to Crew Calendar data use a shared process lock. Unreadable event files are preserved and reported without preventing readable events from loading.
 
-App trust allows Calendar's Python code to run with Crew's authority. The manifest's `permissions.network: false` is not an OS-level network sandbox. macOS calendar access and per-event native confirmation are separate from app trust. External save URLs contain a `crew-calendar://operation/...` identifier for result verification, without conversation text or credentials.
+Trusting the app lets its Python code run with the permissions available to Crew. The manifest's `permissions.network: false` is not an OS-level network sandbox. macOS calendar access and per-event native confirmation are separate from app trust. External save URLs contain a `crew-calendar://operation/...` identifier for result verification, without conversation text or credentials.
 
-Before uninstalling, remove or disable the manually registered suggestion hook and cancel any open Mac confirmation window. Crew's default uninstall preserves app data. Uninstalling Calendar does not delete events already saved to Apple Calendar or revoke macOS calendar access. Reinstallation requires app trust again.
+Before uninstalling, remove or disable the manually registered suggestion hook and cancel any open Mac confirmation window. By default, uninstalling Calendar through Crew preserves its app data. Uninstalling Calendar does not delete events already saved to Apple Calendar or revoke macOS calendar access. Reinstallation requires app trust again.
 
 ## Development
 
-The UI uses React and TypeScript; the backend uses Python. The macOS helper uses Swift and EventKit. Local Python tests need `aiohttp`; run them with Crew's bundled Python as well so API tests are not skipped.
+The UI uses React and TypeScript; the backend uses Python. The macOS helper uses Swift and EventKit. Run these commands from the repository root. Install the test tools below; `aiohttp` is required for API tests.
 
 ```sh
+python3 -m pip install -r .github/requirements-ci.txt
 npm test
 npm run build
+```
+
+`npm test` uses the `python3` on your shell's PATH. On macOS, also run the Python tests with Crew's bundled interpreter. With the desktop app's `kirocrew` launcher on PATH, these commands locate the interpreter beside that launcher and run the tests from the repository root:
+
+```sh
+crew_python="$(python3 -c 'from pathlib import Path; from shutil import which; print(Path(which("kirocrew")).resolve().with_name("python3"))')"
+"$crew_python" -m unittest discover -s tests -t .
 ```
 
 Tests select their time zones explicitly, independently of the host environment. On macOS, also check formatting. The formatting command requires Ruff and `swift-format` in addition to the installed Prettier dependency.
@@ -154,6 +162,8 @@ npm run format:check
 ```
 
 Tests cover date boundaries, DST, overlap layout, localization, packaging, event lifecycle rules, concurrent requests, uncertain saves and API access. Use the installed app to check chat registration and native EventKit writes. For UI changes, check narrow containers, scrolling, keyboard focus and host themes.
+
+GitHub Actions runs tests, Python lint, UI builds and packaging on Ubuntu, Apple Silicon macOS and Intel macOS. Both macOS jobs check formatting and build the Universal helper with Xcode 26.3, then verify both architectures and signatures in the package. The Apple Silicon job uploads the shared Universal package, preserving executable permissions and using a local ad-hoc signature. It is a verification artifact, not a signed public release.
 
 | Start here                                                             | Responsibility                                                    |
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |

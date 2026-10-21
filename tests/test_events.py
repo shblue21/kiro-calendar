@@ -7,8 +7,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
-from support import use_timezone
-from support import Services, CalendarError, FIELDS, ORIGIN, load
+from tests.support import use_timezone, Services, CalendarError, FIELDS, ORIGIN, load
 
 CREW = {"connectionId": "crew", "calendarId": "default"}
 StorageUnavailable = load("domain").StorageUnavailable

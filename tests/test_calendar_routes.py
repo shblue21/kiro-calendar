@@ -7,8 +7,7 @@ import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
-from support import use_timezone
-from support import FIELDS, external_calendar, load
+from tests.support import use_timezone, FIELDS, external_calendar, load
 
 routes = load("calendar_routes")
 try:

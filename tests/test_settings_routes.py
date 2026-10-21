@@ -6,8 +6,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
-from support import use_timezone
-from support import Services, load
+from tests.support import use_timezone, Services, load
 
 routes = load("routes")
 host = load("host")
@@ -35,10 +34,10 @@ class SettingsRouteTest(unittest.IsolatedAsyncioTestCase):
     async def test_denied_settings_requests_do_not_read_or_write(self):
         with (
             patch.object(
-                routes,
-                "_module",
+                host,
+                "connection_info",
                 side_effect=AssertionError("Denied requests must not access app data"),
-            ) as modules,
+            ) as connection,
             patch.object(routes, "_services") as services,
             patch.object(routes, "_chats") as chats,
         ):
@@ -55,7 +54,7 @@ class SettingsRouteTest(unittest.IsolatedAsyncioTestCase):
                             request, "crew-calendar.settings"
                         )
                         request.json.assert_not_awaited()
-            modules.assert_not_called()
+            connection.assert_not_called()
             services.assert_not_called()
             chats.assert_not_called()
 

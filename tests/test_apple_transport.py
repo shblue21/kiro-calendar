@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from support import load
+from tests.support import load
 
 apple = load("apple_provider")
 

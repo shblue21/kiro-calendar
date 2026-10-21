@@ -31,13 +31,11 @@ test("title normalization agrees with the server at whitespace boundaries", () =
       [
         "-c",
         `
-import json, sys
-sys.path.insert(0, 'tests')
-from support import load
-domain = load('domain')
+import json
+from backend.domain import _text
 characters = [' ', '\\t', '\\n', '\\u00a0', '\\u3000', '\\u001c', '\\u0085', '\\ufeff', '\\u200b']
 texts = [c + 'a' * 118 + c + c + 'b' + c for c in characters] + ['', '\\u0085\\u001c\\u3000']
-print(json.dumps([[text, domain._text(text, 'title', 10000)] for text in texts]))
+print(json.dumps([[text, _text(text, 'title', 10000)] for text in texts]))
 `,
       ],
       { cwd: root, encoding: "utf8" },

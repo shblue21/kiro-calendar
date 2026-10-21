@@ -1,14 +1,14 @@
 from __future__ import annotations
 import sys
 import json
+import shutil
 import subprocess
 import tempfile
 import unittest
 import uuid
 from pathlib import Path
 
-from support import use_timezone
-from support import TEST_TIMEZONE, local_time, ROOT, Services, load
+from tests.support import use_timezone, TEST_TIMEZONE, local_time, ROOT, Services, load
 
 A = {
     "sessionKey": "dashboard:chat-a",
@@ -177,6 +177,43 @@ class HookProcessTest(unittest.TestCase):
 
 
 class McpServerTest(unittest.TestCase):
+    def test_initialize_reports_packaged_manifest_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shutil.copytree(
+                ROOT / "backend",
+                root / "backend",
+                ignore=shutil.ignore_patterns("__pycache__"),
+            )
+            manifest = json.loads((ROOT / "app.json").read_text())
+            manifest["version"] = "7.8.9"
+            (root / "app.json").write_text(json.dumps(manifest))
+            messages = [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {"protocolVersion": "2024-11-05"},
+                },
+                {"jsonrpc": "2.0", "id": 2, "method": "ping"},
+            ]
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-I",
+                    str(root / "backend/mcp_server.py"),
+                    str(root / "data"),
+                ],
+                input="".join(json.dumps(message) + "\n" for message in messages),
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=True,
+            )
+            responses = [json.loads(line) for line in result.stdout.splitlines()]
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "7.8.9")
+            self.assertEqual(responses[1], {"jsonrpc": "2.0", "id": 2, "result": {}})
+
     def test_interleaved_callers_in_one_process_are_not_mixed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             out = rpc(

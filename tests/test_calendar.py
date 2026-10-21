@@ -11,8 +11,8 @@ from threading import Event
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
-from support import use_timezone
-from support import (
+from tests.support import (
+    use_timezone,
     Services,
     CalendarService,
     CalendarStorage,

@@ -13,6 +13,11 @@ struct SaveJournalTests {
         return process.terminationStatus
     }
     @MainActor static func main() throws {
+        if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "status" {
+            let data = try JSONSerialization.data(withJSONObject: Bridge().status())
+            FileHandle.standardOutput.write(data)
+            return
+        }
         if CommandLine.arguments.count == 3 {
             let path = URL(fileURLWithPath: CommandLine.arguments[1])
             let mode = CommandLine.arguments[2]
