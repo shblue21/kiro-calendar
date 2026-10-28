@@ -191,8 +191,9 @@ export function TimeGrid({
                   const status = statusLabel(item);
                   const positioning = {
                     top: geometry.topPx,
-                    left: `calc((100% - var(--cc-clock-gutter)) * ${lane / lanes} + 4px)`,
-                    width: `calc((100% - var(--cc-clock-gutter)) / ${lanes} - 8px)`,
+                    "--cc-lane-width": `calc((100% - var(--cc-clock-gutter)) / ${lanes})`,
+                    left: `calc(var(--cc-lane-width) * ${lane} + var(--cc-lane-gap))`,
+                    width: "calc(var(--cc-lane-width) - 2 * var(--cc-lane-gap))",
                     height: geometry.heightPx,
                     "--cc-span": `${geometry.durationMarkHeightPx}px`,
                   } as CSSProperties;
