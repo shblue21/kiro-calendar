@@ -252,7 +252,7 @@ def handle(store, message: dict[str, Any]) -> dict[str, Any] | None:
                 "experimental": CALLER_CAPABILITY,
             },
             # MCP reports the app release version, like the UI and native helper.
-            "serverInfo": {"name": "crew-calendar-drafts", "version": APP_VERSION},
+            "serverInfo": {"name": "crew-calendar", "version": APP_VERSION},
         }
     elif method == "tools/list":
         result = {"tools": [CONTEXT_TOOL, REGISTER_TOOL, TOOL]}
@@ -290,7 +290,7 @@ def main(argv: list[str]) -> int:
             try:
                 response = handle(store, message) if isinstance(message, dict) else None
             except Exception as exc:  # never kill the stream; report on stderr
-                print(f"crew-calendar-drafts: {exc!r}", file=sys.stderr)
+                print(f"crew-calendar: {exc!r}", file=sys.stderr)
                 response = {
                     "jsonrpc": "2.0",
                     "id": message.get("id"),
