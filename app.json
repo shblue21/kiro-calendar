@@ -2,11 +2,24 @@
   "name": "crew-calendar",
   "version": "0.1.0",
   "displayName": "Calendar",
-  "description": "Create events in Crew, agree on a time in chat, or keep a draft for later. Browse your schedule by day, week, month or year. Scheduling suggestions are optional and apply to the conversations you choose. On macOS, view Apple Calendar events and confirm new saves in a native window.",
+  "description": "A calendar inside Crew. When you settle on a time in chat, Crew can save the event here, and you can add or edit events yourself. On macOS it also shows your Apple Calendar events.",
+  "highlights": [
+    "Save an event from chat once you and Crew agree on a time",
+    "Ask for a draft to keep an event for later, then review and edit it in Saved drafts",
+    "Browse by day, week, month, year or list",
+    "Restore deleted events from History",
+    "Get scheduling suggestions in the conversations you pick, saved only after you agree",
+    "On macOS 14 or later, see Apple Calendar events and confirm each new save in a native window"
+  ],
+  "useCases": [
+    "Keep the times you agree on in Crew chats as calendar events, and plan your week in the same window."
+  ],
+  "configuration": [
+    "No account or sign-in is needed. Scheduling suggestions need one hook registered under Agent features → Hooks, and the app shows the exact command. Remove that hook before you uninstall. On macOS 14 or later, allow Calendar access to see Apple Calendar events."
+  ],
   "tags": [
     "calendar",
-    "productivity",
-    "preview"
+    "productivity"
   ],
   "ui": {
     "entry": "dist/index.mjs",
@@ -26,7 +39,6 @@
   "permissions": {
     "api": [
       "/api/apps/crew-calendar/settings",
-      "/api/apps/crew-calendar/calendar",
       "/api/apps/crew-calendar/calendar/*"
     ],
     "events": [],
@@ -40,7 +52,7 @@
     }
   },
   "mcpServers": {
-    "drafts": {
+    "calendar": {
       "command": "python3",
       "args": [
         "-c",
