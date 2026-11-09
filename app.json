@@ -1,6 +1,6 @@
 {
   "name": "crew-calendar",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "Calendar",
   "description": "A calendar inside Crew. When you settle on a time in chat, Crew can save the event here, and you can add or edit events yourself. On macOS it also shows your Apple Calendar events.",
   "highlights": [
