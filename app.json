@@ -1,6 +1,6 @@
 {
   "name": "crew-calendar",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "displayName": "Calendar",
   "description": "A calendar inside Crew. When you settle on a time in chat, Crew can save the event here, and you can add or edit events yourself. On macOS it also shows your Apple Calendar events.",
   "highlights": [
@@ -55,12 +55,11 @@
     "calendar": {
       "command": "python3",
       "args": [
-        "-c",
-        "import sys,runpy;from kiro_crew.apps.manager import app_dir;d=app_dir(sys.argv[1]);sys.argv=[str(d/'backend'/'mcp_server.py'),str(d/'data')];runpy.run_path(sys.argv[0],run_name='__main__')",
-        "crew-calendar"
+        "backend/mcp_server.py"
       ]
     }
   },
+  "minKiroCrewVersion": "0.11.0",
   "platform": {
     "os": [
       "macos",

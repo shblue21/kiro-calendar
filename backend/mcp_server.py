@@ -1,6 +1,6 @@
 """Stdio MCP transport for conversation registration and explicitly saved drafts.
 
-Usage: ``mcp_server.py <data_dir>`` (the manifest launcher passes the app's data dir).
+Usage: ``mcp_server.py`` (data lives in ``data/`` beside this file's ``backend/``).
 
 The originating conversation is taken from the caller identity the host provides,
 never from tool arguments:
@@ -30,9 +30,9 @@ CalendarError = load("calendar_domain").CalendarError
 _host = load("host")
 caller_from_meta, caller_from_host = _host.caller_from_meta, _host.caller_from_host
 Services = load("composition").Services
-APP_VERSION = json.loads(
-    (Path(__file__).resolve().parents[1] / "app.json").read_text(encoding="utf-8")
-)["version"]
+APP_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = APP_ROOT / "data"
+APP_VERSION = json.loads((APP_ROOT / "app.json").read_text(encoding="utf-8"))["version"]
 
 CALLER_META_KEY = "kirocrew.caller"
 CALLER_CAPABILITY = {"kirocrew.caller-identity": {"schemaVersion": 1}}
@@ -269,11 +269,8 @@ def handle(store, message: dict[str, Any]) -> dict[str, Any] | None:
     return {"jsonrpc": "2.0", "id": msg_id, "result": result}
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) < 2:
-        print("usage: mcp_server.py <data_dir>", file=sys.stderr)
-        return 2
-    store = Services(argv[1])
+def main() -> int:
+    store = Services(DATA_DIR)
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -303,4 +300,4 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

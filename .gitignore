@@ -5,4 +5,5 @@ ui/dist/
 # Local documentation only. Never commit or push this directory.
 /docs/
 /.build/
+/data/
 __pycache__/
