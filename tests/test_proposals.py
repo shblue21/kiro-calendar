@@ -106,10 +106,18 @@ MCP_FIELDS = {
 }
 
 
-def rpc(lines: list[dict], data_dir: Path) -> list[dict]:
+def install_copy(root: Path) -> None:
+    """Lay out an app install under *root*; the server keeps its data in root/data."""
+    shutil.copytree(
+        ROOT / "backend", root / "backend", ignore=shutil.ignore_patterns("__pycache__")
+    )
+    shutil.copy(ROOT / "app.json", root / "app.json")
+
+
+def rpc(lines: list[dict], root: Path) -> list[dict]:
     """Run the server as the host would (one stdio process) and collect responses."""
     proc = subprocess.run(
-        [sys.executable, "-I", str(ROOT / "backend" / "mcp_server.py"), str(data_dir)],
+        [sys.executable, "-I", str(root / "backend" / "mcp_server.py")],
         input="".join(json.dumps(line) + "\n" for line in lines),
         capture_output=True,
         text=True,
@@ -180,42 +188,29 @@ class McpServerTest(unittest.TestCase):
     def test_initialize_reports_packaged_manifest_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            shutil.copytree(
-                ROOT / "backend",
-                root / "backend",
-                ignore=shutil.ignore_patterns("__pycache__"),
-            )
-            manifest = json.loads((ROOT / "app.json").read_text())
+            install_copy(root)
+            manifest = json.loads((root / "app.json").read_text())
             manifest["version"] = "7.8.9"
             (root / "app.json").write_text(json.dumps(manifest))
-            messages = [
-                {
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "initialize",
-                    "params": {"protocolVersion": "2024-11-05"},
-                },
-                {"jsonrpc": "2.0", "id": 2, "method": "ping"},
-            ]
-            result = subprocess.run(
+            responses = rpc(
                 [
-                    sys.executable,
-                    "-I",
-                    str(root / "backend/mcp_server.py"),
-                    str(root / "data"),
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "initialize",
+                        "params": {"protocolVersion": "2024-11-05"},
+                    },
+                    {"jsonrpc": "2.0", "id": 2, "method": "ping"},
                 ],
-                input="".join(json.dumps(message) + "\n" for message in messages),
-                capture_output=True,
-                text=True,
-                timeout=20,
-                check=True,
+                root,
             )
-            responses = [json.loads(line) for line in result.stdout.splitlines()]
             self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "7.8.9")
             self.assertEqual(responses[1], {"jsonrpc": "2.0", "id": 2, "result": {}})
 
     def test_interleaved_callers_in_one_process_are_not_mixed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            install_copy(root)
             out = rpc(
                 [
                     call(1, MCP_FIELDS, "dashboard:chat-1-aaa"),
@@ -226,9 +221,9 @@ class McpServerTest(unittest.TestCase):
                         "dashboard:chat-1-aaa",
                     ),
                 ],
-                Path(tmp),
+                root,
             )
-            drafts = Services(tmp).repository.items()
+            drafts = Services(root / "data").repository.items()
         self.assertEqual([response["id"] for response in out], [1, 2, 3])
         expected = [
             ("dashboard:chat-1-aaa", MCP_FIELDS["title"]),
