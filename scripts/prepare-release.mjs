@@ -16,11 +16,10 @@ export async function prepareRelease(root) {
   if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version))
     throw new Error("Release version must be major.minor.patch.");
   const tag = `v${version}`;
-  const branch = `release-${tag}`;
-  const refs = [`refs/heads/${branch}`, `refs/tags/${tag}`];
+  const ref = `refs/tags/${tag}`;
   if (
-    git(["for-each-ref", "--format=%(refname)", ...refs]) ||
-    git(["ls-remote", "--refs", "origin", ...refs])
+    git(["for-each-ref", "--format=%(refname)", ref]) ||
+    git(["ls-remote", "--refs", "origin", ref])
   )
     throw new Error(`Release ${tag} already exists. Bump app.json first.`);
 
@@ -58,9 +57,8 @@ export async function prepareRelease(root) {
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
-  git(["branch", branch, commit]);
   git(["tag", "-a", tag, commit, "-m", `Crew Calendar ${tag}\nSource: ${source}`]);
-  return { branch, tag, commit, source };
+  return { tag, commit, source };
 }
 
 if (

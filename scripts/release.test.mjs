@@ -43,16 +43,14 @@ async function fixture(t) {
   return { root, packaged, source, git, executable };
 }
 
-test("release tag and branch point to the runtime commit and leave main untouched", async (t) => {
+test("release tag points to the runtime commit and leaves main untouched", async (t) => {
   const { root, packaged, source, git, executable } = await fixture(t);
   const indexBefore = await readFile(path.join(root, ".git/index"));
   const release = await prepareRelease(root);
   assert.equal(release.source, source);
-  assert.equal(release.branch, "release-v1.2.3");
   assert.equal(release.tag, "v1.2.3");
   assert.notEqual(release.commit, source);
   assert.equal(git(["rev-parse", `${release.tag}^{commit}`]), release.commit);
-  assert.equal(git(["rev-parse", release.branch]), release.commit);
   assert.equal(git(["rev-parse", `${release.commit}^`]), source);
   assert.equal(git(["cat-file", "-t", release.tag]), "tag");
   assert.equal(git(["rev-parse", "HEAD"]), source);
@@ -73,12 +71,12 @@ test("release tag and branch point to the runtime commit and leave main untouche
   );
 });
 
-test("release refuses an existing local tag or remote branch", async (t) => {
-  for (const location of ["local tag", "remote branch"]) {
+test("release refuses an existing local or remote tag", async (t) => {
+  for (const location of ["local tag", "remote tag"]) {
     await t.test(location, async (t) => {
       const { root, source, git } = await fixture(t);
       if (location === "local tag") git(["tag", "v1.2.3", source]);
-      else git(["push", "origin", `${source}:refs/heads/release-v1.2.3`]);
+      else git(["push", "origin", `${source}:refs/tags/v1.2.3`]);
       const refs = git(["show-ref"]);
       const remoteRefs = git(["ls-remote", "origin"]);
       await assert.rejects(prepareRelease(root), /already exists/);

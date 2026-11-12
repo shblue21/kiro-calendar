@@ -65,26 +65,22 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           node scripts/prepare-release.mjs
 
-      - name: Publish branch and tag together
+      - name: Publish tag
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_BRANCH: ${{ steps.release.outputs.branch }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
           RELEASE_COMMIT: ${{ steps.release.outputs.commit }}
         run: |
           gh auth setup-git
-          # Empty leases require both remote refs to be absent, even if another
-          # publisher creates one after the preparation check.
-          git push --atomic \
-            --force-with-lease="refs/heads/$RELEASE_BRANCH:" \
+          # An empty lease requires the remote tag to be absent, even if another
+          # publisher creates it after the preparation check.
+          git push \
             --force-with-lease="refs/tags/$RELEASE_TAG:" \
-            origin "refs/heads/$RELEASE_BRANCH" "refs/tags/$RELEASE_TAG"
+            origin "refs/tags/$RELEASE_TAG"
           {
             echo "Source commit: $GITHUB_SHA"
             echo ""
             echo "Deployment commit: $RELEASE_COMMIT"
-            echo ""
-            echo "Branch: $RELEASE_BRANCH"
             echo ""
             echo "Tag: $RELEASE_TAG"
           } >> "$GITHUB_STEP_SUMMARY"
